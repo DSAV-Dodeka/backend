@@ -1,0 +1,24 @@
+services:
+  db:
+    image: "${APP_IMAGE}:${VERSION}"
+    volumes:
+      # <volume name in volumes>:<container destination directory>
+      - db_volume:${RESOURCES_TARGET}
+    env_file:
+      - .env.db
+    # Some environment variables depend on others, so we load those in manually
+    environment:
+      PGDATA: ${RESOURCES_TARGET}
+    ports:
+      - "127.0.0.1:${HOST_PORT}:${CONTAINER_PORT}"
+# docker run -it <app image>:<version> --mount 'type=volume,src=<volume name>,dst=<container destination directory>
+volumes:
+  db_volume:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ${RESOURCES_SOURCE}
+networks:
+  default:
+    name: dodeka

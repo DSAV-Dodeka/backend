@@ -29,11 +29,13 @@ async def get_user(user_id: int):
     return {"Hello": str(user)}
 
 
+@app.get("/user_write/{user_id}")
+async def write_user(user_id: int, name: Optional[str], last_name: Optional[str]):
+    user_row = {"id": user_id, "name": name, "last_name": last_name}
+    rc = await data.upsert_user_row(database, user_row)
+    return {"Response": "Ok"}
+
+
 @app.get("/")
 async def read_root():
-    return {"Hello": "World"}
-
-
-@app.get("/items/{item_id}")
-async def read_item(item_id: int, q: Optional[str] = None):
-    return {"item_id": item_id, "q": q}
+    return {"Hallo": "Atleten"}

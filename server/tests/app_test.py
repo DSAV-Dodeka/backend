@@ -1,17 +1,9 @@
 import asyncio
 
-import multiprocessing as mp
-
 import pytest
 from pytest_mock import MockerFixture
 
-import httpx
-
-import dodekaserver.data
-
-import uvicorn
-
-import time
+from httpx import AsyncClient
 
 
 @pytest.fixture(scope="module")
@@ -22,56 +14,63 @@ def event_loop():
     loop.close()
 
 
-@pytest.fixture(scope="module", autouse=True)
-def mock_dsrc(module_mocker: MockerFixture):
-    m_dsrc = module_mocker.patch('dodekaserver.data.Source', spec=dodekaserver.data.Source)
-    m_dsrc.db = None
-
-
 @pytest.fixture(scope="module")
 @pytest.mark.asyncio
-async def test_client():
-    uvi_kwargs = {"host": "127.0.0.1", "port": 4242}
-    uvi_process = mp.Process(target=uvicorn.run, args=("dodekaserver.app:app",), kwargs=uvi_kwargs)
-    uvi_process.start()
+async def app():
+    from dodekaserver.data import dsrc
+    import dodekaserver.app as app_mod
 
-    time.sleep(0.5)
-    client = httpx.AsyncClient()
-    yield client
-    await client.aclose()
-
-    uvi_process.kill()
+    app = app_mod.create_app()
+    await app_mod.app_startup(dsrc)
+    yield app
+    await app_mod.app_shutdown(dsrc)
 
 
+@pytest.fixture(scope="module", autouse=True)
 @pytest.mark.asyncio
-async def test_root(test_client):
-    response = await test_client.get("http://localhost:4242/")
-
-    assert response.status_code == 200
-    assert response.json() == {"Hallo": "Atleten"}
-    print(response)
-
-
-@pytest.mark.asyncio
-async def test_get_user(test_client):
-    user_id = 126
-
-    # retrieve_mock = mocker.patch('dodekaserver.db')
-    # retrieve_mock.retrieve_by_id = None
+async def mock(module_mocker: MockerFixture):
+    # dsrc_mock = module_mocker.patch('dodekaserver.data.dsrc', None)
+    pass
+    # retrieve_mock = module_mocker.patch('dodekaserver.db.use.retrieve_by_id')
     #
     # def side_effect(a, b, c):
     #     return {'id': 126, 'name': 'YOURNAME', 'last_name': 'YOURLASTNAME'}
     #
     # retrieve_mock.side_effect = side_effect
 
-    response = await test_client.get(f"http://localhost:4242/users/{user_id}")
-    print(response.json())
 
-    # retrieve_by_id('a', 'b', 'c')
+@pytest.fixture(scope="module")
+@pytest.mark.asyncio
+async def test_client(app):
+    async with AsyncClient(app=app, base_url="http://test") as test_client:
+        yield test_client
 
-    # retrieve_mock.assert_called()
+
+@pytest.mark.asyncio
+async def test_root(test_client):
+    response = await test_client.get("/")
 
     assert response.status_code == 200
-    assert response.json() == {
-        "Hello": "{'id': 126, 'name': 'YOURNAME', 'last_name': 'YOURLASTNAME'}"
-    }
+    assert response.json() == {"Hallo": "Atleten"}
+
+
+@pytest.mark.asyncio
+async def test_user(test_client):
+    response = await test_client.get("/users/126")
+
+    assert response.status_code == 200
+    assert response.json() == {'user': "{'id': 126, 'name': 'YOURNAME', 'last_name': 'YOURLASTNAME'}"}
+
+# @pytest.fixture(scope="module")
+# def test_client():
+#     from dodekaserver.app import app
+#     with TestClient(app) as test_client:
+#         yield test_client
+#
+#
+# def test_root(test_client):
+#     response = test_client.get("")
+#
+#     assert response.status_code == 200
+#     assert response.json() == {"Hallo": "Atleten"}
+#     print(response)

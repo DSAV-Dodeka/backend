@@ -12,11 +12,9 @@ async def execute_queries(db: Database, queries: list[str]):
 
 
 async def retrieve_by_id(db: Database, table: str, id_int: int):
-    # print("hi2")
     query = f"SELECT * FROM {table} WHERE id = :id"
     record = await db.fetch_one(query, values={"id": id_int})
     return dict(record)
-    # return "hi3"
 
 
 async def upsert_by_id(db: Database, table: str, row: dict):

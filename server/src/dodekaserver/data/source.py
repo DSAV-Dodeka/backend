@@ -2,7 +2,7 @@ from databases import Database
 
 from dodekaserver.db.settings import DB_URL
 
-__all__ = ['Source']
+__all__ = ['Source', 'dsrc']
 
 
 class Source:
@@ -20,3 +20,7 @@ class Source:
 
     async def disconnect(self):
         await self.db.disconnect()
+
+
+dsrc = Source()
+dsrc.init()

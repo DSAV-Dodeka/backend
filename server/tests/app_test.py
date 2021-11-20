@@ -21,22 +21,18 @@ async def app():
     import dodekaserver.app as app_mod
 
     app = app_mod.create_app()
-    await app_mod.app_startup(dsrc)
+    # await app_mod.app_startup(dsrc)
     yield app
-    await app_mod.app_shutdown(dsrc)
+    # await app_mod.app_shutdown(dsrc)
 
 
 @pytest.fixture(scope="module", autouse=True)
 @pytest.mark.asyncio
-async def mock(module_mocker: MockerFixture):
-    # dsrc_mock = module_mocker.patch('dodekaserver.data.dsrc', None)
-    pass
-    # retrieve_mock = module_mocker.patch('dodekaserver.db.use.retrieve_by_id')
-    #
-    # def side_effect(a, b, c):
-    #     return {'id': 126, 'name': 'YOURNAME', 'last_name': 'YOURLASTNAME'}
-    #
-    # retrieve_mock.side_effect = side_effect
+async def mock_dbop(module_mocker: MockerFixture):
+    dsrc_mock = module_mocker.patch('dodekaserver.data.dsrc', autospec=True)
+    dbop_mock = module_mocker.patch('dodekaserver.db.use.DatabaseOperations', autospec=True)
+    dsrc_mock.ops = dbop_mock
+    yield dbop_mock
 
 
 @pytest.fixture(scope="module")
@@ -55,22 +51,19 @@ async def test_root(test_client):
 
 
 @pytest.mark.asyncio
-async def test_user(test_client):
+async def test_get_user(mock_dbop, test_client):
+    user_id = 129
+
+    user_row = {'id': user_id, 'name': 'TEST', 'last_name': 'TEST_LAST'}
+
+    async def mock_retrieve(a, b, c):
+        return user_row
+
+    mock_dbop.retrieve_by_id = mock_retrieve
+
     response = await test_client.get("/users/126")
 
     assert response.status_code == 200
-    assert response.json() == {'user': "{'id': 126, 'name': 'YOURNAME', 'last_name': 'YOURLASTNAME'}"}
+    assert response.json() == {"user": user_row}
 
-# @pytest.fixture(scope="module")
-# def test_client():
-#     from dodekaserver.app import app
-#     with TestClient(app) as test_client:
-#         yield test_client
-#
-#
-# def test_root(test_client):
-#     response = test_client.get("")
-#
-#     assert response.status_code == 200
-#     assert response.json() == {"Hallo": "Atleten"}
-#     print(response)
+

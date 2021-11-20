@@ -1,5 +1,7 @@
 from fastapi import Depends, FastAPI
 
+# We rely upon database parameters being set at import time, which is fragile, but the only way to easily re-use it
+# across modules
 from dodekaserver.data import dsrc
 
 import dodekaserver.basic as basic
@@ -13,6 +15,8 @@ def create_app() -> FastAPI:
 
 app = create_app()
 
+
+# We use the functions below so we can also manually call them in tests
 
 async def app_startup(dsrc_inst):
     await dsrc_inst.connect()

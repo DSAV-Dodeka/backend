@@ -4,6 +4,7 @@ import asyncio
 import sqlalchemy.engine
 from databases import Database
 
+import dodekaserver.db
 from dodekaserver.db.settings import ADMIN_DB_NAME, DB_CLUSTER
 from dodekaserver.db import model
 from dodekaserver.db.admin import remove_test_dbs
@@ -28,7 +29,6 @@ async def test_db():
     admin_db_url = f"{DB_CLUSTER}/{ADMIN_DB_NAME}"
     # Connect to admin database that allows us to create new database
     database = Database(admin_db_url)
-
     await database.connect()
 
     # Remove all previous test databases
@@ -36,6 +36,8 @@ async def test_db():
 
     query_create = f"CREATE DATABASE {test_db_name}"
     await database.execute(query_create)
+    await database.disconnect()
+
     test_db_url = f"{DB_CLUSTER}/{test_db_name}"
 
     # Use the database model to create an empty database (uses SQLAlchemy connection)
@@ -44,7 +46,7 @@ async def test_db():
         model.metadata.create_all(connection)
 
     # Connect to test database
-    test_db = Database(test_db_url)
+    test_db = Database(test_db_url, force_rollback=True)
     await test_db.connect()
 
     # Send the db object to tests
@@ -52,7 +54,12 @@ async def test_db():
 
     # This code runs after the tests
     await test_db.disconnect()
-    await database.disconnect()
+
+
+@pytest.fixture(scope="module")
+@pytest.mark.asyncio
+async def test_dbops():
+    yield dodekaserver.db.DatabaseOperations
 
 
 @pytest.mark.asyncio
@@ -60,4 +67,3 @@ async def test_check_dbs(test_db: Database):
     query_fetch = "SELECT datname FROM pg_database"
     fetch_res = await test_db.fetch_all(query_fetch)
     # print([dict(res) for res in fetch_res])
-

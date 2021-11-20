@@ -8,6 +8,7 @@ services:
       # <volume name in volumes below>:<container destination directory>
       # This means the volume will be accessible from the container in the dest. directory in the container
       - db_volume:${RESOURCES_TARGET}
+    command: -c 'port=${CONTAINER_PORT}'
     # Environment file to load into the container
     env_file:
       - .env.db
@@ -17,6 +18,7 @@ services:
     # This maps ports, so the container port will be available at localhost:<HOST_PORT>
     ports:
       - "127.0.0.1:${HOST_PORT}:${CONTAINER_PORT}"
+    shm_size: 256m
 volumes:
   # This name should correspond to the volume mentioned in volumes above
   db_volume:

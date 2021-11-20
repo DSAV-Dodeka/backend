@@ -1,10 +1,22 @@
+import asyncio
+
 from databases import Database
 
 
+__all__ = ['retrieve_by_id', 'upsert_by_id', 'execute_queries']
+
+
+async def execute_queries(db: Database, queries: list[str]):
+    executions = [db.execute(query) for query in queries]
+    return await asyncio.gather(*executions)
+
+
 async def retrieve_by_id(db: Database, table: str, id_int: int):
+    # print("hi2")
     query = f"SELECT * FROM {table} WHERE id = :id"
     record = await db.fetch_one(query, values={"id": id_int})
     return dict(record)
+    # return "hi3"
 
 
 async def upsert_by_id(db: Database, table: str, row: dict):

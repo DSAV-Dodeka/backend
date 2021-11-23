@@ -14,7 +14,7 @@ async def execute_queries(db: Database, queries: list[str]):
 class DatabaseOperations:
     """ These methods are in this class, so they can be more easily mocked during tests. """
     @staticmethod
-    async def retrieve_by_id(db: Database, table: str, id_int: int):
+    async def retrieve_by_id(db: Database, table: str, id_int: int) -> dict:
         query = f"SELECT * FROM {table} WHERE id = :id"
         record = await db.fetch_one(query, values={"id": id_int})
         return dict(record)

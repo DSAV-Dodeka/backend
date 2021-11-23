@@ -16,4 +16,6 @@ users = sqlalchemy.Table(
     sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
     sqlalchemy.Column("name", sqlalchemy.String(length=100)),
     sqlalchemy.Column("last_name", sqlalchemy.String(length=100)),
+    sqlalchemy.Column("password_hash_hex", sqlalchemy.String(length=100)),
+    sqlalchemy.Column("salt", sqlalchemy.String(length=100)),
 )

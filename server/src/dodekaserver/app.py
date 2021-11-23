@@ -1,15 +1,23 @@
 from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 # We rely upon database parameters being set at import time, which is fragile, but the only way to easily re-use it
 # across modules
 from dodekaserver.data import dsrc
 
 import dodekaserver.basic as basic
+import dodekaserver.auth as auth
 
 
 def create_app() -> FastAPI:
+    # TODO change all origins
+    origins = [
+        "*",
+    ]
+
     new_app = FastAPI()
     new_app.include_router(basic.router)
+    new_app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=['*'])
     return new_app
 
 

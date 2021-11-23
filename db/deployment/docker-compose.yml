@@ -8,16 +8,18 @@ services:
       # <volume name in volumes below>:<container destination directory>
       # This means the volume will be accessible from the container in the dest. directory in the container
       - db_volume:${RESOURCES_TARGET}
-    command: -c 'port=${CONTAINER_PORT}'
+    command: -c config_file=/dodeka-conf/postgresql.conf
     # Environment file to load into the container
     env_file:
       - .env.db
+      - .env.deploy
     # Some environment variables depend on deployment variables, so we load those in manually
     environment:
       PGDATA: ${RESOURCES_TARGET}
     # This maps ports, so the container port will be available at localhost:<HOST_PORT>
     ports:
       - "127.0.0.1:${HOST_PORT}:${CONTAINER_PORT}"
+    # Shared memory size, defaults to 64m which can cause problems (apparently)
     shm_size: 256m
 volumes:
   # This name should correspond to the volume mentioned in volumes above

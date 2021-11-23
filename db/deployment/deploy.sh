@@ -15,4 +15,5 @@ mkdir -p "${RESOURCES_SOURCE}"
 # Pull the image from Docker Hub
 # //TODO docker compose pull
 # Run the docker-compose.yml
-docker compose up -d
+# -d for detached/background
+docker compose up

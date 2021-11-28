@@ -53,7 +53,7 @@ The Server stores all this information as it waits for the next step. This info 
 
 Now, the User is redirected to the login page on the Web App, *with a unique authorization id*. This page is of the Server's choosing. Ideally you would not use the Web App for this, but an external app. 
 
-On the login page, they enter their user ID and password, the password is hashed. The Web redirects to the User to the Server *(and sends the unique authorization id)*, which validates it against the database and redirects the user to the redirect_uri, with the following as `code` query parameter, encoded as a signed JWT (with associated sub, iat, etc.):
+On the login page, they enter their user ID and password, the password is hashed. The Web redirects to the User to the Server *(and sends the unique authorization id)*, which validates it against the database (using OPAQUE) and redirects the user to the redirect_uri, with the following as `code` query parameter, encoded as a signed JWT (with associated sub, iat, etc.):
 
 ```json
 {

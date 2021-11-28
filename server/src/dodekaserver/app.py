@@ -17,6 +17,7 @@ def create_app() -> FastAPI:
 
     new_app = FastAPI()
     new_app.include_router(basic.router)
+    new_app.include_router(auth.router)
     new_app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=['*'])
     return new_app
 

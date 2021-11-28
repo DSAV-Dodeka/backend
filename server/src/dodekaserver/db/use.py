@@ -3,10 +3,12 @@ import asyncio
 from databases import Database
 
 
-__all__ = ['DatabaseOperations', 'execute_queries']
+__all__ = ['DatabaseOperations', 'execute_queries_unsafe']
 
 
-async def execute_queries(db: Database, queries: list[str]):
+async def execute_queries_unsafe(db: Database, queries: list[str]):
+    """ These queries are executed as full query text strings in parallel, which are vulnerable to SQL Injection.
+     Do NOT use with user input. """
     executions = [db.execute(query) for query in queries]
     return await asyncio.gather(*executions)
 
@@ -21,14 +23,18 @@ class DatabaseOperations:
 
     @staticmethod
     async def upsert_by_id(db: Database, table: str, row: dict):
-        r_id = row.pop('id')
-        row_keys = ', '.join(row.keys())
-        row_values = ', '.join([f"'{val}'" for val in row.values()])
-        set_rows = []
-        for key, value in row.items():
-            set_rows.append(f"{key} = '{value}'")
-        set_rows = ', '.join(set_rows)
-        query = f"INSERT INTO {table}(id, {row_keys}) VALUES ({r_id}, {row_values})" \
-                f"ON CONFLICT (id) DO UPDATE SET" \
-                f"  {set_rows};"
-        return await db.execute(query=query)
+        """ Note that while the values are safe from injection, the column names are not. Ensure the row dict
+        is validated using the model and not just passed directly by the user. """
+        row_keys = []
+        row_keys_vars = []
+        row_keys_set = []
+        for key in row.keys():
+            row_keys.append(key)
+            row_keys_vars.append(f':{key}')
+            row_keys_set.append(f'{key} = :{key}')
+        row_keys = ', '.join(row_keys)
+        row_keys_vars = ', '.join(row_keys_vars)
+        row_keys_set = ', '.join(row_keys_set)
+        query = f"INSERT INTO {table} ({row_keys}) VALUES ({row_keys_vars}) ON CONFLICT (id) DO UPDATE SET {row_keys_set};"
+
+        return await db.execute(query=query, values=row)

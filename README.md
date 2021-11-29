@@ -23,10 +23,10 @@ Requirements:
 It it is recommended to use some kind of IDE to easily view the database, for example [JetBrains](https://www.jetbrains.com/community/education/#students) DataGrip (which you can get for free with TU Delft e-mail account)
 
 * Checkout the DSAV-Dodeka/dodekabackend repository.
-* Go into the /db folder
-* Run `./build.sh`
-* Go into the /db/deployment folder
-* Run `./deploy.sh`
+* Go into the /db folder.
+* Run `./build.sh`. Only do this once.
+* Go into the /db/deployment folder.
+* Run `./deploy.sh`.
 
 You now have a PostgreSQL server running with the configuration as described in the .env.deploy and .env.db files. You can access it at postgresql://{POSTGRESS_USER}:{POSTGRES_PASSWORD}@{HOST}:{PORT}/{POSTGRES_USER} (based on the environment variable files). If you are in a container on the network defined in the `docker-compose.yml`, {HOST}:{PORT} is {container name}:{PostgreSQL port=5432}. If you are on the host, it is localhost:{HOST_PORT}. Currently: postgresql://dodeka:dodeka@localhost:3141/dodeka
 
@@ -36,14 +36,28 @@ You can turn it off using `./down.sh`.
 
 Most files have comments explaining what everything is. 
 
-* `./build.sh` simply (for now, at least) pulls the PostgreSQL container and names it dodeka/postgres. 
+* `./build.sh` simply (for now, at least) pulls the PostgreSQL container and names it dodeka/postgres.
 * `./deploy.sh` loads a bunch of configuration files and then runs `docker compose up`.
 
 Take a look at the `docker-compose.yml`, for the set up. In essence, it just runs the container, uses a host directory for all the database files (so it is persisted across runs) and runs on a network so that other containers can access it.
 
+##### Barman backup
+
+//TODO
+
 #### Server
 
 The server can be run directly from your development environment or in a Docker container in production mode.
+
+##### Setup Redis
+For persistence between requests, we use the Redis key-value database. 
+
+* First, go to /dodekabackend/server/redis
+* Run `./build.sh`. This should build the required Docker image and you only have to do this once.
+* Go to /server/dev.
+* Run `./deploy.sh`. This will make the Redis server accessible. Be sure to do this *after* setting up the PostgreSQL database.
+
+Use `./down.sh` to turn Redis off. Do this *before* shutting down the PostgreSQL database.
 
 ##### Development
 * If you want to run it locally, [install Poetry](https://python-poetry.org/docs/master/). This can be complicated as it is still a somewhat fragile tool, but it is really easy to make good virtual environments with. 
@@ -54,7 +68,8 @@ The server can be run directly from your development environment or in a Docker 
 ##### Production
 * First, build a Python environment with the dependencies installed by running: `docker build --tag dodeka/server-deps .` while in the /server/build-server-deps folder.
 * Next, build the project itself by running `docker build --tag dodeka/server .` in the main /server directory.
-* Be sure you have the database running with the `dodeka` network turned on, after which you can run `./deploy.sh` in /server/deployment. It works similar to the database. 
+* If you did not yet build the Redis server, first build the Redis server by running `./build.sh` in the /server/redis folder.
+* Be sure you have the database running with the `dodeka` network turned on, after which you can run `./deploy.sh` in /server/deployment. It works similar to the database and can be shut down using `./down.sh`. 
 
 ### Migrations
 

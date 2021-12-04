@@ -7,12 +7,13 @@ RUN apt-get install barman cron nano -y
 ADD .pgpass /var/lib/barman/.pgpass
 # It needs to have this specific permissions and ownership to work
 RUN chmod 0600 /var/lib/barman/.pgpass
-RUN chown barman:barman /var/lib/barman/.pgpass
-USER barman
+RUN mkdir /dodeka-barman
+RUN chown barman:barman /dodeka-barman
 # The barman configuration
 ADD d-dodeka-db-1.conf /etc/barman.d/d-dodeka-db-1.conf
+RUN chown barman:barman /etc/barman.d/d-dodeka-db-1.conf
 # Barman startup
 ADD barman_entrypoint.sh /var/lib/barman/barman_entrypoint.sh
-WORKDIR /var/lib/barman
+RUN chown -R barman:barman /var/lib/barman
 ENTRYPOINT ["/bin/bash", "/var/lib/barman/barman_entrypoint.sh"]
 CMD [""]

@@ -22,6 +22,6 @@ jobs:
         port: ${{ secrets.SSH_DODEKATEST_PORT }}
         envs: FOO,BAR
         script: |
-          echo "I am $FOO"
-          echo "I am $BAR"
+          export DEPLOYID="$(date +%s)"
+          gh repo clone DSAV-Dodeka/dodekabackend ~/deployments/deploy$DEPLOYID
         

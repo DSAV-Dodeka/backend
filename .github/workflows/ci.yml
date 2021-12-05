@@ -10,3 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - name: executing remote ssh commands using ssh key
+      uses: appleboy/ssh-action@master
+      with:
+        host: "dodeka.tipten.nl"
+        username: "dodekatest"
+        key: ${{ secrets.SSH_PRIVATE_KEY_DODEKATEST }}
+        port: ${{ secrets.SSH_DODEKATEST_PORT }}
+        script: whoami

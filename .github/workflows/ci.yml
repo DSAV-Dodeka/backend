@@ -8,6 +8,9 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    env:
+      FOO: ${{ secrets.SAMPLE_SECRET }}
+      BAR: ${{ secrets.SAMPLE_SECRET_TWO }}
     steps:
     - uses: actions/checkout@v2
     - name: executing remote ssh commands using ssh key
@@ -17,4 +20,8 @@ jobs:
         username: "dodekatest"
         key: ${{ secrets.SSH_PRIVATE_KEY_DODEKATEST }}
         port: ${{ secrets.SSH_DODEKATEST_PORT }}
-        script: whoami
+        envs: FOO,BAR
+        script: |
+          echo "I am $FOO"
+          echo "I am $BAR"
+        

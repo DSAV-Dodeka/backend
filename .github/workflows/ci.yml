@@ -72,4 +72,4 @@ jobs:
     - name: Install library
       run: poetry install --no-interaction
     - name: Pytest
-      run: pytest tests/app_test.py
+      run: poetry run pytest tests/app_test.py

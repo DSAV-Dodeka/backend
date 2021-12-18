@@ -14,7 +14,11 @@ async def execute_queries_unsafe(db: Database, queries: list[str]):
 
 
 class DatabaseOperations:
-    """ These methods are in this class, so they can be more easily mocked during tests. """
+    """
+    The DatabaseOperations class provides an easily referencable object that can be mocked.
+    This circumvents a problem where mocks are ignored as FastAPI changes the function
+    references at startup.
+    """
     @staticmethod
     async def retrieve_by_id(db: Database, table: str, id_int: int) -> dict:
         query = f"SELECT * FROM {table} WHERE id = :id"
@@ -35,6 +39,7 @@ class DatabaseOperations:
         row_keys = ', '.join(row_keys)
         row_keys_vars = ', '.join(row_keys_vars)
         row_keys_set = ', '.join(row_keys_set)
-        query = f"INSERT INTO {table} ({row_keys}) VALUES ({row_keys_vars}) ON CONFLICT (id) DO UPDATE SET {row_keys_set};"
+        query = f"INSERT INTO {table} ({row_keys}) VALUES ({row_keys_vars}) ON CONFLICT (id) DO UPDATE SET " \
+                f"{row_keys_set};"
 
         return await db.execute(query=query, values=row)

@@ -6,4 +6,4 @@ CUR_DIR=$(pwd -P)
 TARGET_DIR="$CUR_DIR"/../src/dodekaserver/resources/conf
 echo "Building conf..."
 rm -rf "$TARGET_DIR" || exit 1
-cp "$CUR_DIR"/autosourced_config "$TARGET_DIR" || exit 1
+cp -r "$CUR_DIR"/autosourced_config "$TARGET_DIR" || exit 1

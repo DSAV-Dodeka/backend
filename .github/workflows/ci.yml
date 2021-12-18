@@ -17,6 +17,7 @@ jobs:
     - uses: actions/checkout@v2
       with:
         repository: 'DSAV-Dodeka/dodeka'
+        token: ${{ secrets.GH_DODEKACOMCOM_TOKEN }}
         # Relative to ${{ github.workspace }}
         path: ${{ env.CONF_REPO_PATH }}
     - name: Move conf

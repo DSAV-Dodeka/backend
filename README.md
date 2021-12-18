@@ -86,3 +86,8 @@ To check if everything is working, try out the following:
 
 * Navigate to http://localhost:4242/user_write/126?name=YOURNAME&last_name=YOURLASTNAME (replace YOURNAME and YOURLASTNAME with what you want)
 * Check if it is indeed retrievable by going to http://localhost:4242/users/126
+
+
+### Startup and shutdown flow
+
+* Start the DB

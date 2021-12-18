@@ -1,2 +1,0 @@
-# Replace <container name/id> with the correct value. This is used to build the .so file locally (if the binary is unavailable, for example)
-docker cp <container name/id>:/build/RedisJSON/target/release/librejson.so /home/erag/Files/gitprojects/dodekabackend/db/redis/librejson.so

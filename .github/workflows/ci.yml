@@ -24,9 +24,11 @@ jobs:
       run: |
         rm -rf ${{ github.workspace }}/${{ env.CONF_TARGET }}
         mv ${{ github.workspace }}/${{ env.CONF_REPO_PATH }}/${{ env.IN_REPO_CONF_PATH }} ${{ github.workspace }}/${{ env.CONF_TARGET }}
+        cd build_conf
+        ./build_conf.sh
     - uses: stefanzweifel/git-auto-commit-action@v4
       with:
         commit_message: Autosource config (automated)
-        file_pattern: ${{ env.CONF_TARGET }}/
+        file_pattern: ${{ env.CONF_TARGET }}/ src/dodekaserver/resources/conf/
         
         

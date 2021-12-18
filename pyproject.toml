@@ -18,6 +18,7 @@ requests = "^2.26.0"
 httpx = "^0.21.1"
 hiredis = "^2.0.0"
 redis = "^4.0.1"
+python-dotenv = "^0.19.2"
 
 [tool.poetry.scripts]
 s-dodeka = "dodekaserver.main:run"

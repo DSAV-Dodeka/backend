@@ -11,7 +11,7 @@ jobs:
     env:
       CONF_REPO_PATH: 'config_source'
       IN_REPO_CONF_PATH: 'use/backend'
-      CONF_TARGET: 'autosourced_config'
+      CONF_TARGET: 'build_conf/autosourced_config'
     steps:
     - uses: actions/checkout@v2
     - uses: actions/checkout@v2

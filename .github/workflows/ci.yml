@@ -101,11 +101,11 @@ jobs:
     - name: Docker load DB
       if: steps.cached-containers-db.outputs.cache-hit == 'true'
       run: |
-        docker load -i /tmp/docker_load_cache/db.tar
+        docker load -i /tmp/docker_load_cache_db.tar
     - name: Docker load KV
       if: steps.cached-containers-kv.outputs.cache-hit == 'true'
       run: |
-        docker load -i /tmp/docker_load_cache/kv.tar
+        docker load -i /tmp/docker_load_cache_kv.tar
     - name: Run DB
       run: |
         cd ${{ github.workspace }}/${{ env.CONF_REPO_PATH }}/use/dev

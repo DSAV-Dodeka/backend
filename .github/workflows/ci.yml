@@ -78,8 +78,8 @@ jobs:
       with:
         registry: ghcr.io
         # We use the repo/action token, which has specified access to the package
-        username: ${{ github.actor}}
-        password: ${{ github.token }}
+        username: DodekaComCom
+        password: ${{ secrets.GH_DODEKACOMCOM_TOKEN }}
     - name: Run DB
       run: |
         cd ${{ github.workspace }}/${{ env.CONF_REPO_PATH }}/use/dev

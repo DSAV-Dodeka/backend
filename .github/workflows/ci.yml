@@ -81,11 +81,10 @@ jobs:
         username: DodekaComCom
         password: ${{ secrets.GH_DODEKACOMCOM_TOKEN }}
     - name: Login skopeo
-      run: echo ${{ secrets.GH_DODEKACOMCOM_TOKEN }} | skopeo login -u DodekaComCom --password-stdin ghcr.io
+      run: skopeo login -u DodekaComCom -p ${{ secrets.GH_DODEKACOMCOM_TOKEN }} ghcr.io
     - run: skopeo inspect --format "{{ .Digest }}" docker://ghcr.io/dsav-dodeka/postgres
     - name: Get container digest
       run: |
-        echo ${{ secrets.GH_DODEKACOMCOM_TOKEN }} | skopeo login -u DodekaComCom --password-stdin ghcr.io
         export DB_DIGEST=$(skopeo inspect --format "{{ .Digest }}" docker://ghcr.io/dsav-dodeka/postgres)
         export KV_DIGEST=$(skopeo inspect --format "{{ .Digest }}" docker://ghcr.io/dsav-dodeka/redis)
         echo "DB_DIGEST=$DB_DIGEST" >> $GITHUB_ENV

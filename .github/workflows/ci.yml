@@ -80,43 +80,9 @@ jobs:
         # We use the repo/action token, which has specified access to the package
         username: DodekaComCom
         password: ${{ secrets.GH_DODEKACOMCOM_TOKEN }}
-    - name: Get container digest
-      run: |
-        export DB_DIGEST=$(skopeo inspect --format "{{ .Digest }}" docker://ghcr.io/dsav-dodeka/postgres)
-        export KV_DIGEST=$(skopeo inspect --format "{{ .Digest }}" docker://ghcr.io/dsav-dodeka/redis)
-        echo "DB_DIGEST=$DB_DIGEST" >> $GITHUB_ENV
-        echo "KV_DIGEST=$KV_DIGEST" >> $GITHUB_ENV
-    - name: Load cached containers
-      id: cached-containers-db
-      uses: actions/cache@v2
-      with:
-        path: /tmp/docker_load_cache_db.tar
-        key: ${{ env.DB_DIGEST }}
-    - name: Load cached containers
-      id: cached-containers-kv
-      uses: actions/cache@v2
-      with:
-        path: /tmp/docker_load_cache_kv.tar
-        key: ${{ env.KV_DIGEST }}
-    - name: Docker load DB
-      if: steps.cached-containers-db.outputs.cache-hit == 'true'
-      run: |
-        docker load -i /tmp/docker_load_cache_db.tar
-    - name: Docker load KV
-      if: steps.cached-containers-kv.outputs.cache-hit == 'true'
-      run: |
-        docker load -i /tmp/docker_load_cache_kv.tar
     - name: Run DB
       run: |
         cd ${{ github.workspace }}/${{ env.CONF_REPO_PATH }}/use/dev
         ./devdeploy.sh
-    - name: Docker save DB
-      if: steps.cached-containers-db.outputs.cache-hit != 'true'
-      run: |
-        docker save ghcr.io/dsav-dodeka/postgres -o /tmp/docker_load_cache_db.tar
-    - name: Docker save KV
-      if: steps.cached-containers-kv.outputs.cache-hit != 'true'
-      run: |
-        docker save ghcr.io/dsav-dodeka/redis -o /tmp/docker_load_cache_kv.tar
     - name: Pytest
       run: poetry run pytest tests/db_tests.py

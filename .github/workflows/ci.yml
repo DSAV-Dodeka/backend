@@ -73,6 +73,13 @@ jobs:
       run: poetry install --no-interaction
     - name: Pytest
       run: poetry run pytest tests/app_test.py
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v1
+      with:
+        registry: ghcr.io
+        # We use the repo/action token, which has specified access to the package
+        username: ${{ github.actor}}
+        password: ${{ github.token }}
     - name: Run DB
       run: |
         cd ${{ github.workspace }}/${{ env.CONF_REPO_PATH }}/use/dev

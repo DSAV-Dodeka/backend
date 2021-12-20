@@ -80,6 +80,9 @@ jobs:
         # We use the repo/action token, which has specified access to the package
         username: DodekaComCom
         password: ${{ secrets.GH_DODEKACOMCOM_TOKEN }}
+    - name: Login skopeo
+      run: echo ${{ secrets.GH_DODEKACOMCOM_TOKEN }} | skopeo login -u DodekaComCom --password-stdin ghcr.io
+    - run: skopeo inspect --format "{{ .Digest }}" docker://ghcr.io/dsav-dodeka/postgres
     - name: Get container digest
       run: |
         echo ${{ secrets.GH_DODEKACOMCOM_TOKEN }} | skopeo login -u DodekaComCom --password-stdin ghcr.io

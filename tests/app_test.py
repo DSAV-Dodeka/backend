@@ -17,13 +17,10 @@ def event_loop():
 @pytest.fixture(scope="module")
 @pytest.mark.asyncio
 async def app():
-    from dodekaserver.data import dsrc
     import dodekaserver.app as app_mod
-
+    # startup, shutdown is not run
     app = app_mod.create_app()
-    # await app_mod.app_startup(dsrc)
     yield app
-    # await app_mod.app_shutdown(dsrc)
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -50,20 +47,24 @@ async def test_root(test_client):
     assert response.json() == {"Hallo": "Atleten"}
 
 
-@pytest.mark.asyncio
-async def test_get_user(mock_dbop, test_client):
-    user_id = 129
+@pytest.fixture
+async def mock_user_retrieve(mock_dbop):
+    user_row = {'id': 0, 'name': 'TEST', 'last_name': 'TEST_LAST'}
 
-    user_row = {'id': user_id, 'name': 'TEST', 'last_name': 'TEST_LAST'}
-
-    async def mock_retrieve(a, b, c):
+    async def mock_retrieve(a, b, row_id):
+        user_row['id'] = row_id
         return user_row
 
     mock_dbop.retrieve_by_id = mock_retrieve
 
+    yield user_row
+
+
+@pytest.mark.asyncio
+async def test_get_user(mock_user_retrieve, test_client):
+
     response = await test_client.get("/users/126")
 
     assert response.status_code == 200
-    assert response.json() == {"user": user_row}
 
-
+    assert response.json() == {"user": mock_user_retrieve}

@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - main
+      - ci
 
 jobs:
   ci:
@@ -73,3 +73,9 @@ jobs:
       run: poetry install --no-interaction
     - name: Pytest
       run: poetry run pytest tests/app_test.py
+    - name: Run DB
+      run: |
+        cd ${{ github.workspace }}/${{ env.CONF_REPO_PATH }}/use/dev
+        ./devdeploy.sh
+    - name: Pytest
+      run: poetry run pytest tests/db_tests.py

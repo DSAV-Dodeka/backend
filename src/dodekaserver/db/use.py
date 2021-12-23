@@ -1,4 +1,5 @@
 import asyncio
+from typing import Optional
 
 from databases import Database
 
@@ -20,10 +21,18 @@ class DatabaseOperations:
     references at startup.
     """
     @staticmethod
-    async def retrieve_by_id(db: Database, table: str, id_int: int) -> dict:
+    async def retrieve_by_id(db: Database, table: str, id_int: int) -> Optional[dict]:
+        """ Ensure `table` is never user-defined. """
         query = f"SELECT * FROM {table} WHERE id = :id"
         record = await db.fetch_one(query, values={"id": id_int})
-        return dict(record)
+        return dict(record) if record is not None else None
+
+    @staticmethod
+    async def retrieve_by_unique(db: Database, table: str, unique_column: str, value):
+        """ Ensure `unique_column` and `table` are never user-defined. """
+        query = f"SELECT * FROM {table} WHERE {unique_column} = :val"
+        record = await db.fetch_one(query, values={"val": value})
+        return dict(record) if record is not None else None
 
     @staticmethod
     async def upsert_by_id(db: Database, table: str, row: dict):

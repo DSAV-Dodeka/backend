@@ -1,5 +1,6 @@
 from typing import Optional
 
+import sys
 import time
 import hashlib
 import random
@@ -14,7 +15,8 @@ def random_time_hash_hex(extra_seed: Optional[bytes] = None):
     return hashlib.sha256(random_bytes, usedforsecurity=False).digest().hex()
 
 
-urlsafe = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-"
+urlsafe = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_"
+urlsafe_set = set([int.from_bytes(c.encode('utf-8'), byteorder=sys.byteorder) for c in urlsafe])
 
 rad64_dict = urlsafe + "~"
 
@@ -23,47 +25,39 @@ rad64_dict = urlsafe + "~"
 def usp_hex(unicode_str: str):
     """ It is nice to internally use an urlsafe (i.e. only using characters that don't have to be percent-encoded (e.g.
     @ becomes %40) representations of Unicode usernames that preserves some common, urlsafe characters, making it more
-    readable. It might be a good idea to write accelerated Python extensions for this in the future if it proves to be
+    readable. It might be a good idea to write accelerated Rust extensions for this in the future if it proves to be
     slow. """
     anp_base64url_str = ''
-    hexable = ''
-    anp_seq = True
-    for c in unicode_str:
-        if c in urlsafe:
-            if anp_seq:
-                anp_base64url_str += c
-            else:
-                if hexable:
-                    anp_base64url_str += hexable.encode('utf-8').hex()
-                    hexable = ''
-                anp_base64url_str += ('~' + c)
-                anp_seq = True
+    encoded_str = unicode_str.encode(encoding='utf-8')
+    for e in encoded_str:
+        if e in urlsafe_set:
+            anp_base64url_str += e.to_bytes(1, byteorder=sys.byteorder).decode(encoding='utf-8')
         else:
-            if anp_seq:
-                anp_seq = False
-                anp_base64url_str += '~~'
-            hexable += c
-    if hexable:
-        anp_base64url_str += hexable.encode('utf-8').hex()
+            # the 'x' in the format string indicates hex
+            anp_base64url_str += '~' + f'{e:x}'
 
     return anp_base64url_str
 
 
 def de_usp_hex(usp_hex_str: str):
     """ Reverse of usp_hex, returns the utf-8 string. """
-    unicode_str = ''
-    prev_empty = False
-    parts = usp_hex_str.split('~')
-    for part in parts:
-        if not part:  # empty due to ~~
-            prev_empty = True
-        elif prev_empty:  # non-empty and following ~~, so non-urlsafe
-            unicode_str += str(bytes.fromhex(part), 'utf-8')
-            prev_empty = False
-        else:  # non-empty not following ~~, so urlsafe
-            unicode_str += part
+    b_str = b''
 
-    return unicode_str
+    hex_chars = ''
+    hexing = False
+    for c in usp_hex_str:
+        if c == '~':
+            hexing = True
+        elif hexing:
+            hex_chars += c
+            if len(hex_chars) == 2:
+                b_str += bytes.fromhex(hex_chars)
+                hex_chars = ''
+                hexing = False
+        else:
+            b_str += c.encode('utf-8')
+
+    return b_str.decode('utf-8')
 
 
 """START LICENSED CODE
@@ -116,4 +110,3 @@ def usp_hex_debin(usp_hex_bytes: bytes) -> str:
 
 def random_user_time_hash_hex(user_usph: str):
     return random_time_hash_hex(usp_hex_bin(user_usph))
-

@@ -12,7 +12,7 @@ Client: Application requesting access to a protected resource on behalf of the R
 
 Resource Server: Server hosting the protected resources. This is the API you want to access. **Server**
 
-Authorization Server: Server that authenticates the Resource Owner and issues Access Tokens after getting proper authorization. In this case, Auth0. **Server**
+Authorization Server: Server that authenticates the Resource Owner and issues Access Tokens after getting proper authorization. **Server**
 
 User Agent: Agent used by the Resource Owner to interact with the Client (for example, a browser or a native application). -> **Browser**
 
@@ -23,6 +23,11 @@ User Agent: Agent used by the Resource Owner to interact with the Client (for ex
 https://auth0.com/docs/authorization/flows/authorization-code-flow-with-proof-key-for-code-exchange-pkce
 https://images.ctfassets.net/cdy7uua7fh8z/3pstjSYx3YNSiJQnwKZvm5/33c941faf2e0c434a9ab1f0f3a06e13a/auth-sequence-auth-code-pkce.png
 https://www.oauth.com/oauth2-servers/pkce/authorization-request/
+https://auth0.com/docs/architecture-scenarios/web-app-sso/part-1
+
+IMPORTANT TO CONSIDER:
+https://datatracker.ietf.org/doc/html/draft-ietf-oauth-browser-based-apps#section-6.3
+https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics
 
 The User clicks the login link. Before they are sent to a login page, the following happens (on an invisible web page):
 
@@ -36,7 +41,7 @@ We save the code verifier and state locally in the Web App.
 
 We then redirect the user to a server link along with the following:
 
-```json
+```hjson
 {
     "response_type": "code", # indicates that your server expects to receive an authorization code
     "client_id":  "dodekaweb", # Unique ID of the Web App
@@ -49,21 +54,9 @@ We then redirect the user to a server link along with the following:
 
 The Server stores all this information as it waits for the next step. This info is stored in a Key-Value server with JSON module, which allows it to read and write this data extremely quickly. *The key used to store it is a unique "authorization_id"*. The data is set to expire after a few minutes.
 
-//TODO look at using different login page/server
+Now, the User is redirected to the login page on the Web App, *with the previous authorization id*. This page is of the Server's choosing. Ideally you would not use the Web App for this, but maybe a static page served by the Server.
 
-Now, the User is redirected to the login page on the Web App, *with a unique authorization id*. This page is of the Server's choosing. Ideally you would not use the Web App for this, but an external app. 
-
-On the login page, they enter their user ID and password, the password is hashed. The Web redirects to the User to the Server *(and sends the unique authorization id)*, which validates it against the database (using OPAQUE) and redirects the user to the redirect_uri, with the following as `code` query parameter, encoded as a signed JWT (with associated sub, iat, etc.):
-
-```json
-{
-    "client_id": "dodekaweb", # The client ID (or other client identifier) that requested this code
-    "redirect_uri": "dsavdodeka.nl/redirect", # The redirect URL that was used. This needs to be stored since the access token request must contain the same redirect URL for verification when issuing the access token.
-    "user_id": "54-32-48-80",# User ID
-    "experation": "60 s",# Time when the code expires, probably best to keep 30-60 seconds, max 10 minutes
-    "authorization_id": "someauthrequest", # Unique ID associated with the authorization code
-}
-```
+On the login page, they enter their username and password. The Web redirects to the User to the Server *(and sends the unique authorization id)*, which validates it against the database (using OPAQUE). This generates a session key, which will serve as the authorization code. Another request is made to the server with the session key.
 
 The server loads the state value using the authorization_id from Key-Value and uses it as a query parameter, so the user is sent to i.e. `dsavdodeka.nl/redirect?code=LONGJWTOFTHEABOVE&state=ABCDEFGH`.
 
@@ -71,17 +64,18 @@ Now the Web App compares the state in the query with the state they initially se
 
 To get an access token, the User now sends the following request:
 
-```json
+```hjson
 {
     "response_type": "authorization_code", # Indicates the grant type of this token request
-    "code": "LONGJWTOFTHEABOVE", # The client will send the authorization code it obtained in the redirect
+    "code": "BASE64URLOFTHEABOVE", # The client will send the authorization code it obtained in the redirect,
+    "session": "OPAQUESESSION",
     "client_id":  "dodekaweb", # The client ID you received when you first created the application
     "redirect_uri":  "dsavdodeka.nl/redirect", # The redirect URL that was used in the initial authorization request
     "code_verifier": "textnothashed", # The code verifier for the PKCE request, that the app originally generated before the authorization request.
 }
 ```
 
-The Server checks the code signature (as it was a JWT) and computes the hash of the code verifier and compares this with the code challenge sent initially. If everything matches, it generates an access token and refresh token. It also explicitly matches the redirect_uri with the uri saved initially in the Key-Value for the authorization_id in the code.
+The Server checks the session in the request and computes the hash of the code verifier and compares this with the code challenge sent initially. If everything matches, it generates an access token and refresh token. It also explicitly matches the redirect_uri with the uri saved initially in the Key-Value for the authorization_id in the code.
 
 The access tokens are self-encoded (they have all permission information), but have a short lifespan (1 hour). Refresh tokens have a lifespan of 1 year, but are not self-encoded.
 

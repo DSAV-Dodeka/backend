@@ -20,8 +20,6 @@ users = sqlalchemy.Table(
     # binary int of usp_hex
     sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
     sqlalchemy.Column(USERNAME, sqlalchemy.String, unique=True),
-    sqlalchemy.Column(NAME, sqlalchemy.String(length=100)),
-    sqlalchemy.Column(LAST_NAME, sqlalchemy.String(length=100)),
     sqlalchemy.Column(PASSWORD, sqlalchemy.String(length=500)),
 )
 

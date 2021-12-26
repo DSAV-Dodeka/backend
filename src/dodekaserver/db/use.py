@@ -28,7 +28,7 @@ class DatabaseOperations:
         return dict(record) if record is not None else None
 
     @staticmethod
-    async def retrieve_by_unique(db: Database, table: str, unique_column: str, value):
+    async def retrieve_by_unique(db: Database, table: str, unique_column: str, value) -> Optional[dict]:
         """ Ensure `unique_column` and `table` are never user-defined. """
         query = f"SELECT * FROM {table} WHERE {unique_column} = :val"
         record = await db.fetch_one(query, values={"val": value})

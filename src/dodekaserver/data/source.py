@@ -10,10 +10,14 @@ from dodekaserver.kv.settings import KvAddress, KV_ADDRESS
 
 from dodekaserver.db import DatabaseOperations as Db
 
-__all__ = ['Source', 'dsrc']
+__all__ = ['Source', 'dsrc', 'DataError']
 
 
 class SourceError(ConnectionError):
+    pass
+
+
+class DataError(ValueError):
     pass
 
 

@@ -1,16 +1,18 @@
-from fastapi import Depends, FastAPI
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # We rely upon database parameters being set at import time, which is fragile, but the only way to easily re-use it
 # across modules
 # In most cases this is where all environment variables and other configuration is loaded
+from httpx import AsyncClient
+
 from dodekaserver.data import dsrc
 # Import types separately to make it clear in what line the module is first loaded and its top-level run
 from dodekaserver.data import Source
 
 # Router modules, each router has its own API endpoints
-import dodekaserver.basic as basic
-import dodekaserver.auth as auth
+import dodekaserver.routers.basic as basic
+import dodekaserver.routers.auth as auth
 
 
 def create_app() -> FastAPI:

@@ -1,95 +1,21 @@
-import json
+from typing import Optional
 from urllib.parse import urlencode
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import RedirectResponse
-from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, ValidationError, validator
-
 import opaquepy.lib as opq
 
 import dodekaserver.data as data
+from dodekaserver.data import DataError
 import dodekaserver.utilities as util
+from dodekaserver.auth.models import *
 
 dsrc = data.dsrc
 
 router = APIRouter()
 
 
-class AuthRequest(BaseModel):
-    response_type: str
-    client_id: str
-    redirect_uri: str
-    state: str
-    code_challenge: str
-    code_challenge_method: str
-
-    @validator('response_type')
-    def check_type(cls, v):
-        assert v == "code", "'response_type' must be 'code'"
-        return v
-
-    @validator('client_id')
-    def check_client(cls, v):
-        assert v == "dodekaweb_client", "Unrecognized client ID!"
-        return v
-
-    @validator('redirect_uri')
-    def check_redirect(cls, v):
-        assert v == "http://localhost:3000/callback", "Unrecognized redirect!"
-        return v
-
-    @validator('state')
-    def check_state(cls, v):
-        assert len(v) < 100, "State must not be too long!"
-        return v
-
-    # possibly replace for performance
-    @validator('code_challenge')
-    def check_challenge(cls, v: str):
-        assert 128 >= len(v) >= 43, "Length must be 128 >= len >= 43!"
-        for c in v:
-            assert c.isalnum() or c in "-._~", "Invalid character in challenge!"
-        return v
-
-
-class PasswordRequest(BaseModel):
-    username: str
-    client_request: str
-
-
-class PasswordResponse(BaseModel):
-    server_message: str
-    auth_id: str
-
-
-class SavedState(BaseModel):
-    user_usph: str
-    state: str
-
-
-class FinishRequest(BaseModel):
-    auth_id: str
-    username: str
-    client_request: str
-
-
 port_front = 3000
-
-
-@router.get("/oauth/authorize/start")
-async def start_oauth(auth_id: str):
-    # dedicated page in the future
-    return RedirectResponse(f"http://localhost:3000/auth?auth_id={auth_id}")
-
-
-@router.get("/oauth/authorize/finish")
-async def finish_oauth(auth_id: str, code: str):
-    auth_req_dict = data.get_json(dsrc.kv, auth_id)
-    auth_req = AuthRequest.parse_obj(auth_req_dict)
-
-    url = f"{auth_req.redirect_uri}?state={auth_req.state},code={code}"
-
-    return RedirectResponse(url)
 
 
 @router.post("/auth/register/start/")
@@ -128,7 +54,12 @@ async def start_login(login_start: PasswordRequest):
     user_usph = util.usp_hex(login_start.username)
     private_key = await data.key.get_private_key(dsrc, 0)
 
-    password_file = await data.user.get_password(dsrc, user_usph)
+    try:
+        password_file = (await data.user.get_user_by_usph(dsrc, user_usph)).password_file
+    except DataError:
+        # If user does not exist, pass fake user record to prevent client enumeration
+        # TODO ensure this fake record exists
+        password_file = (await data.user.get_user_by_id(dsrc, 0)).password_file
 
     auth_id = util.random_user_time_hash_hex(user_usph)
 
@@ -141,7 +72,7 @@ async def start_login(login_start: PasswordRequest):
 
 
 @router.post("/auth/login/finish")
-async def finish_login(login_finish: FinishRequest):
+async def finish_login(login_finish: FinishLogin):
     state_dict = data.get_json(dsrc.kv, login_finish.auth_id)
     saved_state = SavedState.parse_obj(state_dict)
 
@@ -151,12 +82,12 @@ async def finish_login(login_finish: FinishRequest):
 
     session_key = opq.login_finish(login_finish.client_request, saved_state.state)
 
-    data.store_kv(dsrc.kv, session_key, user_usph, 60)
+    data.store_kv(dsrc.kv, session_key, login_finish.flow_id, 60)
 
     return None
 
 
-@router.get("/oauth/authorize/", status_code=302)
+@router.get("/oauth/authorize/")
 async def oauth_endpoint(response_type: str, client_id: str, redirect_uri: str, state: str,
                          code_challenge: str, code_challenge_method: str):
     try:
@@ -165,31 +96,49 @@ async def oauth_endpoint(response_type: str, client_id: str, redirect_uri: str, 
                                    code_challenge_method=code_challenge_method)
     except ValidationError as e:
         raise HTTPException(400, detail=e.errors())
-    auth_id = util.random_time_hash_hex()
-    data.store_json(dsrc.kv, auth_id, auth_request.dict(), 1000)
+    flow_id = util.random_time_hash_hex()
+    data.store_json(dsrc.kv, flow_id, auth_request.dict(), 1000)
 
     params = {
-        "auth_id": auth_id
+        "flow_id": flow_id
     }
-    redirect = f"http://localhost:3000/auth?{urlencode(params)}"
+    redirect = f"http://localhost:3000/auth/credentials?{urlencode(params)}"
 
-    return RedirectResponse(redirect)
+    return RedirectResponse(redirect, status_code=status.HTTP_302_FOUND)
 
 
-@router.get("/oauth/callback/")
-async def oauth_finish(auth_id: str, code: str):
-    auth_req_dict = data.get_json(dsrc.kv, auth_id)
+@router.get("/oauth/callback/", status_code=302)
+async def oauth_finish(flow_id: str, code: str):
+    auth_req_dict = data.get_json(dsrc.kv, flow_id)
     auth_request = AuthRequest.parse_obj(auth_req_dict)
-    return {
-        "auth_id": auth_id,
+    params = {
         "code": code,
-        "uri": auth_request.redirect_uri
+        "state": auth_request.state
     }
+    redirect = f"{auth_request.redirect_uri}?{urlencode(params)}"
+
+    return RedirectResponse(redirect, status_code=status.HTTP_302_FOUND)
 
 
-@router.post("/oauth/start/")
-async def save_authorization(req: AuthRequest):
-    auth_id = util.random_time_hash_hex()
-    data.store_json(dsrc.kv, auth_id, req.dict(), 1000)
+@router.post("/oauth/token/")
+async def token(token_request: TokenRequest):
+    if token_request.grant_type == "authorization_code":
+        try:
+            assert token_request.redirect_uri is not None
+            assert token_request.code_verifier is not None
+            assert token_request.code is not None
+        except AssertionError:
+            raise HTTPException(400, detail="redirect_uri, code and code_verifier must be defined")
 
-    return auth_id
+        flow_id = data.get_kv(dsrc.kv, token_request.code)
+        if flow_id is None:
+            raise HTTPException(400)
+        auth_req_dict = data.get_json(dsrc.kv, flow_id)
+
+        auth_request = AuthRequest.parse_obj(auth_req_dict)
+
+        # create tokens
+
+        return flow_id
+    else:
+        return None

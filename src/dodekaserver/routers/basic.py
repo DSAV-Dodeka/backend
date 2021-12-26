@@ -11,9 +11,9 @@ router = APIRouter()
 
 @router.get("/users/{user_id}")
 async def get_user(user_id: int):
-    user = await data.user.get_user_row(dsrc, user_id)
+    user = await data.user.get_user_by_id(dsrc, user_id)
 
-    return {"user": user}
+    return {"user": user.dict() }
 
 
 @router.get("/user_write/{user_id}")

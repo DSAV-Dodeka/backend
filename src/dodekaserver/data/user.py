@@ -1,18 +1,28 @@
-from dodekaserver.data.source import Source
+from typing import Optional
+
+from dodekaserver.data.source import Source, DataError
+from dodekaserver.data.entities import User
 from dodekaserver.db import USER_TABLE
 from dodekaserver.db.model import USERNAME, NAME, LAST_NAME, PASSWORD
 
 
-__all__ = ['get_user_row', 'upsert_user_row', 'create_user', 'get_password']
+__all__ = ['get_user_by_id', 'upsert_user_row', 'create_user']
 
 
-async def get_user_row(dsrc: Source, id_int: int) -> dict:
-    return await dsrc.ops.retrieve_by_id(dsrc.db, USER_TABLE, id_int)
+def parse_user(user_dict: Optional[dict]) -> User:
+    if user_dict is None:
+        raise DataError("User does not exist.")
+    return User.parse_obj(user_dict)
 
 
-async def get_password(dsrc: Source, usp_hex: str) -> str:
+async def get_user_by_id(dsrc: Source, id_int: int) -> User:
+    user_row = await dsrc.ops.retrieve_by_id(dsrc.db, USER_TABLE, id_int)
+    return parse_user(user_row)
+
+
+async def get_user_by_usph(dsrc: Source, usp_hex: str) -> User:
     user_row = await dsrc.ops.retrieve_by_unique(dsrc.db, USER_TABLE, USERNAME, usp_hex)
-    return user_row.get(PASSWORD)
+    return parse_user(user_row)
 
 
 async def upsert_user_row(dsrc: Source, user_row: dict):

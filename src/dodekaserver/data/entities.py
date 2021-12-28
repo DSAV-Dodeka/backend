@@ -1,7 +1,72 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 
 class User(BaseModel):
     id: int
     usp_hex: str
     password_file: str
+
+
+class Key(BaseModel):
+    id: int
+    algorithm: str
+    public: str
+    private: str
+    public_format: str
+    public_encoding: str
+    private_format: str
+    private_encoding: str
+
+
+class OpaqueKey(Key):
+    @validator('algorithm')
+    def validate_alg(cls, v):
+        assert v == "curve25519ristretto"
+        return v
+
+    @validator('public_format')
+    def validate_pub_fmt(cls, v):
+        assert v == "none"
+        return v
+
+    @validator('public_encoding')
+    def validate_pub_enc(cls, v):
+        assert v == "base64url"
+        return v
+
+    @validator('private_format')
+    def validate_priv_fmt(cls, v):
+        assert v == "none"
+        return v
+
+    @validator('private_encoding')
+    def validate_priv_enc(cls, v):
+        assert v == "base64url"
+        return v
+
+
+class TokenKey(Key):
+    @validator('algorithm')
+    def validate_alg(cls, v):
+        assert v == "ed448"
+        return v
+
+    @validator('public_format')
+    def validate_pub_fmt(cls, v):
+        assert v == "X509PKCS#1"
+        return v
+
+    @validator('public_encoding')
+    def validate_pub_enc(cls, v):
+        assert v == "PEM"
+        return v
+
+    @validator('private_format')
+    def validate_priv_fmt(cls, v):
+        assert v == "PKCS#8"
+        return v
+
+    @validator('private_encoding')
+    def validate_priv_enc(cls, v):
+        assert v == "PEM"
+        return v

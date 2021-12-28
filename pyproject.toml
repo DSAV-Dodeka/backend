@@ -21,6 +21,8 @@ redis = "^4.0.1"
 python-dotenv = "^0.19.2"
 opaquepy = "^0.1.3"
 PyJWT = "^2.3.0"
+cryptography = "^36.0.1"
+cffi = "^1.15.0"
 
 [tool.poetry.scripts]
 s-dodeka = "dodekaserver.main:run"

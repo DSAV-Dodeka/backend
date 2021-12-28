@@ -1,40 +1,55 @@
-from opaquepy.lib import generate_keys
+from typing import Optional
 
+from dodekaserver.data.entities import OpaqueKey, TokenKey
 from dodekaserver.data.source import Source
 from dodekaserver.db import KEY_TABLE
-from dodekaserver.db.model import PUBLIC_KEY_COLUMN, PRIVATE_KEY_COLUMN
+from dodekaserver.auth.key_util import new_ed448_keypair, new_curve25519_keypair
+
+__all__ = ['get_opaque_public', 'get_opaque_private', 'get_token_private', 'get_token_public', 'upsert_key_row']
 
 
-__all__ = ['get_public_key', 'get_private_key', 'upsert_key_row']
-
-
-async def _get_key_row(dsrc: Source, id_int: int) -> dict:
+async def _get_key_row(dsrc: Source, id_int: int) -> Optional[dict]:
     key_row = await dsrc.ops.retrieve_by_id(dsrc.db, KEY_TABLE, id_int)
-    if key_row is None and id_int == 0:
-        private, public = generate_keys()
-        new_key_row = create_key_row(0, public, private)
-        await upsert_key_row(dsrc, new_key_row)
-        key_row = await dsrc.ops.retrieve_by_id(dsrc.db, KEY_TABLE, 0)
+
     return key_row
 
 
-async def get_public_key(dsrc: Source, id_int: int) -> str:
-    key_row = await _get_key_row(dsrc, id_int)
-    return key_row.get(PUBLIC_KEY_COLUMN)
+async def _get_opaque_key(dsrc: Source) -> OpaqueKey:
+    # TODO set id in config
+    key_row = await _get_key_row(dsrc, 0)
+    if key_row is None:
+        new_key = new_curve25519_keypair(0)
+
+        await upsert_key_row(dsrc, new_key.dict())
+        key_row = await dsrc.ops.retrieve_by_id(dsrc.db, KEY_TABLE, 0)
+    return OpaqueKey.parse_obj(key_row)
 
 
-async def get_private_key(dsrc: Source, id_int: int) -> str:
-    key_row = await _get_key_row(dsrc, id_int)
-    return key_row.get(PRIVATE_KEY_COLUMN)
+async def get_opaque_private(dsrc: Source) -> str:
+    return (await _get_opaque_key(dsrc)).private
+
+
+async def get_opaque_public(dsrc: Source) -> str:
+    return (await _get_opaque_key(dsrc)).public
+
+
+async def _get_token_key(dsrc: Source):
+    # TODO set id in config
+    key_row = await _get_key_row(dsrc, 1)
+    if key_row is None:
+        new_key = new_ed448_keypair(1)
+        await upsert_key_row(dsrc, new_key.dict())
+        key_row = await dsrc.ops.retrieve_by_id(dsrc.db, KEY_TABLE, 1)
+    return TokenKey.parse_obj(key_row)
+
+
+async def get_token_private(dsrc: Source) -> str:
+    return (await _get_token_key(dsrc)).private
+
+
+async def get_token_public(dsrc: Source) -> str:
+    return (await _get_token_key(dsrc)).public
 
 
 async def upsert_key_row(dsrc: Source, key_row: dict):
     return await dsrc.ops.upsert_by_id(dsrc.db, KEY_TABLE, key_row)
-
-
-def create_key_row(id_int: int, public: str, private: str):
-    return {
-        "id": id_int,
-        PUBLIC_KEY_COLUMN: public,
-        PRIVATE_KEY_COLUMN: private
-    }

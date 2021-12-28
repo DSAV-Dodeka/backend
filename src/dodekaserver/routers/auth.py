@@ -2,13 +2,14 @@ from typing import Optional
 from urllib.parse import urlencode
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel, ValidationError, validator
+from pydantic import ValidationError
 import opaquepy.lib as opq
 
 import dodekaserver.data as data
 from dodekaserver.data import DataError
 import dodekaserver.utilities as util
 from dodekaserver.auth.models import *
+from dodekaserver.auth.tokens import *
 
 dsrc = data.dsrc
 
@@ -20,7 +21,7 @@ port_front = 3000
 
 @router.post("/auth/register/start/")
 async def start_register(register_start: PasswordRequest):
-    public_key = await data.key.get_public_key(dsrc, 0)
+    public_key = await data.key.get_opaque_public(dsrc)
     username = register_start.username
 
     user_usph = util.usp_hex(username)
@@ -52,7 +53,7 @@ async def finish_register(register_finish: FinishRequest):
 @router.post("/auth/login/start")
 async def start_login(login_start: PasswordRequest):
     user_usph = util.usp_hex(login_start.username)
-    private_key = await data.key.get_private_key(dsrc, 0)
+    private_key = await data.key.get_opaque_private(dsrc)
 
     try:
         password_file = (await data.user.get_user_by_usph(dsrc, user_usph)).password_file
@@ -78,11 +79,12 @@ async def finish_login(login_finish: FinishLogin):
 
     user_usph = util.usp_hex(login_finish.username)
     if saved_state.user_usph != user_usph:
-        raise HTTPException(status_code=400)
+        raise HTTPException(status_code=400, detail="Incorrect username for this login!")
 
     session_key = opq.login_finish(login_finish.client_request, saved_state.state)
+    flow_user = FlowUser(flow_id=login_finish.flow_id, user_usph=user_usph)
 
-    data.store_kv(dsrc.kv, session_key, login_finish.flow_id, 60)
+    data.store_json(dsrc.kv, session_key, flow_user.dict(), 60)
 
     return None
 
@@ -130,15 +132,18 @@ async def token(token_request: TokenRequest):
         except AssertionError:
             raise HTTPException(400, detail="redirect_uri, code and code_verifier must be defined")
 
-        flow_id = data.get_kv(dsrc.kv, token_request.code)
-        if flow_id is None:
+        flow_user_dict = data.get_json(dsrc.kv, token_request.code)
+        if flow_user_dict is None:
             raise HTTPException(400)
-        auth_req_dict = data.get_json(dsrc.kv, flow_id)
-
+        flow_user = FlowUser.parse_obj(flow_user_dict)
+        auth_req_dict = data.get_json(dsrc.kv, flow_user.flow_id)
+        if auth_req_dict is None:
+            raise HTTPException(400)
         auth_request = AuthRequest.parse_obj(auth_req_dict)
 
-        # create tokens
+        jwt = await create_access_token(dsrc, flow_user.user_usph)
 
-        return flow_id
+
+        return jwt
     else:
         return None

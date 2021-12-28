@@ -2,6 +2,10 @@ from typing import Optional
 from pydantic import BaseModel, validator
 
 
+__all__ = ['AuthRequest', 'PasswordRequest', 'PasswordResponse', 'SavedState', 'FinishRequest', 'FinishLogin',
+           'FlowUser', 'TokenRequest']
+
+
 class AuthRequest(BaseModel):
     response_type: str
     client_id: str
@@ -64,6 +68,11 @@ class FinishLogin(BaseModel):
     auth_id: str
     username: str
     client_request: str
+    flow_id: str
+
+
+class FlowUser(BaseModel):
+    user_usph: str
     flow_id: str
 
 

@@ -82,3 +82,4 @@ class TokenRequest(BaseModel):
     code: Optional[str]
     redirect_uri: Optional[str]
     code_verifier: Optional[str]
+    refresh_token: Optional[str]

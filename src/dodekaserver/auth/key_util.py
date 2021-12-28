@@ -1,9 +1,12 @@
+from base64 import urlsafe_b64encode
+
+from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PrivateKey
 from cryptography.hazmat.primitives.serialization import PrivateFormat, PublicFormat, Encoding, NoEncryption, \
     BestAvailableEncryption
 from opaquepy.lib import generate_keys as opaque_generate_keys
 
-from dodekaserver.data.entities import OpaqueKey, TokenKey
+from dodekaserver.data.entities import OpaqueKey, TokenKey, SymmetricKey
 
 
 def new_ed448_keypair(id_int: int) -> TokenKey:
@@ -25,5 +28,14 @@ def new_curve25519_keypair(id_int: int) -> OpaqueKey:
 
     new_key = OpaqueKey(public=public, private=private, algorithm="curve25519ristretto", private_format="none",
                         public_format="none", private_encoding="base64url", public_encoding="base64url", id=id_int)
+
+    return new_key
+
+
+def new_symmetric_key(id_int: int) -> SymmetricKey:
+    symmetric = Fernet.generate_key().decode('utf-8').rstrip("=")
+
+    new_key = SymmetricKey(private=symmetric, algorithm="symmetric", private_format="none",
+                           private_encoding="base64url", id=id_int)
 
     return new_key

@@ -11,8 +11,6 @@ metadata = sqlalchemy.MetaData()
 
 USER_TABLE = "users"
 USERNAME = "usp_hex"
-NAME = "name"
-LAST_NAME = "last_name"
 PASSWORD = "password_file"
 users = sqlalchemy.Table(
     USER_TABLE,
@@ -42,4 +40,17 @@ keys = sqlalchemy.Table(
     sqlalchemy.Column(PRIVATE_FMT_COLUMN, sqlalchemy.String(length=100)),
     sqlalchemy.Column(PUBLIC_ENCODING, sqlalchemy.String(length=100)),
     sqlalchemy.Column(PRIVATE_ENCODING, sqlalchemy.String(length=100))
+)
+
+REFRESH_TOKEN_TABLE = "refreshtokens"
+FAMILY_ID = "family_id"
+ACCESS_VALUE = "access_value"
+EXPIRATION = "exp"
+refreshtokens = sqlalchemy.Table(
+    REFRESH_TOKEN_TABLE,
+    metadata,
+    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
+    sqlalchemy.Column(FAMILY_ID, sqlalchemy.String(length=200)),
+    sqlalchemy.Column(ACCESS_VALUE, sqlalchemy.String(length=1000)),
+    sqlalchemy.Column(EXPIRATION, sqlalchemy.Integer)
 )

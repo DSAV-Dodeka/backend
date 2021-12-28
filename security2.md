@@ -10,6 +10,8 @@ Refresh tokens are used for refreshing BOTH access tokens AND id tokens
 
 id tokens are not very useful, but we implement them to reduce the risk of missing important parts of the OpenID spec.
 
+A scope of "openid" is not used for this reason
+
 **Resource Owner** - end-user
 
 **Resource Server** - dodekabackend

@@ -2,7 +2,7 @@ from pydantic import BaseModel, validator
 
 
 class User(BaseModel):
-    id: int
+    id: int = None
     usp_hex: str
     password_file: str
 
@@ -70,3 +70,36 @@ class TokenKey(Key):
     def validate_priv_enc(cls, v):
         assert v == "PEM"
         return v
+
+
+class SymmetricKey(Key):
+    public: str = None
+    public_format: str = None
+    public_encoding: str = None
+
+    @validator('algorithm')
+    def validate_alg(cls, v):
+        assert v == "symmetric"
+        return v
+
+    @validator('private_format')
+    def validate_priv_fmt(cls, v):
+        assert v == "none"
+        return v
+
+    @validator('private_encoding')
+    def validate_priv_enc(cls, v):
+        assert v == "base64url"
+        return v
+
+
+class SavedRefreshToken(BaseModel):
+    id: int = None
+    family_id: str
+    access_value: str
+    exp: int
+
+
+class RefreshToken(BaseModel):
+    id: int  # make required again
+    family_id: str

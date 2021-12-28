@@ -3,7 +3,7 @@ from typing import Optional
 from dodekaserver.data.source import Source, DataError
 from dodekaserver.data.entities import User
 from dodekaserver.db import USER_TABLE
-from dodekaserver.db.model import USERNAME, NAME, LAST_NAME, PASSWORD
+from dodekaserver.db.model import USERNAME, PASSWORD
 
 
 __all__ = ['get_user_by_id', 'upsert_user_row', 'create_user']
@@ -29,10 +29,8 @@ async def upsert_user_row(dsrc: Source, user_row: dict):
     return await dsrc.ops.upsert_by_id(dsrc.db, USER_TABLE, user_row)
 
 
-def create_user(ups_hex, password_file, name, last_name) -> dict:
+def create_user(ups_hex, password_file) -> dict:
     return {
         USERNAME: ups_hex,
-        NAME: name,
-        LAST_NAME: last_name,
         PASSWORD: password_file
     }

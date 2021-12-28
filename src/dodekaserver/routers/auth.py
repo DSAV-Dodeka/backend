@@ -45,7 +45,7 @@ async def finish_register(register_finish: FinishRequest):
 
     password_file = opq.register_finish(register_finish.client_request, saved_state.state)
 
-    new_user = data.user.create_user(user_usph, password_file, "a", "b")
+    new_user = data.user.create_user(user_usph, password_file)
 
     await data.user.upsert_user_row(dsrc, new_user)
 
@@ -118,7 +118,7 @@ async def oauth_finish(flow_id: str, code: str):
         "state": auth_request.state
     }
     redirect = f"{auth_request.redirect_uri}?{urlencode(params)}"
-
+    print("xxx")
     return RedirectResponse(redirect, status_code=status.HTTP_302_FOUND)
 
 
@@ -141,9 +141,15 @@ async def token(token_request: TokenRequest):
             raise HTTPException(400)
         auth_request = AuthRequest.parse_obj(auth_req_dict)
 
-        jwt = await create_access_token(dsrc, flow_user.user_usph)
-
+        jwt = await create_refresh_access_pair(dsrc, flow_user.user_usph, "test")
 
         return jwt
+    elif token_request.grant_type == "refresh_token":
+        try:
+            assert token_request.refresh_token is not None
+        except AssertionError:
+            raise HTTPException(400, detail="refresh_token must be defined")
+
+        jwt = await create_refresh_access_pair(dsrc, refresh_token=token_request.refresh_token)
     else:
         return None

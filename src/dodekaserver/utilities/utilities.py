@@ -1,5 +1,6 @@
 from typing import Optional
 
+from base64 import urlsafe_b64encode, urlsafe_b64decode
 import sys
 import time
 import hashlib
@@ -110,3 +111,17 @@ def usp_hex_debin(usp_hex_bytes: bytes) -> str:
 
 def random_user_time_hash_hex(user_usph: str):
     return random_time_hash_hex(usp_hex_bin(user_usph))
+
+
+def add_base64_padding(unpadded: str):
+    while len(unpadded) % 4 != 0:
+        unpadded += "="
+    return unpadded
+
+
+def encb64url_str(b: bytes):
+    return urlsafe_b64encode(b).decode('utf-8')
+
+
+def decb64url_str(s: str):
+    return urlsafe_b64decode(s.encode('utf-8'))

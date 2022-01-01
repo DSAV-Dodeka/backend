@@ -46,11 +46,15 @@ REFRESH_TOKEN_TABLE = "refreshtokens"
 FAMILY_ID = "family_id"
 ACCESS_VALUE = "access_value"
 EXPIRATION = "exp"
+NONCE = "nonce"
+ISSUED_AT = "iat"
 refreshtokens = sqlalchemy.Table(
     REFRESH_TOKEN_TABLE,
     metadata,
     sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
     sqlalchemy.Column(FAMILY_ID, sqlalchemy.String(length=200)),
     sqlalchemy.Column(ACCESS_VALUE, sqlalchemy.String(length=1000)),
-    sqlalchemy.Column(EXPIRATION, sqlalchemy.Integer)
+    sqlalchemy.Column(EXPIRATION, sqlalchemy.Integer),
+    sqlalchemy.Column(ISSUED_AT, sqlalchemy.Integer),
+    sqlalchemy.Column(NONCE, sqlalchemy.String(length=200))
 )

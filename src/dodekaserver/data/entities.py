@@ -97,9 +97,19 @@ class SavedRefreshToken(BaseModel):
     id: int = None
     family_id: str
     access_value: str
+    iat: int
     exp: int
+    nonce: str
 
 
 class RefreshToken(BaseModel):
     id: int  # make required again
     family_id: str
+    nonce: str
+
+
+class AccessToken(BaseModel):
+    sub: str
+    iss: str
+    aud: list[str]
+    scope: str

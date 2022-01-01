@@ -34,22 +34,22 @@ class DatabaseOperations:
     This circumvents a problem where mocks are ignored as FastAPI changes the function
     references at startup.
     """
-    @staticmethod
-    async def retrieve_by_id(db: Database, table: str, id_int: int) -> Optional[dict]:
+    @classmethod
+    async def retrieve_by_id(cls, db: Database, table: str, id_int: int) -> Optional[dict]:
         """ Ensure `table` is never user-defined. """
         query = f"SELECT * FROM {table} WHERE id = :id"
         record = await db.fetch_one(query, values={"id": id_int})
         return dict(record) if record is not None else None
 
-    @staticmethod
-    async def retrieve_by_unique(db: Database, table: str, unique_column: str, value) -> Optional[dict]:
+    @classmethod
+    async def retrieve_by_unique(cls, db: Database, table: str, unique_column: str, value) -> Optional[dict]:
         """ Ensure `unique_column` and `table` are never user-defined. """
         query = f"SELECT * FROM {table} WHERE {unique_column} = :val"
         record = await db.fetch_one(query, values={"val": value})
         return dict(record) if record is not None else None
 
-    @staticmethod
-    async def upsert_by_id(db: Database, table: str, row: dict):
+    @classmethod
+    async def upsert_by_id(cls, db: Database, table: str, row: dict):
         """ Note that while the values are safe from injection, the column names are not. Ensure the row dict
         is validated using the model and not just passed directly by the user. """
 
@@ -60,11 +60,23 @@ class DatabaseOperations:
 
         return await db.execute(query=query, values=row)
 
-    @staticmethod
-    async def insert_return_id(db: Database, table: str, row: dict):
+    @classmethod
+    async def insert_return_id(cls, db: Database, table: str, row: dict) -> int:
         row_keys, row_keys_vars, _ = _row_keys_vars_set(row)
 
         query = f"INSERT INTO {table} ({row_keys}) VALUES ({row_keys_vars}) " \
                 f"RETURNING (id);"
 
         return await db.execute(query=query, values=row)
+
+    @classmethod
+    async def delete_by_id(cls, db: Database, table: str, id_int: int):
+        query = f"DELETE FROM {table} WHERE id = :id"
+        return await db.execute(query, values={"id": id_int})
+
+    @classmethod
+    async def delete_insert_return_id_transaction(cls, db: Database, table: str, id_int_delete: int, new_row: dict) -> int:
+        async with db.transaction():
+            await cls.delete_by_id(db, table, id_int_delete)
+            returned_id = await cls.insert_return_id(db, table, new_row)
+        return returned_id

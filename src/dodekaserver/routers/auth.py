@@ -151,5 +151,7 @@ async def token(token_request: TokenRequest):
             raise HTTPException(400, detail="refresh_token must be defined")
 
         jwt = await create_refresh_access_pair(dsrc, refresh_token=token_request.refresh_token)
+
+        return jwt
     else:
         return None

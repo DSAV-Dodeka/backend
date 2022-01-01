@@ -1,8 +1,8 @@
-from typing import Optional
 from urllib.parse import urlencode
+from pydantic import ValidationError
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import RedirectResponse
-from pydantic import ValidationError
+
 import opaquepy.lib as opq
 
 import dodekaserver.data as data
@@ -15,11 +15,10 @@ dsrc = data.dsrc
 
 router = APIRouter()
 
-
 port_front = 3000
 
 
-@router.post("/auth/register/start/")
+@router.post("/auth/register/start/", response_model=PasswordResponse)
 async def start_register(register_start: PasswordRequest):
     public_key = await data.key.get_opaque_public(dsrc)
     username = register_start.username
@@ -50,7 +49,7 @@ async def finish_register(register_finish: FinishRequest):
     await data.user.upsert_user_row(dsrc, new_user)
 
 
-@router.post("/auth/login/start")
+@router.post("/auth/login/start", response_model=PasswordResponse)
 async def start_login(login_start: PasswordRequest):
     user_usph = util.usp_hex(login_start.username)
     private_key = await data.key.get_opaque_private(dsrc)
@@ -104,7 +103,7 @@ async def oauth_endpoint(response_type: str, client_id: str, redirect_uri: str, 
     params = {
         "flow_id": flow_id
     }
-    redirect = f"http://localhost:3000/auth/credentials?{urlencode(params)}"
+    redirect = f"http://localhost:{port_front}/auth/credentials?{urlencode(params)}"
 
     return RedirectResponse(redirect, status_code=status.HTTP_302_FOUND)
 
@@ -118,11 +117,10 @@ async def oauth_finish(flow_id: str, code: str):
         "state": auth_request.state
     }
     redirect = f"{auth_request.redirect_uri}?{urlencode(params)}"
-    print("xxx")
     return RedirectResponse(redirect, status_code=status.HTTP_302_FOUND)
 
 
-@router.post("/oauth/token/")
+@router.post("/oauth/token/", response_model=TokenResponse)
 async def token(token_request: TokenRequest):
     if token_request.grant_type == "authorization_code":
         try:
@@ -139,19 +137,28 @@ async def token(token_request: TokenRequest):
         auth_req_dict = data.get_json(dsrc.kv, flow_user.flow_id)
         if auth_req_dict is None:
             raise HTTPException(400)
+        # TODO get scope from request
         auth_request = AuthRequest.parse_obj(auth_req_dict)
 
-        jwt = await create_refresh_access_pair(dsrc, flow_user.user_usph, "test")
+        token_user = flow_user.user_usph
+        token_scope = "test"
+        old_refresh = None
 
-        return jwt
     elif token_request.grant_type == "refresh_token":
         try:
             assert token_request.refresh_token is not None
         except AssertionError:
             raise HTTPException(400, detail="refresh_token must be defined")
 
-        jwt = await create_refresh_access_pair(dsrc, refresh_token=token_request.refresh_token)
+        token_user = None
+        token_scope = None
+        old_refresh = token_request.refresh_token
 
-        return jwt
     else:
-        return None
+        raise HTTPException(400, detail="Only 'refresh_token' and 'authorization_code' grant types are available.")
+
+    access, refresh, token_type, exp, returned_scope = await create_refresh_access_pair(dsrc, token_user, token_scope,
+                                                                                        refresh_token=old_refresh)
+    # TODO id_token and login options
+    return TokenResponse(access_token=access, refresh_token=refresh, token_type=token_type, expires_in=exp,
+                         scope=returned_scope, id_token="")

@@ -47,24 +47,24 @@ async def test_root(test_client):
     assert response.json() == {"Hallo": "Atleten"}
 
 
-@pytest.fixture
-async def mock_user_retrieve(mock_dbop):
-    user_row = {'id': 0, 'name': 'TEST', 'last_name': 'TEST_LAST'}
-
-    async def mock_retrieve(a, b, row_id):
-        user_row['id'] = row_id
-        return user_row
-
-    mock_dbop.retrieve_by_id = mock_retrieve
-
-    yield user_row
-
-
-@pytest.mark.asyncio
-async def test_get_user(mock_user_retrieve, test_client):
-
-    response = await test_client.get("/users/126")
-
-    assert response.status_code == 200
-
-    assert response.json() == {"user": mock_user_retrieve}
+# @pytest.fixture
+# async def mock_user_retrieve(mock_dbop):
+#     user_row = {'id': 0, 'name': 'TEST', 'last_name': 'TEST_LAST'}
+#
+#     async def mock_retrieve(a, b, row_id):
+#         user_row['id'] = row_id
+#         return user_row
+#
+#     mock_dbop.retrieve_by_id = mock_retrieve
+#
+#     yield user_row
+#
+#
+# @pytest.mark.asyncio
+# async def test_get_user(mock_user_retrieve, test_client):
+#
+#     response = await test_client.get("/users/126")
+#
+#     assert response.status_code == 200
+#
+#     assert response.json() == {"user": mock_user_retrieve}

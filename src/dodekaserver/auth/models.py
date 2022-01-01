@@ -3,7 +3,7 @@ from pydantic import BaseModel, validator
 
 
 __all__ = ['AuthRequest', 'PasswordRequest', 'PasswordResponse', 'SavedState', 'FinishRequest', 'FinishLogin',
-           'FlowUser', 'TokenRequest']
+           'FlowUser', 'TokenRequest', 'TokenResponse']
 
 
 class AuthRequest(BaseModel):
@@ -83,3 +83,12 @@ class TokenRequest(BaseModel):
     redirect_uri: Optional[str]
     code_verifier: Optional[str]
     refresh_token: Optional[str]
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str
+    id_token: str
+    expires_in: int
+    scope: str

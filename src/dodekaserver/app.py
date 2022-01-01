@@ -13,6 +13,7 @@ from dodekaserver.data import Source
 # Router modules, each router has its own API endpoints
 import dodekaserver.routers.basic as basic
 import dodekaserver.routers.auth as auth
+import dodekaserver.routers.profile as profile
 
 
 def create_app() -> FastAPI:
@@ -24,6 +25,7 @@ def create_app() -> FastAPI:
     new_app = FastAPI()
     new_app.include_router(basic.router)
     new_app.include_router(auth.router)
+    new_app.include_router(profile.router)
     new_app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=['*'])
     return new_app
 

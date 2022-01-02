@@ -12,9 +12,9 @@ from jwt import PyJWTError
 from dodekaserver.utilities import add_base64_padding, encb64url_str, decb64url_str
 import dodekaserver.data as data
 from dodekaserver.data.entities import SavedRefreshToken, RefreshToken, AccessToken
-from dodekaserver.data import Source
+from dodekaserver.data import Source, DataError
 
-__all__ = ['create_refresh_access_pair', 'create_id_token', 'verify_access_token']
+__all__ = ['create_refresh_access_pair', 'create_id_token', 'verify_access_token', 'InvalidRefresh']
 
 id_exp = 10 * 60 * 60  # 10 hours
 access_exp = 1 * 60 * 60  # 1 hour
@@ -94,7 +94,13 @@ async def create_refresh_access_pair(dsrc: Source, user_usph: str = None, scope:
             # For example from the JSON decoding
             raise InvalidRefresh
 
-        saved_refresh = await data.refreshtoken.get_refresh_by_id(dsrc, refresh.id)
+        try:
+            saved_refresh = await data.refreshtoken.get_refresh_by_id(dsrc, refresh.id)
+        except DataError as e:
+            if e.key != "refresh_empty":
+                raise e
+            await data.refreshtoken.delete_family(dsrc, refresh.family_id)
+            raise InvalidRefresh
 
         if saved_refresh.nonce != refresh.nonce or saved_refresh.family_id != refresh.family_id:
             raise InvalidRefresh

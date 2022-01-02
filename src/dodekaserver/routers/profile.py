@@ -27,4 +27,7 @@ async def get_profile(authorization: str = Security(auth_header)):
     token = authorization.removeprefix("Bearer ")
     public_key = await data.key.get_token_public(dsrc)
     acc = verify_access_token(public_key, token)
-    return acc.dict()
+    return {
+        "username": acc.sub,
+        "scope": acc.scope
+    }

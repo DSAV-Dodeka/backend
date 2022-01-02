@@ -75,6 +75,13 @@ class DatabaseOperations:
         return await db.execute(query, values={"id": id_int})
 
     @classmethod
+    async def delete_by_column(cls, db: Database, table: str, column: str, column_val):
+        """ The column name is not safe from injections, be sure it is always defined by the server! """
+
+        query = f"DELETE FROM {table} WHERE {column} = :{column}"
+        return await db.execute(query, values={column: column_val})
+
+    @classmethod
     async def delete_insert_return_id_transaction(cls, db: Database, table: str, id_int_delete: int, new_row: dict) -> int:
         async with db.transaction():
             await cls.delete_by_id(db, table, id_int_delete)

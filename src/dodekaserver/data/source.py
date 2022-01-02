@@ -18,7 +18,11 @@ class SourceError(ConnectionError):
 
 
 class DataError(ValueError):
-    pass
+    key: str
+
+    def __init__(self, message, key):
+        self.message = message
+        self.key = key
 
 
 class Source:

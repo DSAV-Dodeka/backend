@@ -34,3 +34,6 @@ Create an Authorization Request (Section 4.1.1)
 7. g
 
 https://openid.net/specs/openid-connect-core-1_0.html#IDToken
+
+
+## Remembering session

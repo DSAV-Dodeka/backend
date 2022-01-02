@@ -1,6 +1,6 @@
 from urllib.parse import urlencode
 from pydantic import ValidationError
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Response
 from fastapi.responses import RedirectResponse
 
 import opaquepy.lib as opq
@@ -98,18 +98,24 @@ async def oauth_endpoint(response_type: str, client_id: str, redirect_uri: str, 
     except ValidationError as e:
         raise HTTPException(400, detail=e.errors())
     flow_id = util.random_time_hash_hex()
-    data.store_json(dsrc.kv, flow_id, auth_request.dict(), 1000)
+    data.store_json(dsrc.kv, flow_id, auth_request.dict(), expire=1000)
 
+    # Used to retrieve authentication information
     params = {
         "flow_id": flow_id
     }
+    # In the future, we would redirect to some external auth page
     redirect = f"http://localhost:{port_front}/auth/credentials?{urlencode(params)}"
 
     return RedirectResponse(redirect, status_code=status.HTTP_302_FOUND)
 
 
 @router.get("/oauth/callback/", status_code=302)
-async def oauth_finish(flow_id: str, code: str):
+async def oauth_finish(flow_id: str, code: str, response: Response):
+    # Prevents cache of value
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+
     auth_req_dict = data.get_json(dsrc.kv, flow_id)
     auth_request = AuthRequest.parse_obj(auth_req_dict)
     params = {
@@ -121,7 +127,14 @@ async def oauth_finish(flow_id: str, code: str):
 
 
 @router.post("/oauth/token/", response_model=TokenResponse)
-async def token(token_request: TokenRequest):
+async def token(token_request: TokenRequest, response: Response):
+    # Prevents cache, required by OpenID Connect
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+
+    if token_request.client_id != "dodekaweb_client":
+        raise HTTPException(400, detail="Invalid client ID.")
+
     if token_request.grant_type == "authorization_code":
         try:
             assert token_request.redirect_uri is not None
@@ -157,8 +170,12 @@ async def token(token_request: TokenRequest):
     else:
         raise HTTPException(400, detail="Only 'refresh_token' and 'authorization_code' grant types are available.")
 
-    access, refresh, token_type, exp, returned_scope = await create_refresh_access_pair(dsrc, token_user, token_scope,
-                                                                                        refresh_token=old_refresh)
+    try:
+        access, refresh, token_type, exp, returned_scope = await create_refresh_access_pair(dsrc, token_user,
+                                                                                            token_scope,
+                                                                                            refresh_token=old_refresh)
+    except InvalidRefresh:
+        raise HTTPException(400, detail="Invalid refresh_token!")
     # TODO id_token and login options
     return TokenResponse(access_token=access, refresh_token=refresh, token_type=token_type, expires_in=exp,
                          scope=returned_scope, id_token="")

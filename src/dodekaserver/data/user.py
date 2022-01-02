@@ -11,7 +11,7 @@ __all__ = ['get_user_by_id', 'upsert_user_row', 'create_user']
 
 def parse_user(user_dict: Optional[dict]) -> User:
     if user_dict is None:
-        raise DataError("User does not exist.")
+        raise DataError("User does not exist.", "user_empty")
     return User.parse_obj(user_dict)
 
 

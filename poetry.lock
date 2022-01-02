@@ -313,7 +313,7 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "opaquepy"
-version = "0.1.4"
+version = "0.1.5"
 description = "Python bindings for opaque-ke."
 category = "main"
 optional = false
@@ -1042,15 +1042,15 @@ markupsafe = [
     {file = "MarkupSafe-2.0.1.tar.gz", hash = "sha256:594c67807fb16238b30c44bdf74f36c02cdf22d1c8cda91ef8a0ed8dabf5620a"},
 ]
 opaquepy = [
-    {file = "opaquepy-0.1.4-cp310-cp310-macosx_10_7_x86_64.whl", hash = "sha256:6dbabba178158b17c10051564cd2252d6dda621ee35ccc5aae16c8874fef085d"},
-    {file = "opaquepy-0.1.4-cp310-cp310-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:fad5cf084247d3795fdb3f59a7d22a17c99e1caae2b6733b2881ffc1ea1cedd2"},
-    {file = "opaquepy-0.1.4-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:79ee3f234a67cf2c45fd8f8d89e2388ca14bf60d7a439e13dfab85525020e7e3"},
-    {file = "opaquepy-0.1.4-cp310-none-win_amd64.whl", hash = "sha256:bc19fed39878cb98d5d8c94ac827826080953d16f4288861ebe9959d2b613854"},
-    {file = "opaquepy-0.1.4-cp39-cp39-macosx_10_7_x86_64.whl", hash = "sha256:d4c031d23d7046c635b5e1f92ffebc4c9f2cb3b61f7322de6388f294f10c9820"},
-    {file = "opaquepy-0.1.4-cp39-cp39-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:48f9bde133985f65ad9759c6be9510f9e5fe0a1a87da6027f2118b20da34661e"},
-    {file = "opaquepy-0.1.4-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ce6c3b700469558ac48fe011a04833da18f34d480c5bc1c94f8b5030eab148f2"},
-    {file = "opaquepy-0.1.4-cp39-none-win_amd64.whl", hash = "sha256:8e99da6fb6d1c393a8f0398d1629ff2fad04cf89ae26f3b992dded8dc99ad241"},
-    {file = "opaquepy-0.1.4.tar.gz", hash = "sha256:2ff6b0c6164fc8d1d45cef2e802b7cbdc342aa5877d0769df474d82d6e5a0f04"},
+    {file = "opaquepy-0.1.5-cp310-cp310-macosx_10_7_x86_64.whl", hash = "sha256:0fdad7118a828760fd2025605893ac09bbcf59460ac21671d2c41abc1b4c8171"},
+    {file = "opaquepy-0.1.5-cp310-cp310-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:baaddf7e9ff9a138d2e743ca38da83caef8bf6b8f7daf060998c03a4fa433e2f"},
+    {file = "opaquepy-0.1.5-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8ad10a189786060d28378cc97432d064b44ee23368b929686399eb3c91f2a8d3"},
+    {file = "opaquepy-0.1.5-cp310-none-win_amd64.whl", hash = "sha256:2c7b245afdbe28e714fb4393e939c29ff85ddf36e6d4fe3c4f0c6fd3fd669f78"},
+    {file = "opaquepy-0.1.5-cp39-cp39-macosx_10_7_x86_64.whl", hash = "sha256:56a52b19b0a8b5f794895464dfc10c94ab58b0004b37f703fef019708efc9a32"},
+    {file = "opaquepy-0.1.5-cp39-cp39-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:1ab8febd443d93afe133c1a92502c679f2075fa70e9dc68b5e9d58ec2c23d016"},
+    {file = "opaquepy-0.1.5-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1f452453eaacbf30ace116e5dccfece1949d257a3f6ecc45b443b5ce8322e6e4"},
+    {file = "opaquepy-0.1.5-cp39-none-win_amd64.whl", hash = "sha256:6ea400e8652fe69bdb22004b0dd82f536edcfe281a8cf8a4d087f3a82e8ceb8b"},
+    {file = "opaquepy-0.1.5.tar.gz", hash = "sha256:2be9997ec9d4ad18849f2eaa089aa9bbc9f26ec5f8e7a687c7502107ba711324"},
 ]
 packaging = [
     {file = "packaging-21.3-py3-none-any.whl", hash = "sha256:ef103e05f519cdc783ae24ea4e2e0f508a9c99b2d4969652eed6a2e1ea5bd522"},

@@ -1,5 +1,4 @@
 from urllib.parse import urlencode
-from datetime import datetime, timezone
 
 from pydantic import ValidationError
 from fastapi import APIRouter, HTTPException, status, Response
@@ -22,9 +21,11 @@ port_front = 3000
 
 @router.post("/auth/register/start/", response_model=PasswordResponse)
 async def start_register(register_start: PasswordRequest):
+    """ First step of OPAQUE registration, requires username and client message generated in first client registration
+    step."""
+    # OPAQUE public key
     public_key = await data.key.get_opaque_public(dsrc)
     username = register_start.username
-
     user_usph = util.usp_hex(username)
     auth_id = util.random_user_time_hash_hex(user_usph)
 
@@ -83,7 +84,7 @@ async def finish_login(login_finish: FinishLogin):
         raise HTTPException(status_code=400, detail="Incorrect username for this login!")
 
     session_key = opq.login_finish(login_finish.client_request, saved_state.state)
-    utc_now = int(datetime.now(timezone.utc).timestamp())
+    utc_now = util.utc_timestamp()
     flow_user = FlowUser(flow_id=login_finish.flow_id, user_usph=user_usph, auth_time=utc_now)
 
     data.store_json(dsrc.kv, session_key, flow_user.dict(), 60)
@@ -179,8 +180,8 @@ async def token(token_request: TokenRequest, response: Response):
 
     try:
         id_token, access, refresh, token_type, exp, returned_scope = \
-            await create_refresh_access_pair(dsrc, token_user, token_scope, id_nonce, auth_time,
-                                             refresh_token=old_refresh)
+            await create_id_access_refresh(dsrc, token_user, token_scope, id_nonce, auth_time,
+                                           refresh_token=old_refresh)
     except InvalidRefresh:
         raise HTTPException(400, detail="Invalid refresh_token!")
     # TODO login options

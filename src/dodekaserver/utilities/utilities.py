@@ -6,6 +6,7 @@ import time
 import hashlib
 import secrets
 import math
+from datetime import datetime, timezone
 
 
 def random_time_hash_hex(extra_seed: Optional[bytes] = None):
@@ -125,3 +126,7 @@ def encb64url_str(b: bytes):
 
 def decb64url_str(s: str):
     return urlsafe_b64decode(s.encode('utf-8'))
+
+
+def utc_timestamp():
+    return int(datetime.now(timezone.utc).timestamp())

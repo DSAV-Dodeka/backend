@@ -1,5 +1,3 @@
-from base64 import urlsafe_b64encode
-
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PrivateKey
 from cryptography.hazmat.primitives.serialization import PrivateFormat, PublicFormat, Encoding, NoEncryption, \

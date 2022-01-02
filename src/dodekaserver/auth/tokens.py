@@ -2,19 +2,17 @@ import secrets
 import json
 from secrets import token_urlsafe
 
-from datetime import datetime, timezone
-
 from cryptography.fernet import Fernet, InvalidToken
 from pydantic import ValidationError
 import jwt
 from jwt import PyJWTError
 
-from dodekaserver.utilities import add_base64_padding, encb64url_str, decb64url_str
+from dodekaserver.utilities import add_base64_padding, encb64url_str, decb64url_str, utc_timestamp
 import dodekaserver.data as data
 from dodekaserver.data.entities import SavedRefreshToken, RefreshToken, AccessToken, IdToken
 from dodekaserver.data import Source, DataError
 
-__all__ = ['create_refresh_access_pair', 'create_id_token', 'verify_access_token', 'InvalidRefresh']
+__all__ = ['create_id_access_refresh', 'verify_access_token', 'InvalidRefresh']
 
 id_exp = 10 * 60 * 60  # 10 hours
 access_exp = 1 * 60 * 60  # 1 hour
@@ -27,61 +25,53 @@ backend_client_id = "dodekabackend_client"
 
 
 def _encode_json_dict(dct: dict) -> bytes:
+    """ Convert dict to UTF-8-encoded bytes in JSON format. """
     return json.dumps(dct).encode('utf-8')
 
 
 def _decode_json_dict(encoded: bytes) -> dict:
+    """ Convert UTF-8 bytes containing JSON to a dict. """
     return json.loads(encoded.decode('utf-8'))
 
 
-async def create_id_token(user_usph: str, auth_time: int, nonce: str, dsrc: Source = None, private_key=None):
-    # TODO implement ID token
-    utc_now = int(datetime.now(timezone.utc).timestamp())
-    if auth_time == -1:
-        auth_time = utc_now
-    elif auth_time > utc_now or auth_time < 1640690242:
-        # Prevent weird timestamps
-        # The literal timestamp is 28/12/21
-        raise ValueError("Invalid timestamp!")
-
-    payload = {
-        "sub": user_usph,
-        "iss": issuer,
-        "aud": "dodekaweb_client",
-        "iat": utc_now,
-        "exp": utc_now + id_exp,
-        "auth_time": auth_time,
-        "nonce": nonce
-    }
-    if dsrc is not None:
-        private_key = await data.key.get_token_private(dsrc)
-    return jwt.encode(payload, private_key, algorithm="EdDSA")
-
-
 class InvalidRefresh(Exception):
+    """ Invalid refresh token. """
     pass
 
 
-async def create_refresh_access_pair(dsrc: Source, user_usph: str = None, scope: str = None, id_nonce: str = None,
-                                     auth_time: int = None, refresh_token: str = None):
+async def create_id_access_refresh(dsrc: Source, user_usph: str = None, scope: str = None, id_nonce: str = None,
+                                   auth_time: int = None, refresh_token: str = None):
     """
+    If the refresh_token is given, it will swap the refresh_token for a new refresh token from the same family and with
+    the same expiration date. It will also provide a fresh access token and ID token.
+
+    Otherwise, it will create a new refresh token and accompanying access and ID tokens, using the provided info.
+
+    Use this function with extreme care, only ever create a refresh token after authentication.
+
     :return: Tuple of access token, refresh token, token_type, access expiration in seconds, scope, respectively.
     """
-
     # ENSURE scope is validated by the server first, do not pass directly from client
 
+    # Symmetric key used to verify and encrypt/decrypt refresh tokens
     symmetric_key = await data.key.get_refresh_symmetric(dsrc)
+    # We store it unpadded (to match convention of not storing padding throughout the DB)
     padded_symmetric_key = add_base64_padding(symmetric_key)
+    # Fernet is a helper class from Python cryptography that does the encrypting/decrypting
+    # We load it with the key from our database
     fernet = Fernet(padded_symmetric_key)
+    # Asymmetric private key used for signing access and ID tokens
+    # A public key is then used to verify them
     signing_key = await data.key.get_token_private(dsrc)
 
-    utc_now = int(datetime.now(timezone.utc).timestamp())
+    utc_now = utc_timestamp()
 
     token_type = "Bearer"
 
     if refresh_token is not None:
         # expects base64url-encoded binary
         try:
+            # If it has been tampered with, this will also give an error
             decrypted = fernet.decrypt(refresh_token.encode('utf-8'))
             refresh_dict = _decode_json_dict(decrypted)
             refresh = RefreshToken.parse_obj(refresh_dict)
@@ -96,10 +86,15 @@ async def create_refresh_access_pair(dsrc: Source, user_usph: str = None, scope:
             raise InvalidRefresh
 
         try:
+            # See if previous refresh exists
             saved_refresh = await data.refreshtoken.get_refresh_by_id(dsrc, refresh.id)
         except DataError as e:
             if e.key != "refresh_empty":
+                # If not refresh_empty, it was some other internal error
                 raise e
+            # Only the most recent token should be valid and is always returned
+            # So if someone possesses some deleted token family member, it is most likely an attacker
+            # For this reason, all tokens in the family are invalidated to prevent further compromise
             await data.refreshtoken.delete_family(dsrc, refresh.family_id)
             raise InvalidRefresh
 
@@ -112,24 +107,37 @@ async def create_refresh_access_pair(dsrc: Source, user_usph: str = None, scope:
             # refresh no longer valid
             raise InvalidRefresh
 
+        # Rebuild access and ID tokens from value in refresh token
+        # We need the core static info to rebuild with new iat, etc.
         saved_access_dict = _decode_json_dict(decb64url_str(saved_refresh.access_value))
         saved_access = AccessToken.parse_obj(saved_access_dict)
-        access_scope = saved_access.scope
         saved_id_token_dict = _decode_json_dict(decb64url_str(saved_refresh.id_token_value))
         saved_id_token = IdToken.parse_obj(saved_id_token_dict)
+        # Add new expiry, iat
         new_access_payload = finish_token(saved_access.dict(), utc_now)
         new_id_token_payload = finish_token(saved_id_token.dict(), utc_now)
 
+        # Scope to be returned in response
+        access_scope = saved_access.scope
+
+        # Create JWTs from tokens
         access_token = jwt.encode(new_access_payload, signing_key, algorithm="EdDSA")
         id_token = jwt.encode(new_id_token_payload, signing_key, algorithm="EdDSA")
 
+        # Nonce is used to make it impossible to 'guess' new refresh tokens
+        # (So it becomes a combination of family_id + id nr + nonce)
+        # Although signing and encrypting should also protect it from that
         new_nonce = token_urlsafe(16)
+        # We don't store the access tokens and refresh tokens in the final token
+        # To construct new tokens, we need that information so we save it in the DB
         new_refresh_save = SavedRefreshToken(family_id=saved_refresh.family_id,
                                              access_value=saved_refresh.access_value,
                                              id_token_value=saved_refresh.id_token_value, exp=saved_refresh.exp,
                                              iat=utc_now, nonce=new_nonce)
+        # Deletes previous token, saves new one, only succeeds if all components of the transaction succeed
         new_refresh_id = await data.refreshtoken.refresh_transaction(dsrc, saved_refresh.id, new_refresh_save)
 
+        # The actual refresh token is an encrypted JSON dictionary containing the id, family_id and nonce
         refresh = RefreshToken(id=new_refresh_id, family_id=saved_refresh.family_id, nonce=new_nonce)
         refresh_token = fernet.encrypt(_encode_json_dict(refresh.dict())).decode('utf-8')
     else:
@@ -138,6 +146,7 @@ async def create_refresh_access_pair(dsrc: Source, user_usph: str = None, scope:
         assert id_nonce is not None
         assert auth_time is not None
 
+        # Build new tokens
         access_val, id_token_val = id_access_tokens(sub=user_usph,
                                                     iss="https://dsavdodeka.nl/auth",
                                                     aud_access=["dodekaweb_client", "dodekabackend_client"],
@@ -146,10 +155,13 @@ async def create_refresh_access_pair(dsrc: Source, user_usph: str = None, scope:
                                                     auth_time=auth_time,
                                                     id_nonce=id_nonce)
 
+        # Scope to be returned in response
         access_scope = access_val.scope
 
+        # Encoded tokens to store for refresh token
         access_val_encoded = encb64url_str(_encode_json_dict(access_val.dict()))
         id_token_val_encoded = encb64url_str(_encode_json_dict(id_token_val.dict()))
+        # Each authentication creates a refresh token of a particular family, which has a static lifetime
         family_id = secrets.token_urlsafe(16)
         refresh_save = SavedRefreshToken(family_id=family_id, access_value=access_val_encoded,
                                          id_token_value=id_token_val_encoded, exp=utc_now + refresh_exp, iat=utc_now,
@@ -170,6 +182,7 @@ async def create_refresh_access_pair(dsrc: Source, user_usph: str = None, scope:
 
 
 def id_access_tokens(sub, iss, aud_access, aud_id, scope, auth_time, id_nonce):
+    """ Create ID and access token objects. """
     access_core = AccessToken(sub=sub,
                               iss=iss,
                               aud=aud_access,
@@ -184,6 +197,7 @@ def id_access_tokens(sub, iss, aud_access, aud_id, scope, auth_time, id_nonce):
 
 
 def finish_token(token_val: dict, utc_now: int):
+    """ Add time-based information to static token dict. """
     payload_add = {
         "iat": utc_now,
         "exp": utc_now + access_exp,
@@ -193,6 +207,7 @@ def finish_token(token_val: dict, utc_now: int):
 
 
 class BadVerification(Exception):
+    """ Error during token verification. """
     pass
 
 

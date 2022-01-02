@@ -1,4 +1,6 @@
 from urllib.parse import urlencode
+from datetime import datetime, timezone
+
 from pydantic import ValidationError
 from fastapi import APIRouter, HTTPException, status, Response
 from fastapi.responses import RedirectResponse
@@ -81,7 +83,8 @@ async def finish_login(login_finish: FinishLogin):
         raise HTTPException(status_code=400, detail="Incorrect username for this login!")
 
     session_key = opq.login_finish(login_finish.client_request, saved_state.state)
-    flow_user = FlowUser(flow_id=login_finish.flow_id, user_usph=user_usph)
+    utc_now = int(datetime.now(timezone.utc).timestamp())
+    flow_user = FlowUser(flow_id=login_finish.flow_id, user_usph=user_usph, auth_time=utc_now)
 
     data.store_json(dsrc.kv, session_key, flow_user.dict(), 60)
 
@@ -90,11 +93,11 @@ async def finish_login(login_finish: FinishLogin):
 
 @router.get("/oauth/authorize/")
 async def oauth_endpoint(response_type: str, client_id: str, redirect_uri: str, state: str,
-                         code_challenge: str, code_challenge_method: str):
+                         code_challenge: str, code_challenge_method: str, nonce: str):
     try:
         auth_request = AuthRequest(response_type=response_type, client_id=client_id, redirect_uri=redirect_uri,
                                    state=state, code_challenge=code_challenge,
-                                   code_challenge_method=code_challenge_method)
+                                   code_challenge_method=code_challenge_method, nonce=nonce)
     except ValidationError as e:
         raise HTTPException(400, detail=e.errors())
     flow_id = util.random_time_hash_hex()
@@ -153,6 +156,8 @@ async def token(token_request: TokenRequest, response: Response):
         # TODO get scope from request
         auth_request = AuthRequest.parse_obj(auth_req_dict)
 
+        auth_time = flow_user.auth_time
+        id_nonce = auth_request.nonce
         token_user = flow_user.user_usph
         token_scope = "test"
         old_refresh = None
@@ -163,6 +168,8 @@ async def token(token_request: TokenRequest, response: Response):
         except AssertionError:
             raise HTTPException(400, detail="refresh_token must be defined")
 
+        auth_time = None
+        id_nonce = None
         token_user = None
         token_scope = None
         old_refresh = token_request.refresh_token
@@ -171,11 +178,11 @@ async def token(token_request: TokenRequest, response: Response):
         raise HTTPException(400, detail="Only 'refresh_token' and 'authorization_code' grant types are available.")
 
     try:
-        access, refresh, token_type, exp, returned_scope = await create_refresh_access_pair(dsrc, token_user,
-                                                                                            token_scope,
-                                                                                            refresh_token=old_refresh)
+        id_token, access, refresh, token_type, exp, returned_scope = \
+            await create_refresh_access_pair(dsrc, token_user, token_scope, id_nonce, auth_time,
+                                             refresh_token=old_refresh)
     except InvalidRefresh:
         raise HTTPException(400, detail="Invalid refresh_token!")
-    # TODO id_token and login options
-    return TokenResponse(access_token=access, refresh_token=refresh, token_type=token_type, expires_in=exp,
-                         scope=returned_scope, id_token="")
+    # TODO login options
+    return TokenResponse(id_token=id_token, access_token=access, refresh_token=refresh, token_type=token_type,
+                         expires_in=exp, scope=returned_scope)

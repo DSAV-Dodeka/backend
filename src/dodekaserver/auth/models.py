@@ -13,6 +13,7 @@ class AuthRequest(BaseModel):
     state: str
     code_challenge: str
     code_challenge_method: str
+    nonce: str
 
     @validator('response_type')
     def check_type(cls, v):
@@ -40,6 +41,11 @@ class AuthRequest(BaseModel):
         assert 128 >= len(v) >= 43, "Length must be 128 >= len >= 43!"
         for c in v:
             assert c.isalnum() or c in "-._~", "Invalid character in challenge!"
+        return v
+
+    @validator('nonce')
+    def check_nonce(cls, v: str):
+        assert len(v) < 100, "Nonce must not be too long!"
         return v
 
 
@@ -74,6 +80,7 @@ class FinishLogin(BaseModel):
 class FlowUser(BaseModel):
     user_usph: str
     flow_id: str
+    auth_time: int
 
 
 class TokenRequest(BaseModel):
@@ -86,9 +93,9 @@ class TokenRequest(BaseModel):
 
 
 class TokenResponse(BaseModel):
+    id_token: str
     access_token: str
     refresh_token: str
     token_type: str
-    id_token: str
     expires_in: int
     scope: str

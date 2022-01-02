@@ -97,6 +97,7 @@ class SavedRefreshToken(BaseModel):
     id: int = None
     family_id: str
     access_value: str
+    id_token_value: str
     iat: int
     exp: int
     nonce: str
@@ -113,3 +114,11 @@ class AccessToken(BaseModel):
     iss: str
     aud: list[str]
     scope: str
+
+
+class IdToken(BaseModel):
+    sub: str
+    iss: str
+    aud: list[str]
+    auth_time: int
+    nonce: str

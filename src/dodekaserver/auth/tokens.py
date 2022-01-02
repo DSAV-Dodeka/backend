@@ -11,7 +11,7 @@ from jwt import PyJWTError
 
 from dodekaserver.utilities import add_base64_padding, encb64url_str, decb64url_str
 import dodekaserver.data as data
-from dodekaserver.data.entities import SavedRefreshToken, RefreshToken, AccessToken
+from dodekaserver.data.entities import SavedRefreshToken, RefreshToken, AccessToken, IdToken
 from dodekaserver.data import Source, DataError
 
 __all__ = ['create_refresh_access_pair', 'create_id_token', 'verify_access_token', 'InvalidRefresh']
@@ -62,7 +62,8 @@ class InvalidRefresh(Exception):
     pass
 
 
-async def create_refresh_access_pair(dsrc: Source, user_usph: str = None, scope: str = None, refresh_token: str = None):
+async def create_refresh_access_pair(dsrc: Source, user_usph: str = None, scope: str = None, id_nonce: str = None,
+                                     auth_time: int = None, refresh_token: str = None):
     """
     :return: Tuple of access token, refresh token, token_type, access expiration in seconds, scope, respectively.
     """
@@ -114,13 +115,18 @@ async def create_refresh_access_pair(dsrc: Source, user_usph: str = None, scope:
         saved_access_dict = _decode_json_dict(decb64url_str(saved_refresh.access_value))
         saved_access = AccessToken.parse_obj(saved_access_dict)
         access_scope = saved_access.scope
-        new_access_payload = finish_access_token(saved_access.dict(), utc_now)
+        saved_id_token_dict = _decode_json_dict(decb64url_str(saved_refresh.id_token_value))
+        saved_id_token = IdToken.parse_obj(saved_id_token_dict)
+        new_access_payload = finish_token(saved_access.dict(), utc_now)
+        new_id_token_payload = finish_token(saved_id_token.dict(), utc_now)
 
         access_token = jwt.encode(new_access_payload, signing_key, algorithm="EdDSA")
+        id_token = jwt.encode(new_id_token_payload, signing_key, algorithm="EdDSA")
 
         new_nonce = token_urlsafe(16)
         new_refresh_save = SavedRefreshToken(family_id=saved_refresh.family_id,
-                                             access_value=saved_refresh.access_value, exp=saved_refresh.exp,
+                                             access_value=saved_refresh.access_value,
+                                             id_token_value=saved_refresh.id_token_value, exp=saved_refresh.exp,
                                              iat=utc_now, nonce=new_nonce)
         new_refresh_id = await data.refreshtoken.refresh_transaction(dsrc, saved_refresh.id, new_refresh_save)
 
@@ -129,36 +135,60 @@ async def create_refresh_access_pair(dsrc: Source, user_usph: str = None, scope:
     else:
         assert user_usph is not None
         assert scope is not None
+        assert id_nonce is not None
+        assert auth_time is not None
 
-        refresh_access_val = AccessToken(sub=user_usph,
-                                         iss="https://dsavdodeka.nl/auth",
-                                         aud=["dodekaweb_client", "dodekabackend_client"],
-                                         scope=scope)
-        access_scope = refresh_access_val.scope
+        access_val, id_token_val = id_access_tokens(sub=user_usph,
+                                                    iss="https://dsavdodeka.nl/auth",
+                                                    aud_access=["dodekaweb_client", "dodekabackend_client"],
+                                                    aud_id=["dodekaweb_client"],
+                                                    scope=scope,
+                                                    auth_time=auth_time,
+                                                    id_nonce=id_nonce)
 
-        access_val_encoded = encb64url_str(_encode_json_dict(refresh_access_val.dict()))
+        access_scope = access_val.scope
+
+        access_val_encoded = encb64url_str(_encode_json_dict(access_val.dict()))
+        id_token_val_encoded = encb64url_str(_encode_json_dict(id_token_val.dict()))
         family_id = secrets.token_urlsafe(16)
         refresh_save = SavedRefreshToken(family_id=family_id, access_value=access_val_encoded,
-                                         exp=utc_now + refresh_exp, iat=utc_now, nonce="")
+                                         id_token_value=id_token_val_encoded, exp=utc_now + refresh_exp, iat=utc_now,
+                                         nonce="")
         refresh_id = await data.refreshtoken.refresh_save(dsrc, refresh_save)
         refresh = RefreshToken(id=refresh_id, family_id=refresh_save.family_id, nonce="")
 
         # the bytes are base64url-encoded
         refresh_token = fernet.encrypt(_encode_json_dict(refresh.dict())).decode('utf-8')
 
-        access_payload = finish_access_token(refresh_access_val.dict(), utc_now)
+        access_payload = finish_token(access_val.dict(), utc_now)
+        id_token_payload = finish_token(id_token_val.dict(), utc_now)
 
         access_token = jwt.encode(access_payload, signing_key, algorithm="EdDSA")
+        id_token = jwt.encode(id_token_payload, signing_key, algorithm="EdDSA")
 
-    return access_token, refresh_token, token_type, access_exp, access_scope
+    return id_token, access_token, refresh_token, token_type, access_exp, access_scope
 
 
-def finish_access_token(refresh_access_val: dict, utc_now: int):
+def id_access_tokens(sub, iss, aud_access, aud_id, scope, auth_time, id_nonce):
+    access_core = AccessToken(sub=sub,
+                              iss=iss,
+                              aud=aud_access,
+                              scope=scope)
+    id_core = IdToken(sub=sub,
+                      iss=iss,
+                      aud=aud_id,
+                      auth_time=auth_time,
+                      nonce=id_nonce)
+
+    return access_core, id_core
+
+
+def finish_token(token_val: dict, utc_now: int):
     payload_add = {
         "iat": utc_now,
         "exp": utc_now + access_exp,
     }
-    payload = dict(refresh_access_val, **payload_add)
+    payload = dict(token_val, **payload_add)
     return payload
 
 

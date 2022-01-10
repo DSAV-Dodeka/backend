@@ -43,6 +43,11 @@ class AuthRequest(BaseModel):
             assert c.isalnum() or c in "-._~", "Invalid character in challenge!"
         return v
 
+    @validator('code_challenge_method')
+    def check_method(cls, v: str):
+        assert v == "S256", "Only S256 is supported!"
+        return v
+
     @validator('nonce')
     def check_nonce(cls, v: str):
         assert len(v) < 100, "Nonce must not be too long!"

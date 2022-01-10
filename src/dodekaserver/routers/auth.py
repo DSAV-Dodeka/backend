@@ -1,3 +1,5 @@
+import base64
+import hashlib
 from urllib.parse import urlencode
 
 from pydantic import ValidationError
@@ -156,6 +158,20 @@ async def token(token_request: TokenRequest, response: Response):
             raise HTTPException(400)
         # TODO get scope from request
         auth_request = AuthRequest.parse_obj(auth_req_dict)
+
+        if token_request.client_id != auth_request.client_id:
+            raise HTTPException(400, detail="Incorrect client_id")
+        if token_request.redirect_uri != auth_request.redirect_uri:
+            raise HTTPException(400, detail="Incorrect redirect_uri")
+
+        try:
+            # We only support S256, so don't have to check the code_challenge_method
+            computed_challenge_hash = hashlib.sha256(token_request.code_verifier.encode('ascii')).digest()
+            challenge = base64.urlsafe_b64encode(computed_challenge_hash).decode('utf-8')
+        except UnicodeError:
+            raise HTTPException(400, detail="Incorrect code_verifier format")
+        if challenge != auth_request.code_challenge:
+            raise HTTPException(400, detail="Incorrect code_challenge")
 
         auth_time = flow_user.auth_time
         id_nonce = auth_request.nonce

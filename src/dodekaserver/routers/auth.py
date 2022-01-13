@@ -167,7 +167,8 @@ async def token(token_request: TokenRequest, response: Response):
         try:
             # We only support S256, so don't have to check the code_challenge_method
             computed_challenge_hash = hashlib.sha256(token_request.code_verifier.encode('ascii')).digest()
-            challenge = base64.urlsafe_b64encode(computed_challenge_hash).decode('utf-8')
+            # Remove "=" as we do not store those
+            challenge = base64.urlsafe_b64encode(computed_challenge_hash).decode('utf-8').rstrip("=")
         except UnicodeError:
             raise HTTPException(400, detail="Incorrect code_verifier format")
         if challenge != auth_request.code_challenge:

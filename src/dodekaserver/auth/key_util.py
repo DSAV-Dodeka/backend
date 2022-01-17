@@ -1,4 +1,5 @@
-from cryptography.fernet import Fernet
+from base64 import urlsafe_b64encode
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PrivateKey
 from cryptography.hazmat.primitives.serialization import PrivateFormat, PublicFormat, Encoding, NoEncryption, \
     BestAvailableEncryption
@@ -31,7 +32,8 @@ def new_curve25519_keypair(id_int: int) -> OpaqueKey:
 
 
 def new_symmetric_key(id_int: int) -> SymmetricKey:
-    symmetric = Fernet.generate_key().decode('utf-8').rstrip("=")
+    symmetric_bytes = AESGCM.generate_key(256)
+    symmetric = urlsafe_b64encode(symmetric_bytes).decode('utf-8').rstrip("=")
 
     new_key = SymmetricKey(private=symmetric, algorithm="symmetric", private_format="none",
                            private_encoding="base64url", id=id_int)

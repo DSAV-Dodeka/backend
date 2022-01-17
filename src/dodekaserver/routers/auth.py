@@ -29,7 +29,7 @@ async def start_register(register_start: PasswordRequest):
     public_key = await data.key.get_opaque_public(dsrc)
     username = register_start.username
     user_usph = util.usp_hex(username)
-    auth_id = util.random_user_time_hash_hex(user_usph)
+    auth_id = util.random_time_hash_hex(user_usph)
 
     response, state = opq.register(register_start.client_request, public_key)
     saved_state = SavedState(user_usph=user_usph, state=state)
@@ -66,7 +66,7 @@ async def start_login(login_start: PasswordRequest):
         # TODO ensure this fake record exists
         password_file = (await data.user.get_user_by_id(dsrc, 0)).password_file
 
-    auth_id = util.random_user_time_hash_hex(user_usph)
+    auth_id = util.random_time_hash_hex(user_usph)
 
     response, state = opq.login(password_file, login_start.client_request, private_key)
 
@@ -94,7 +94,7 @@ async def finish_login(login_finish: FinishLogin):
     return None
 
 
-@router.get("/oauth/authorize/")
+@router.get("/oauth/authorize/", status_code=303)
 async def oauth_endpoint(response_type: str, client_id: str, redirect_uri: str, state: str,
                          code_challenge: str, code_challenge_method: str, nonce: str):
     try:
@@ -104,6 +104,7 @@ async def oauth_endpoint(response_type: str, client_id: str, redirect_uri: str, 
     except ValidationError as e:
         raise HTTPException(400, detail=e.errors())
     flow_id = util.random_time_hash_hex()
+
     data.store_json(dsrc.kv, flow_id, auth_request.dict(), expire=1000)
 
     # Used to retrieve authentication information
@@ -113,10 +114,10 @@ async def oauth_endpoint(response_type: str, client_id: str, redirect_uri: str, 
     # In the future, we would redirect to some external auth page
     redirect = f"http://localhost:{port_front}/auth/credentials?{urlencode(params)}"
 
-    return RedirectResponse(redirect, status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(redirect, status_code=status.HTTP_303_SEE_OTHER)
 
 
-@router.get("/oauth/callback/", status_code=302)
+@router.get("/oauth/callback/", status_code=303)
 async def oauth_finish(flow_id: str, code: str, response: Response):
     # Prevents cache of value
     response.headers["Cache-Control"] = "no-store"
@@ -129,7 +130,7 @@ async def oauth_finish(flow_id: str, code: str, response: Response):
         "state": auth_request.state
     }
     redirect = f"{auth_request.redirect_uri}?{urlencode(params)}"
-    return RedirectResponse(redirect, status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(redirect, status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/oauth/token/", response_model=TokenResponse)
@@ -198,7 +199,7 @@ async def token(token_request: TokenRequest, response: Response):
     try:
         id_token, access, refresh, token_type, exp, returned_scope = \
             await create_id_access_refresh(dsrc, token_user, token_scope, id_nonce, auth_time,
-                                           refresh_token=old_refresh)
+                                           old_refresh_token=old_refresh)
     except InvalidRefresh:
         raise HTTPException(400, detail="Invalid refresh_token!")
     # TODO login options

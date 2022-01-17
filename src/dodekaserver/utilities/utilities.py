@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 from base64 import urlsafe_b64encode, urlsafe_b64decode
 import sys
@@ -9,9 +9,12 @@ import math
 from datetime import datetime, timezone
 
 
-def random_time_hash_hex(extra_seed: Optional[bytes] = None):
+def random_time_hash_hex(extra_seed: Optional[Union[bytes, str]] = None):
     """ Random string (bound to timestamp and optional extra seed) to represent events/objects that must be uniquely
     identified. """
+    if isinstance(extra_seed, str):
+        extra_seed = extra_seed.encode('utf-8')
+
     timestamp = time.time_ns().to_bytes(64, byteorder='big')
     random_bytes = (extra_seed if extra_seed is not None else b'') + timestamp + secrets.token_bytes(8)
     return hashlib.sha256(random_bytes, usedforsecurity=False).digest().hex()
@@ -108,10 +111,6 @@ def usp_hex_bin(usp_hex_str: str) -> bytes:
 
 def usp_hex_debin(usp_hex_bytes: bytes) -> str:
     return rad64_frombytes(usp_hex_bytes)
-
-
-def random_user_time_hash_hex(user_usph: str):
-    return random_time_hash_hex(usp_hex_bin(user_usph))
 
 
 def add_base64_padding(unpadded: str):

@@ -119,12 +119,19 @@ def add_base64_padding(unpadded: str):
     return unpadded
 
 
-def encb64url_str(b: bytes):
-    return urlsafe_b64encode(b).decode('utf-8')
+def enc_b64url(b: bytes) -> str:
+    """
+    Encodes bytes to a base64url-encoded string with no padding.
+    """
+    return urlsafe_b64encode(b).decode('utf-8').rstrip("=")
 
 
-def decb64url_str(s: str):
-    return urlsafe_b64decode(s.encode('utf-8'))
+def dec_b64url(s: str) -> bytes:
+    """
+    Decodes a base64url-encoded string to bytes.
+    """
+    b64_bytes = add_base64_padding(s).encode('utf-8')
+    return urlsafe_b64decode(b64_bytes)
 
 
 def utc_timestamp():

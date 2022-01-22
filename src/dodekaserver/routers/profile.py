@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status, Security
 from fastapi.security.api_key import APIKeyHeader
 
 import dodekaserver.data as data
-from dodekaserver.auth.tokens import verify_access_token
+from dodekaserver.auth.tokens import verify_access_token, BadVerification
 
 dsrc = data.dsrc
 
@@ -26,7 +26,11 @@ async def get_profile(authorization: str = Security(auth_header)):
                                                                              "scheme")
     token = authorization.removeprefix("Bearer ")
     public_key = await data.key.get_token_public(dsrc)
-    acc = verify_access_token(public_key, token)
+    try:
+        acc = verify_access_token(public_key, token)
+    except BadVerification:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authorization.")
+
     return {
         "username": acc.sub,
         "scope": acc.scope

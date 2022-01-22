@@ -27,6 +27,8 @@ async def get_refresh_by_id(dsrc: Source, id_int: int) -> SavedRefreshToken:
 
 
 async def refresh_transaction(dsrc: Source, id_int_delete: int, new_refresh: SavedRefreshToken) -> int:
+    # CURRENTLY DOES NOT FAIL IF IT DOES NOT EXIST
+    # TODO add check in query delete if it did delete
     refresh_dict = new_refresh.dict()
     refresh_dict.pop("id")
     return await dsrc.ops.delete_insert_return_id_transaction(dsrc.db, REFRESH_TOKEN_TABLE, id_int_delete, refresh_dict)

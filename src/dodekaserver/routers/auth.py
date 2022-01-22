@@ -1,4 +1,3 @@
-import base64
 import hashlib
 from urllib.parse import urlencode
 
@@ -11,6 +10,7 @@ import opaquepy.lib as opq
 import dodekaserver.data as data
 from dodekaserver.data import DataError
 import dodekaserver.utilities as util
+from dodekaserver.utilities import enc_b64url
 from dodekaserver.auth.models import *
 from dodekaserver.auth.tokens import *
 
@@ -169,7 +169,7 @@ async def token(token_request: TokenRequest, response: Response):
             # We only support S256, so don't have to check the code_challenge_method
             computed_challenge_hash = hashlib.sha256(token_request.code_verifier.encode('ascii')).digest()
             # Remove "=" as we do not store those
-            challenge = base64.urlsafe_b64encode(computed_challenge_hash).decode('utf-8').rstrip("=")
+            challenge = enc_b64url(computed_challenge_hash)
         except UnicodeError:
             raise HTTPException(400, detail="Incorrect code_verifier format")
         if challenge != auth_request.code_challenge:

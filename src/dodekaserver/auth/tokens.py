@@ -1,7 +1,6 @@
 import secrets
 import json
 from secrets import token_urlsafe
-from base64 import urlsafe_b64decode, urlsafe_b64encode
 
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -9,12 +8,12 @@ from pydantic import ValidationError
 import jwt
 from jwt import PyJWTError
 
-from dodekaserver.utilities import add_base64_padding, encb64url_str, decb64url_str, utc_timestamp
+from dodekaserver.utilities import enc_b64url, dec_b64url, utc_timestamp
 import dodekaserver.data as data
 from dodekaserver.data.entities import SavedRefreshToken, RefreshToken, AccessToken, IdToken
 from dodekaserver.data import Source, DataError
 
-__all__ = ['create_id_access_refresh', 'verify_access_token', 'InvalidRefresh']
+__all__ = ['create_id_access_refresh', 'verify_access_token', 'InvalidRefresh', 'BadVerification']
 
 id_exp = 10 * 60 * 60  # 10 hours
 access_exp = 1 * 60 * 60  # 1 hour
@@ -26,12 +25,12 @@ issuer = "https://dsavdodeka.nl/auth"
 backend_client_id = "dodekabackend_client"
 
 
-def _encode_json_dict(dct: dict) -> bytes:
+def enc_dict(dct: dict) -> bytes:
     """ Convert dict to UTF-8-encoded bytes in JSON format. """
     return json.dumps(dct).encode('utf-8')
 
 
-def _decode_json_dict(encoded: bytes) -> dict:
+def dec_dict(encoded: bytes) -> dict:
     """ Convert UTF-8 bytes containing JSON to a dict. """
     return json.loads(encoded.decode('utf-8'))
 
@@ -42,20 +41,19 @@ class InvalidRefresh(Exception):
 
 
 def encrypt_refresh(aesgcm: AESGCM, refresh: RefreshToken) -> str:
-    refresh_data = _encode_json_dict(refresh.dict())
+    refresh_data = enc_dict(refresh.dict())
     refresh_nonce = secrets.token_bytes(12)
     encrypted = aesgcm.encrypt(refresh_nonce, refresh_data, None)
     refresh_bytes = refresh_nonce + encrypted
-    return urlsafe_b64encode(refresh_bytes).decode('utf-8').rstrip("=")
+    return enc_b64url(refresh_bytes)
 
 
 def decrypt_refresh(aesgcm: AESGCM, refresh_token) -> RefreshToken:
-    padded_refresh_token = add_base64_padding(refresh_token)
-    refresh_bytes = urlsafe_b64decode(padded_refresh_token.encode('utf-8'))
+    refresh_bytes = dec_b64url(refresh_token)
     refresh_nonce = refresh_bytes[:12]
     refresh_data = refresh_bytes[12:]
     decrypted = aesgcm.decrypt(refresh_nonce, refresh_data, None)
-    refresh_dict = _decode_json_dict(decrypted)
+    refresh_dict = dec_dict(decrypted)
     return RefreshToken.parse_obj(refresh_dict)
 
 
@@ -76,8 +74,7 @@ async def create_id_access_refresh(dsrc: Source, user_usph: str = None, scope: s
     # Symmetric key used to verify and encrypt/decrypt refresh tokens
     symmetric_key = await data.key.get_refresh_symmetric(dsrc)
     # We store it unpadded (to match convention of not storing padding throughout the DB)
-    padded_symmetric_key = add_base64_padding(symmetric_key)
-    symmetric_key_bytes = urlsafe_b64decode(padded_symmetric_key.encode('utf-8'))
+    symmetric_key_bytes = dec_b64url(symmetric_key)
     # Fernet is a helper class from Python cryptography that does the encrypting/decrypting
     # We load it with the key from our database
     aesgcm = AESGCM(symmetric_key_bytes)
@@ -128,9 +125,9 @@ async def create_id_access_refresh(dsrc: Source, user_usph: str = None, scope: s
 
         # Rebuild access and ID tokens from value in refresh token
         # We need the core static info to rebuild with new iat, etc.
-        saved_access_dict = _decode_json_dict(decb64url_str(saved_refresh.access_value))
+        saved_access_dict = dec_dict(dec_b64url(saved_refresh.access_value))
         saved_access = AccessToken.parse_obj(saved_access_dict)
-        saved_id_token_dict = _decode_json_dict(decb64url_str(saved_refresh.id_token_value))
+        saved_id_token_dict = dec_dict(dec_b64url(saved_refresh.id_token_value))
         saved_id_token = IdToken.parse_obj(saved_id_token_dict)
         # Add new expiry, iat
         new_access_payload = finish_token(saved_access.dict(), utc_now)
@@ -146,7 +143,7 @@ async def create_id_access_refresh(dsrc: Source, user_usph: str = None, scope: s
         # Nonce is used to make it impossible to 'guess' new refresh tokens
         # (So it becomes a combination of family_id + id nr + nonce)
         # Although signing and encrypting should also protect it from that
-        new_nonce = token_urlsafe(16)
+        new_nonce = token_urlsafe(16).rstrip("=")
         # We don't store the access tokens and refresh tokens in the final token
         # To construct new tokens, we need that information so we save it in the DB
         new_refresh_save = SavedRefreshToken(family_id=saved_refresh.family_id,
@@ -178,8 +175,8 @@ async def create_id_access_refresh(dsrc: Source, user_usph: str = None, scope: s
         access_scope = access_val.scope
 
         # Encoded tokens to store for refresh token
-        access_val_encoded = encb64url_str(_encode_json_dict(access_val.dict()))
-        id_token_val_encoded = encb64url_str(_encode_json_dict(id_token_val.dict()))
+        access_val_encoded = enc_b64url(enc_dict(access_val.dict()))
+        id_token_val_encoded = enc_b64url(enc_dict(id_token_val.dict()))
         # Each authentication creates a refresh token of a particular family, which has a static lifetime
         family_id = secrets.token_urlsafe(16)
         refresh_save = SavedRefreshToken(family_id=family_id, access_value=access_val_encoded,

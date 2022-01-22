@@ -1,10 +1,10 @@
-from base64 import urlsafe_b64encode
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PrivateKey
 from cryptography.hazmat.primitives.serialization import PrivateFormat, PublicFormat, Encoding, NoEncryption, \
     BestAvailableEncryption
 from opaquepy.lib import generate_keys as opaque_generate_keys
 
+from dodekaserver.utilities import enc_b64url
 from dodekaserver.data.entities import OpaqueKey, TokenKey, SymmetricKey
 
 
@@ -33,7 +33,7 @@ def new_curve25519_keypair(id_int: int) -> OpaqueKey:
 
 def new_symmetric_key(id_int: int) -> SymmetricKey:
     symmetric_bytes = AESGCM.generate_key(256)
-    symmetric = urlsafe_b64encode(symmetric_bytes).decode('utf-8').rstrip("=")
+    symmetric = enc_b64url(symmetric_bytes)
 
     new_key = SymmetricKey(private=symmetric, algorithm="symmetric", private_format="none",
                            private_encoding="base64url", id=id_int)

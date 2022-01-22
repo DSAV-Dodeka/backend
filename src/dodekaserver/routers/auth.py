@@ -21,7 +21,7 @@ router = APIRouter()
 port_front = 3000
 
 
-@router.post("/auth/register/start/", response_model=PasswordResponse)
+@router.post("/register/start/", response_model=PasswordResponse)
 async def start_register(register_start: PasswordRequest):
     """ First step of OPAQUE registration, requires username and client message generated in first client registration
     step."""
@@ -38,7 +38,7 @@ async def start_register(register_start: PasswordRequest):
     return PasswordResponse(server_message=response, auth_id=auth_id)
 
 
-@router.post("/auth/register/finish")
+@router.post("/register/finish")
 async def finish_register(register_finish: FinishRequest):
     state_dict = data.get_json(dsrc.kv, register_finish.auth_id)
     saved_state = SavedState.parse_obj(state_dict)
@@ -54,7 +54,7 @@ async def finish_register(register_finish: FinishRequest):
     await data.user.upsert_user_row(dsrc, new_user)
 
 
-@router.post("/auth/login/start", response_model=PasswordResponse)
+@router.post("/login/start", response_model=PasswordResponse)
 async def start_login(login_start: PasswordRequest):
     user_usph = util.usp_hex(login_start.username)
     private_key = await data.key.get_opaque_private(dsrc)
@@ -76,7 +76,7 @@ async def start_login(login_start: PasswordRequest):
     return PasswordResponse(server_message=response, auth_id=auth_id)
 
 
-@router.post("/auth/login/finish")
+@router.post("/login/finish")
 async def finish_login(login_finish: FinishLogin):
     state_dict = data.get_json(dsrc.kv, login_finish.auth_id)
     saved_state = SavedState.parse_obj(state_dict)
@@ -111,8 +111,8 @@ async def oauth_endpoint(response_type: str, client_id: str, redirect_uri: str, 
     params = {
         "flow_id": flow_id
     }
-    # In the future, we would redirect to some external auth page
-    redirect = f"http://localhost:{port_front}/auth/credentials?{urlencode(params)}"
+
+    redirect = f"http://localhost:4243/credentials/index.html?{urlencode(params)}"
 
     return RedirectResponse(redirect, status_code=status.HTTP_303_SEE_OTHER)
 

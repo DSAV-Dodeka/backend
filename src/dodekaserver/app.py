@@ -1,11 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 # We rely upon database parameters being set at import time, which is fragile, but the only way to easily re-use it
 # across modules
 # In most cases this is where all environment variables and other configuration is loaded
 from httpx import AsyncClient
 
+from dodekaserver.env import res_path
 from dodekaserver.data import dsrc
 # Import types separately to make it clear in what line the module is first loaded and its top-level run
 from dodekaserver.data import Source
@@ -23,6 +25,7 @@ def create_app() -> FastAPI:
     ]
 
     new_app = FastAPI()
+    new_app.mount("/credentials", StaticFiles(directory=res_path.joinpath("static/credentials")), name="credentials")
     new_app.include_router(basic.router)
     new_app.include_router(auth.router)
     new_app.include_router(profile.router)

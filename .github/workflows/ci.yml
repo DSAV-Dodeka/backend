@@ -71,5 +71,8 @@ jobs:
       run: poetry install --no-interaction --no-root
     - name: Install library
       run: poetry install --no-interaction
+    - name: Build credentials
+      run: npm run build
+      working-directory: ${{ github.workspace }}/authpage
     - name: Pytest
       run: poetry run pytest tests/app_test.py

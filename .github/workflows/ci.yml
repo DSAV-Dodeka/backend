@@ -71,8 +71,15 @@ jobs:
       run: poetry install --no-interaction --no-root
     - name: Install library
       run: poetry install --no-interaction
+    - uses: actions/setup-node@v2
+      with:
+        node-version: '16'
+        cache: 'npm'
+        cache-dependency-path: ${{ github.workspace }}/package-lock.json
     - name: Build credentials
-      run: npm run build
+      run: |
+        npm install
+        npm run build
       working-directory: ${{ github.workspace }}/authpage
     - name: Pytest
       run: poetry run pytest tests/app_test.py

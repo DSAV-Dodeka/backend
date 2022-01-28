@@ -130,8 +130,8 @@ async def create_id_access_refresh(dsrc: Source, user_usph: str = None, scope: s
         saved_id_token_dict = dec_dict(dec_b64url(saved_refresh.id_token_value))
         saved_id_token = IdToken.parse_obj(saved_id_token_dict)
         # Add new expiry, iat
-        new_access_payload = finish_token(saved_access.dict(), utc_now)
-        new_id_token_payload = finish_token(saved_id_token.dict(), utc_now)
+        new_access_payload = finish_token(saved_access.dict(), utc_now, access_exp)
+        new_id_token_payload = finish_token(saved_id_token.dict(), utc_now, id_exp)
 
         # Scope to be returned in response
         access_scope = saved_access.scope
@@ -186,8 +186,8 @@ async def create_id_access_refresh(dsrc: Source, user_usph: str = None, scope: s
         refresh = RefreshToken(id=refresh_id, family_id=refresh_save.family_id, nonce="")
         refresh_token = encrypt_refresh(aesgcm, refresh)
 
-        access_payload = finish_token(access_val.dict(), utc_now)
-        id_token_payload = finish_token(id_token_val.dict(), utc_now)
+        access_payload = finish_token(access_val.dict(), utc_now, access_exp)
+        id_token_payload = finish_token(id_token_val.dict(), utc_now, id_exp)
 
         access_token = jwt.encode(access_payload, signing_key, algorithm="EdDSA")
         id_token = jwt.encode(id_token_payload, signing_key, algorithm="EdDSA")
@@ -210,11 +210,11 @@ def id_access_tokens(sub, iss, aud_access, aud_id, scope, auth_time, id_nonce):
     return access_core, id_core
 
 
-def finish_token(token_val: dict, utc_now: int):
+def finish_token(token_val: dict, utc_now: int, exp: int):
     """ Add time-based information to static token dict. """
     payload_add = {
         "iat": utc_now,
-        "exp": utc_now + access_exp,
+        "exp": utc_now + exp,
     }
     payload = dict(token_val, **payload_add)
     return payload

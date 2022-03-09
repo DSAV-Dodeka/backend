@@ -6,29 +6,32 @@ authors = ["Tip ten Brink <75669206+tiptenbrink@users.noreply.github.com>"]
 
 [tool.poetry.dependencies]
 python = ">=3.9, <3.11"
-fastapi = "^0.71.0"
-uvicorn = {extras = ["standard"], version = "^0.17.0"}
-databases = {extras = ["postgresql"], version = "^0.5.4"}
-alembic = "^1.7.5"
+fastapi = "^0.75.0"
+uvicorn = {extras = ["standard"], version = "^0.17.5"}
+databases = {extras = ["postgresql"], version = "^0.5.5"}
+alembic = "^1.7.6"
 psycopg2-binary = "^2.9.2"
 gunicorn = "^20.1.0"
-pytest-asyncio = "^0.17.0"
-pytest-mock = "^3.6.1"
+pytest-asyncio = "^0.18.2"
+pytest-mock = "^3.7.0"
 requests = "^2.26.0"
-httpx = "^0.21.1"
+httpx = "^0.22.0"
 hiredis = "^2.0.0"
-redis = "^4.0.1"
+redis = "^4.1.4"
 python-dotenv = "^0.19.2"
 opaquepy = "^0.2.0"
 PyJWT = "^2.3.0"
 cryptography = "^36.0.1"
 cffi = "^1.15.0"
 
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
+
 [tool.poetry.scripts]
 s-dodeka = "dodekaserver.main:run"
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.2.5"
+pytest = "^7.0.1"
 numpy = "^1.18"
 
 [build-system]

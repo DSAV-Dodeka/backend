@@ -1,12 +1,12 @@
 import time
 
-import pytest
+import pytest_asyncio
 from pytest_mock import MockerFixture
 
 import dodekaserver.utilities as util
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def mock_random(mocker: MockerFixture):
     time_patch = mocker.patch('time.time_ns')
     time_patch.side_effect = lambda: 1642276599151222841

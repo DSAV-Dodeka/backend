@@ -11,3 +11,6 @@ config = {
     **dotenv_values(res_path.joinpath("conf/dev/dev.env")),
     **os.environ,  # override loaded values with environment variables
 }
+
+# These are constants that are not variable enough to be set by the config file
+LOGGER_NAME = "backend"

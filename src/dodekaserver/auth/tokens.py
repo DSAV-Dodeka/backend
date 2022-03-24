@@ -93,13 +93,13 @@ async def create_id_access_refresh(dsrc: Source, user_usph: str = None, scope: s
             old_refresh = decrypt_refresh(aesgcm, old_refresh_token)
         except InvalidToken:
             # Fernet error or signature error, could also be key format
-            raise InvalidRefresh
+            raise InvalidRefresh("InvalidToken")
         except ValidationError:
             # From parsing the dict
-            raise InvalidRefresh
+            raise InvalidRefresh("Bad validation")
         except ValueError:
             # For example from the JSON decoding
-            raise InvalidRefresh
+            raise InvalidRefresh("Other parsing")
 
         try:
             # See if previous refresh exists
@@ -112,10 +112,10 @@ async def create_id_access_refresh(dsrc: Source, user_usph: str = None, scope: s
             # So if someone possesses some deleted token family member, it is most likely an attacker
             # For this reason, all tokens in the family are invalidated to prevent further compromise
             await data.refreshtoken.delete_family(dsrc, old_refresh.family_id)
-            raise InvalidRefresh
+            raise InvalidRefresh("Not recent")
 
         if saved_refresh.nonce != old_refresh.nonce or saved_refresh.family_id != old_refresh.family_id:
-            raise InvalidRefresh
+            raise InvalidRefresh("Bad comparison")
         elif saved_refresh.iat > utc_now or saved_refresh.iat < 1640690242:
             # sanity check
             raise InvalidRefresh

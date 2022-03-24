@@ -1,12 +1,15 @@
 import hashlib
 from urllib.parse import urlencode
 
+import logging
+
 from pydantic import ValidationError
 from fastapi import APIRouter, HTTPException, status, Response
 from fastapi.responses import RedirectResponse
 
 import opaquepy.lib as opq
 
+from dodekaserver.env import LOGGER_NAME
 import dodekaserver.data as data
 from dodekaserver.data import DataError
 import dodekaserver.utilities as util
@@ -19,6 +22,8 @@ dsrc = data.dsrc
 router = APIRouter()
 
 port_front = 3000
+
+logger = logging.getLogger(LOGGER_NAME)
 
 
 @router.post("/register/start/", response_model=PasswordResponse)
@@ -147,22 +152,29 @@ async def token(token_request: TokenRequest, response: Response):
             assert token_request.redirect_uri is not None
             assert token_request.code_verifier is not None
             assert token_request.code is not None
-        except AssertionError:
+        except AssertionError as e:
+            logger.debug(e)
             raise HTTPException(400, detail="redirect_uri, code and code_verifier must be defined")
 
         flow_user_dict = data.get_json(dsrc.kv, token_request.code)
         if flow_user_dict is None:
-            raise HTTPException(400)
+            reason = "Expired or missing auth code"
+            logger.debug(reason)
+            raise HTTPException(400, detail=reason)
         flow_user = FlowUser.parse_obj(flow_user_dict)
         auth_req_dict = data.get_json(dsrc.kv, flow_user.flow_id)
         if auth_req_dict is None:
-            raise HTTPException(400)
+            reason = "Expired or missing auth request"
+            logger.debug(reason)
+            raise HTTPException(400, detail=reason)
         # TODO get scope from request
         auth_request = AuthRequest.parse_obj(auth_req_dict)
 
         if token_request.client_id != auth_request.client_id:
+            logger.debug(f'Request redirect {token_request.client_id} does not match {auth_request.client_id}')
             raise HTTPException(400, detail="Incorrect client_id")
         if token_request.redirect_uri != auth_request.redirect_uri:
+            logger.debug(f'Request redirect {token_request.redirect_uri} does not match {auth_request.redirect_uri}')
             raise HTTPException(400, detail="Incorrect redirect_uri")
 
         try:
@@ -171,8 +183,11 @@ async def token(token_request: TokenRequest, response: Response):
             # Remove "=" as we do not store those
             challenge = enc_b64url(computed_challenge_hash)
         except UnicodeError:
-            raise HTTPException(400, detail="Incorrect code_verifier format")
+            reason = "Incorrect code_verifier format"
+            logger.debug(f'{reason}: {token_request.code_verifier}')
+            raise HTTPException(400, detail=reason)
         if challenge != auth_request.code_challenge:
+            logger.debug(f'Computed code challenge {challenge} does not match saved {auth_request.code_challenge}')
             raise HTTPException(400, detail="Incorrect code_challenge")
 
         auth_time = flow_user.auth_time
@@ -184,7 +199,8 @@ async def token(token_request: TokenRequest, response: Response):
     elif token_request.grant_type == "refresh_token":
         try:
             assert token_request.refresh_token is not None
-        except AssertionError:
+        except AssertionError as e:
+            logger.debug(e)
             raise HTTPException(400, detail="refresh_token must be defined")
 
         auth_time = None
@@ -194,14 +210,17 @@ async def token(token_request: TokenRequest, response: Response):
         old_refresh = token_request.refresh_token
 
     else:
-        raise HTTPException(400, detail="Only 'refresh_token' and 'authorization_code' grant types are available.")
-
+        reason = "Only 'refresh_token' and 'authorization_code' grant types are available."
+        logger.debug(f'{reason} Used: {token_request.grant_type}')
+        raise HTTPException(400, detail=reason)
     try:
         id_token, access, refresh, token_type, exp, returned_scope = \
             await create_id_access_refresh(dsrc, token_user, token_scope, id_nonce, auth_time,
                                            old_refresh_token=old_refresh)
-    except InvalidRefresh:
-        raise HTTPException(400, detail="Invalid refresh_token!")
+    except InvalidRefresh as e:
+        logger.debug(e)
+        raise HTTPException(400, detail=f"Invalid refresh_token!")
     # TODO login options
+    logger.info("Token request granted for ")
     return TokenResponse(id_token=id_token, access_token=access, refresh_token=refresh, token_type=token_type,
                          expires_in=exp, scope=returned_scope)

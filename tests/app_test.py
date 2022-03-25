@@ -6,6 +6,7 @@ from pytest_mock import MockerFixture
 
 from httpx import AsyncClient
 
+from dodekaserver.env import frontend_client_id
 import dodekaserver.data.key
 
 
@@ -66,6 +67,41 @@ async def test_start_login(module_mocker: MockerFixture, test_client):
                              "eSzKK6cy1nDBjeWZ0IyullsqxNzUwDZMNcW9oRU8dXBOnN7EbzPaHqyLTNU4u8GfU2heKf5L35C9uKtCWPsItg"
 
 
+@pytest.mark.asyncio
+async def test_token_refresh(module_mocker: MockerFixture, test_client: AsyncClient):
+    req = {
+      "client_id": "incorrect",
+      "grant_type": "",
+      "code": "",
+      "redirect_uri": "",
+      "code_verifier": "",
+      "refresh_token": ""
+    }
+    response = await test_client.post("/oauth/token/", json=req)
+    assert response.status_code == 400
+    assert response.json()["error"] == "invalid_client"
+    # print(response.request.content)
+    # print(response.text)
+    # print(response.json())
+    # print(response)
+
+
+@pytest.mark.asyncio
+async def test_token_refresh(module_mocker: MockerFixture, test_client: AsyncClient):
+    req = {
+      "client_id": frontend_client_id,
+      "grant_type": "",
+      "code": "",
+      "redirect_uri": "",
+      "code_verifier": "",
+      "refresh_token": ""
+    }
+
+    response = await test_client.post("/oauth/token/", json=req)
+    assert response.status_code == 400
+    res_j = response.json()
+    assert res_j["error"] == "invalid_request"
+    assert res_j["error_description"] == "Only 'refresh_token' and 'authorization_code' grant types are available."
 
 # @pytest.fixture
 # async def mock_user_retrieve(mock_dbop):

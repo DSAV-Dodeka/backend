@@ -9,7 +9,7 @@ from fastapi.responses import RedirectResponse
 import opaquepy.lib as opq
 
 from dodekaserver.define import ErrorResponse
-from dodekaserver.env import LOGGER_NAME
+from dodekaserver.env import LOGGER_NAME, frontend_client_id
 import dodekaserver.data as data
 from dodekaserver.data import DataError
 import dodekaserver.utilities as util
@@ -144,7 +144,7 @@ async def token(token_request: TokenRequest, response: Response):
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
 
-    if token_request.client_id != "dodekaweb_client":
+    if token_request.client_id != frontend_client_id:
         raise ErrorResponse(400, err_type="invalid_client", err_desc="Invalid client ID.")
 
     if token_request.grant_type == "authorization_code":

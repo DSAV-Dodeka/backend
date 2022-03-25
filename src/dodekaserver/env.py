@@ -14,3 +14,13 @@ config = {
 
 # These are constants that are not variable enough to be set by the config file
 LOGGER_NAME = "backend"
+
+id_exp = 10 * 60 * 60  # 10 hours
+access_exp = 1 * 60 * 60  # 1 hour
+refresh_exp = 30 * 24 * 60 * 60  # 1 month
+
+grace_period = 3 * 60  # 3 minutes in which it is still accepted
+
+issuer = "https://dsavdodeka.nl/auth"
+frontend_client_id = "dodekaweb_client"
+backend_client_id = "dodekabackend_client"

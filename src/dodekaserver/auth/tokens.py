@@ -9,22 +9,13 @@ from pydantic import ValidationError
 import jwt
 from jwt import PyJWTError, DecodeError, InvalidSignatureError, ExpiredSignatureError, InvalidTokenError
 
-from dodekaserver.env import LOGGER_NAME
+from dodekaserver.env import LOGGER_NAME, backend_client_id, issuer, id_exp, access_exp, refresh_exp, grace_period
 from dodekaserver.utilities import enc_b64url, dec_b64url, utc_timestamp
 import dodekaserver.data as data
 from dodekaserver.data.entities import SavedRefreshToken, RefreshToken, AccessToken, IdToken
 from dodekaserver.data import Source, DataError
 
 __all__ = ['create_id_access_refresh', 'verify_access_token', 'InvalidRefresh', 'BadVerification']
-
-id_exp = 10 * 60 * 60  # 10 hours
-access_exp = 1 * 60 * 60  # 1 hour
-refresh_exp = 30 * 24 * 60 * 60  # 1 month
-
-grace_period = 3 * 60  # 3 minutes in which it is still accepted
-
-issuer = "https://dsavdodeka.nl/auth"
-backend_client_id = "dodekabackend_client"
 
 
 logger = logging.getLogger(LOGGER_NAME)

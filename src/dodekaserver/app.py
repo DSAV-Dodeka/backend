@@ -1,7 +1,8 @@
 import logging
 import uvicorn
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -14,6 +15,8 @@ from dodekaserver.env import res_path, LOGGER_NAME
 from dodekaserver.data import dsrc
 # Import types separately to make it clear in what line the module is first loaded and its top-level run
 from dodekaserver.data import Source
+
+from dodekaserver.define import ErrorResponse
 
 # Router modules, each router has its own API endpoints
 import dodekaserver.routers.basic as basic
@@ -78,3 +81,14 @@ async def startup():
 async def shutdown():
     # It relies on dsrc from the module's top-level imports
     await app_shutdown(dsrc)
+
+
+@app.exception_handler(ErrorResponse)
+async def error_response_handler(request: Request, e: ErrorResponse):
+    return JSONResponse(
+        status_code=e.status_code,
+        content={
+            "error": e.err_type,
+            "error_description": e.err_desc
+        }
+    )

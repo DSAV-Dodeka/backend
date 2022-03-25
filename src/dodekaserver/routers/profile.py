@@ -1,35 +1,20 @@
-from fastapi import APIRouter, HTTPException, status, Security
-from fastapi.security.api_key import APIKeyHeader
+from fastapi import APIRouter, Security, status, HTTPException
 
+from dodekaserver.define import ErrorResponse
 import dodekaserver.data as data
-from dodekaserver.auth.tokens import verify_access_token, BadVerification
+from dodekaserver.auth.header import handle_header, auth_header, BadAuth
 
 dsrc = data.dsrc
 
 router = APIRouter()
 
-scheme = "Bearer"
-
-# TODO modify APIKeyHeader for better status code
-auth_header = APIKeyHeader(name="Authorization", scheme_name=scheme, auto_error=True)
-
 
 @router.get("/res/profile")
 async def get_profile(authorization: str = Security(auth_header)):
-    # if authorization is None:
-    #     authorization = auth
-    print(authorization)
-    if authorization is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No authorization provided.")
-    if "Bearer " not in authorization:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authorization must follow 'Bearer' "
-                                                                             "scheme")
-    token = authorization.removeprefix("Bearer ")
-    public_key = await data.key.get_token_public(dsrc)
     try:
-        acc = verify_access_token(public_key, token)
-    except BadVerification:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authorization.")
+        acc = await handle_header(authorization)
+    except BadAuth as e:
+        raise ErrorResponse(e.status_code, err_type=e.err_type, err_desc=e.err_desc)
 
     return {
         "username": acc.sub,

@@ -1,6 +1,5 @@
 import hashlib
 from urllib.parse import urlencode
-
 import logging
 
 from pydantic import ValidationError
@@ -9,6 +8,7 @@ from fastapi.responses import RedirectResponse
 
 import opaquepy.lib as opq
 
+from dodekaserver.define import ErrorResponse
 from dodekaserver.env import LOGGER_NAME
 import dodekaserver.data as data
 from dodekaserver.data import DataError
@@ -145,7 +145,7 @@ async def token(token_request: TokenRequest, response: Response):
     response.headers["Pragma"] = "no-cache"
 
     if token_request.client_id != "dodekaweb_client":
-        raise HTTPException(400, detail="Invalid client ID.")
+        raise ErrorResponse(400, err_type="invalid_client", err_desc="Invalid client ID.")
 
     if token_request.grant_type == "authorization_code":
         try:
@@ -154,28 +154,29 @@ async def token(token_request: TokenRequest, response: Response):
             assert token_request.code is not None
         except AssertionError as e:
             logger.debug(e)
-            raise HTTPException(400, detail="redirect_uri, code and code_verifier must be defined")
+            raise ErrorResponse(400, err_type="invalid_request", err_desc="redirect_uri, code and code_verifier must "
+                                                                          "be defined")
 
         flow_user_dict = data.get_json(dsrc.kv, token_request.code)
         if flow_user_dict is None:
             reason = "Expired or missing auth code"
             logger.debug(reason)
-            raise HTTPException(400, detail=reason)
+            raise ErrorResponse(400, err_type="invalid_grant", err_desc=reason)
         flow_user = FlowUser.parse_obj(flow_user_dict)
         auth_req_dict = data.get_json(dsrc.kv, flow_user.flow_id)
         if auth_req_dict is None:
             reason = "Expired or missing auth request"
             logger.debug(reason)
-            raise HTTPException(400, detail=reason)
+            raise ErrorResponse(400, err_type=f"invalid_grant", err_desc=reason)
         # TODO get scope from request
         auth_request = AuthRequest.parse_obj(auth_req_dict)
 
         if token_request.client_id != auth_request.client_id:
             logger.debug(f'Request redirect {token_request.client_id} does not match {auth_request.client_id}')
-            raise HTTPException(400, detail="Incorrect client_id")
+            raise ErrorResponse(400, err_type="invalid_request", err_desc="Incorrect client_id")
         if token_request.redirect_uri != auth_request.redirect_uri:
             logger.debug(f'Request redirect {token_request.redirect_uri} does not match {auth_request.redirect_uri}')
-            raise HTTPException(400, detail="Incorrect redirect_uri")
+            raise ErrorResponse(400, err_type="invalid_request", err_desc="Incorrect redirect_uri")
 
         try:
             # We only support S256, so don't have to check the code_challenge_method
@@ -185,10 +186,10 @@ async def token(token_request: TokenRequest, response: Response):
         except UnicodeError:
             reason = "Incorrect code_verifier format"
             logger.debug(f'{reason}: {token_request.code_verifier}')
-            raise HTTPException(400, detail=reason)
+            raise ErrorResponse(400, err_type=f"invalid_request", err_desc=reason)
         if challenge != auth_request.code_challenge:
             logger.debug(f'Computed code challenge {challenge} does not match saved {auth_request.code_challenge}')
-            raise HTTPException(400, detail="Incorrect code_challenge")
+            raise ErrorResponse(400, err_type="invalid_grant", err_desc="Incorrect code_challenge")
 
         auth_time = flow_user.auth_time
         id_nonce = auth_request.nonce
@@ -201,7 +202,7 @@ async def token(token_request: TokenRequest, response: Response):
             assert token_request.refresh_token is not None
         except AssertionError as e:
             logger.debug(e)
-            raise HTTPException(400, detail="refresh_token must be defined")
+            raise ErrorResponse(400, err_type="invalid_grant", err_desc="refresh_token must be defined")
 
         auth_time = None
         id_nonce = None
@@ -212,14 +213,14 @@ async def token(token_request: TokenRequest, response: Response):
     else:
         reason = "Only 'refresh_token' and 'authorization_code' grant types are available."
         logger.debug(f'{reason} Used: {token_request.grant_type}')
-        raise HTTPException(400, detail=reason)
+        raise ErrorResponse(400, err_type=f"invalid_request", err_desc=reason)
     try:
         id_token, access, refresh, token_type, exp, returned_scope = \
             await create_id_access_refresh(dsrc, token_user, token_scope, id_nonce, auth_time,
                                            old_refresh_token=old_refresh)
     except InvalidRefresh as e:
         logger.debug(e)
-        raise HTTPException(400, detail=f"Invalid refresh_token!")
+        raise ErrorResponse(400, err_type="invalid_grant", err_desc="Invalid refresh_token!")
     # TODO login options
     logger.info("Token request granted for ")
     return TokenResponse(id_token=id_token, access_token=access, refresh_token=refresh, token_type=token_type,

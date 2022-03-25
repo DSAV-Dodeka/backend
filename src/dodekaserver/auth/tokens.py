@@ -1,13 +1,15 @@
 import secrets
 import json
 from secrets import token_urlsafe
+import logging
 
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from pydantic import ValidationError
 import jwt
-from jwt import PyJWTError
+from jwt import PyJWTError, DecodeError, InvalidSignatureError, ExpiredSignatureError, InvalidTokenError
 
+from dodekaserver.env import LOGGER_NAME
 from dodekaserver.utilities import enc_b64url, dec_b64url, utc_timestamp
 import dodekaserver.data as data
 from dodekaserver.data.entities import SavedRefreshToken, RefreshToken, AccessToken, IdToken
@@ -23,6 +25,9 @@ grace_period = 3 * 60  # 3 minutes in which it is still accepted
 
 issuer = "https://dsavdodeka.nl/auth"
 backend_client_id = "dodekabackend_client"
+
+
+logger = logging.getLogger(LOGGER_NAME)
 
 
 def enc_dict(dct: dict) -> bytes:
@@ -223,15 +228,25 @@ def finish_token(token_val: dict, utc_now: int, exp: int):
 class BadVerification(Exception):
     """ Error during token verification. """
     pass
+    def __init__(self, err_type: str, err_desc: str):
+        self.err_type = err_type
+        self.err_desc = err_desc
 
 
 def verify_access_token(public_key: str, access_token: str):
     try:
         decoded_payload = jwt.decode(access_token, public_key, algorithms=["EdDSA"], leeway=grace_period,
                                      require=["exp", "aud"], issuer=issuer, audience=[backend_client_id])
+    except InvalidSignatureError:
+        raise BadVerification("invalid_signature", "")
+    except DecodeError:
+        raise BadVerification("decode_error", "")
+    except ExpiredSignatureError:
+        raise BadVerification("expired", "")
+    except InvalidTokenError:
+        raise BadVerification("bad_token", "")
     except PyJWTError as e:
-        # TODO specify correct errors for return info
-        print(e)
-        raise BadVerification
+        logging.debug(e)
+        raise BadVerification("other", "")
 
     return AccessToken.parse_obj(decoded_payload)

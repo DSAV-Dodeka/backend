@@ -9,7 +9,7 @@ __all__ = ['store_json', 'get_json', 'store_kv', 'get_kv']
 
 def store_json(kv: Redis, key: str, json, expire: int):
     with kv.pipeline() as pipe:
-        pipe.json().set(key, Path.rootPath(), json)
+        pipe.json().set(key, Path.root_path(), json)
         pipe.expire(key, expire)
         pipe.execute()
 

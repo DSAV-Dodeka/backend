@@ -149,21 +149,21 @@ async def token(token_request: TokenRequest, response: Response):
 
     if token_request.grant_type == "authorization_code":
         try:
-            assert token_request.redirect_uri is not None
-            assert token_request.code_verifier is not None
-            assert token_request.code is not None
+            assert token_request.redirect_uri
+            assert token_request.code_verifier
+            assert token_request.code
         except AssertionError as e:
             logger.debug(e)
             raise ErrorResponse(400, err_type="invalid_request", err_desc="redirect_uri, code and code_verifier must "
-                                                                          "be defined")
-
+                                                                          "be defined", debug_key="incomplete_code")
         flow_user_dict = data.get_json(dsrc.kv, token_request.code)
         if flow_user_dict is None:
             reason = "Expired or missing auth code"
             logger.debug(reason)
-            raise ErrorResponse(400, err_type="invalid_grant", err_desc=reason)
+            raise ErrorResponse(400, err_type="invalid_grant", err_desc=reason, debug_key="empty_flow")
         flow_user = FlowUser.parse_obj(flow_user_dict)
         auth_req_dict = data.get_json(dsrc.kv, flow_user.flow_id)
+        # TODO maybe check auth time just in case
         if auth_req_dict is None:
             reason = "Expired or missing auth request"
             logger.debug(reason)
@@ -213,7 +213,7 @@ async def token(token_request: TokenRequest, response: Response):
     else:
         reason = "Only 'refresh_token' and 'authorization_code' grant types are available."
         logger.debug(f'{reason} Used: {token_request.grant_type}')
-        raise ErrorResponse(400, err_type=f"invalid_request", err_desc=reason)
+        raise ErrorResponse(400, err_type=f"unsupported_grant_type", err_desc=reason)
     try:
         id_token, access, refresh, token_type, exp, returned_scope = \
             await create_id_access_refresh(dsrc, token_user, token_scope, id_nonce, auth_time,

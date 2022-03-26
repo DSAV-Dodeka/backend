@@ -218,7 +218,6 @@ def finish_token(token_val: dict, utc_now: int, exp: int):
 
 class BadVerification(Exception):
     """ Error during token verification. """
-    pass
     def __init__(self, err_type: str, err_desc: str):
         self.err_type = err_type
         self.err_desc = err_desc

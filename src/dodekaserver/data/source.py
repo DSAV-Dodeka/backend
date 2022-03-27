@@ -31,7 +31,7 @@ class Source:
     db: Database = None
     db_url: str
     kv_addr: KvAddress
-    kv: Redis
+    kv: Redis = None
     # Just store the class/type since we only use static methods
     ops: Type[Db]
 

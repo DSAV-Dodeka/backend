@@ -1,6 +1,6 @@
 from typing import Optional
 
-from dodekaserver.data.entities import OpaqueKey, TokenKey, SymmetricKey
+from dodekaserver.define.entities import OpaqueKey, TokenKey, SymmetricKey
 from dodekaserver.data.source import Source
 from dodekaserver.db import KEY_TABLE
 from dodekaserver.auth.key_util import new_ed448_keypair, new_curve25519_keypair, new_symmetric_key

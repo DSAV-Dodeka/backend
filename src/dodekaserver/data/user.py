@@ -1,7 +1,7 @@
 from typing import Optional
 
 from dodekaserver.data.source import Source, DataError
-from dodekaserver.data.entities import User
+from dodekaserver.define.entities import User
 from dodekaserver.db import USER_TABLE
 from dodekaserver.db.model import USERNAME, PASSWORD
 

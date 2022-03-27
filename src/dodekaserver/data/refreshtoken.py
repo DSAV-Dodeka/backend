@@ -1,7 +1,7 @@
 from typing import Optional
 
 from dodekaserver.data.source import Source, DataError
-from dodekaserver.data.entities import SavedRefreshToken
+from dodekaserver.define.entities import SavedRefreshToken
 from dodekaserver.db.model import REFRESH_TOKEN_TABLE, FAMILY_ID
 
 

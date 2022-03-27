@@ -1,11 +1,10 @@
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PrivateKey
-from cryptography.hazmat.primitives.serialization import PrivateFormat, PublicFormat, Encoding, NoEncryption, \
-    BestAvailableEncryption
+from cryptography.hazmat.primitives.serialization import PrivateFormat, PublicFormat, Encoding, NoEncryption
 from opaquepy.lib import generate_keys as opaque_generate_keys
 
 from dodekaserver.utilities import enc_b64url
-from dodekaserver.data.entities import OpaqueKey, TokenKey, SymmetricKey
+from dodekaserver.define.entities import OpaqueKey, TokenKey, SymmetricKey
 
 
 def new_ed448_keypair(id_int: int) -> TokenKey:

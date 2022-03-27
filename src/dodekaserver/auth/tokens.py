@@ -3,7 +3,7 @@ import json
 from secrets import token_urlsafe
 import logging
 
-from cryptography.fernet import Fernet, InvalidToken
+from cryptography.fernet import InvalidToken
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from pydantic import ValidationError
 import jwt
@@ -12,7 +12,7 @@ from jwt import PyJWTError, DecodeError, InvalidSignatureError, ExpiredSignature
 from dodekaserver.env import LOGGER_NAME, backend_client_id, issuer, id_exp, access_exp, refresh_exp, grace_period
 from dodekaserver.utilities import enc_b64url, dec_b64url, utc_timestamp
 import dodekaserver.data as data
-from dodekaserver.data.entities import SavedRefreshToken, RefreshToken, AccessToken, IdToken
+from dodekaserver.define.entities import SavedRefreshToken, RefreshToken, AccessToken, IdToken
 from dodekaserver.data import Source, DataError
 
 __all__ = ['create_id_access_refresh', 'verify_access_token', 'InvalidRefresh', 'BadVerification']

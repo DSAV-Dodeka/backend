@@ -1,8 +1,7 @@
-from fastapi import HTTPException, status
 from fastapi.security.api_key import APIKeyHeader
 
 from dodekaserver import data
-from dodekaserver.data.entities import AccessToken
+from dodekaserver.define.entities import AccessToken
 from dodekaserver.auth.tokens import verify_access_token, BadVerification
 
 dsrc = data.dsrc

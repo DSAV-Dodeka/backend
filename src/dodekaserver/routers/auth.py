@@ -216,7 +216,7 @@ async def token(token_request: TokenRequest, response: Response):
         old_refresh = token_request.refresh_token
 
         try:
-            id_token, access, refresh, exp, returned_scope = await do_refresh(dsrc, old_refresh)
+            id_token, access, refresh, exp, returned_scope, token_user = await do_refresh(dsrc, old_refresh)
         except InvalidRefresh as e:
             logger.debug(e)
             raise ErrorResponse(400, err_type="invalid_grant", err_desc="Invalid refresh_token!")
@@ -227,6 +227,6 @@ async def token(token_request: TokenRequest, response: Response):
         raise ErrorResponse(400, err_type=f"unsupported_grant_type", err_desc=reason)
 
     # TODO login options
-    logger.info("Token request granted for ")
+    logger.info(f"Token request granted for {token_user}")
     return TokenResponse(id_token=id_token, access_token=access, refresh_token=refresh, token_type=token_type,
                          expires_in=exp, scope=returned_scope)

@@ -110,6 +110,7 @@ async def do_refresh(dsrc: Source, old_refresh_token: str):
     # Rebuild access and ID tokens from value in refresh token
     # We need the core static info to rebuild with new iat, etc.
     saved_access, saved_id_token = decode_refresh(saved_refresh)
+    user_usph = saved_id_token.sub
 
     # Add new expiry, iat and encode token
     access_token = finish_encode_token(saved_access.dict(), utc_now, access_exp, signing_key)
@@ -134,7 +135,7 @@ async def do_refresh(dsrc: Source, old_refresh_token: str):
     # The actual refresh token is an encrypted JSON dictionary containing the id, family_id and nonce
     refresh = RefreshToken(id=new_refresh_id, family_id=saved_refresh.family_id, nonce=new_nonce)
     refresh_token = encrypt_refresh(aesgcm, refresh)
-    return id_token, access_token, refresh_token, id_exp, access_scope
+    return id_token, access_token, refresh_token, id_exp, access_scope, user_usph
 
 
 async def new_token(dsrc: Source, user_usph: str, scope: str, auth_time: int, id_nonce: str):

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, validator, conint
 
 
 class User(BaseModel):
@@ -104,7 +104,7 @@ class SavedRefreshToken(BaseModel):
 
 
 class RefreshToken(BaseModel):
-    id: int  # make required again
+    id: conint(strict=True, ge=0)  # make required again
     family_id: str
     nonce: str
 

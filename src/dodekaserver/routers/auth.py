@@ -144,10 +144,17 @@ async def token(token_request: TokenRequest, response: Response):
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
 
+    # We only allow requests meant to be sent from our front end
+    # This does not heighten security, only so other clients do not accidentally make requests here
     if token_request.client_id != frontend_client_id:
         raise ErrorResponse(400, err_type="invalid_client", err_desc="Invalid client ID.")
 
+    token_type = "Bearer"
+
+    # Two available grant types, 'authorization_code' (after login) and 'refresh_token' (when logged in)
+    # The first requires a code provided by the OPAQUE login flow
     if token_request.grant_type == "authorization_code":
+        # This grant type requires other body parameters than the refresh token grant type
         try:
             assert token_request.redirect_uri
             assert token_request.code_verifier
@@ -156,6 +163,7 @@ async def token(token_request: TokenRequest, response: Response):
             logger.debug(e)
             raise ErrorResponse(400, err_type="invalid_request", err_desc="redirect_uri, code and code_verifier must "
                                                                           "be defined", debug_key="incomplete_code")
+
         flow_user_dict = data.get_json(dsrc.kv, token_request.code)
         if flow_user_dict is None:
             reason = "Expired or missing auth code"
@@ -195,7 +203,8 @@ async def token(token_request: TokenRequest, response: Response):
         id_nonce = auth_request.nonce
         token_user = flow_user.user_usph
         token_scope = "test"
-        old_refresh = None
+        id_token, access, refresh, exp, returned_scope = \
+            await new_token(dsrc, token_user, token_scope, auth_time, id_nonce)
 
     elif token_request.grant_type == "refresh_token":
         try:
@@ -204,23 +213,19 @@ async def token(token_request: TokenRequest, response: Response):
             logger.debug(e)
             raise ErrorResponse(400, err_type="invalid_grant", err_desc="refresh_token must be defined")
 
-        auth_time = None
-        id_nonce = None
-        token_user = None
-        token_scope = None
         old_refresh = token_request.refresh_token
+
+        try:
+            id_token, access, refresh, exp, returned_scope = await do_refresh(dsrc, old_refresh)
+        except InvalidRefresh as e:
+            logger.debug(e)
+            raise ErrorResponse(400, err_type="invalid_grant", err_desc="Invalid refresh_token!")
 
     else:
         reason = "Only 'refresh_token' and 'authorization_code' grant types are available."
         logger.debug(f'{reason} Used: {token_request.grant_type}')
         raise ErrorResponse(400, err_type=f"unsupported_grant_type", err_desc=reason)
-    try:
-        id_token, access, refresh, token_type, exp, returned_scope = \
-            await create_id_access_refresh(dsrc, token_user, token_scope, id_nonce, auth_time,
-                                           old_refresh_token=old_refresh)
-    except InvalidRefresh as e:
-        logger.debug(e)
-        raise ErrorResponse(400, err_type="invalid_grant", err_desc="Invalid refresh_token!")
+
     # TODO login options
     logger.info("Token request granted for ")
     return TokenResponse(id_token=id_token, access_token=access, refresh_token=refresh, token_type=token_type,

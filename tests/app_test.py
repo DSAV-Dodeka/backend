@@ -1,4 +1,5 @@
 import asyncio
+import random
 
 import pytest
 import pytest_asyncio
@@ -12,7 +13,7 @@ from dodekaserver.db import DatabaseOperations
 from dodekaserver.env import frontend_client_id
 import dodekaserver.data.key
 from dodekaserver.utilities import utc_timestamp
-from dodekaserver.db.model import KEY_TABLE
+from dodekaserver.db.model import KEY_TABLE, REFRESH_TOKEN_TABLE
 
 
 @pytest.fixture(scope="module")
@@ -192,7 +193,7 @@ async def mock_kv(module_mocker: MockerFixture, mock_dsrc):
 
 
 @pytest_asyncio.fixture
-async def mock_key_db(mock_dbop, mock_dsrc):
+async def mock_retrieve_id_key(mock_dbop, mock_dsrc):
     mock_opq_key = {
         'id': 0, 'algorithm': 'curve25519ristretto', 'public': 'lB8G80Go8xwpSGEWuayAfAGirKr70DSUfFCpX20aWx4',
         'private': 'WCvFeJjVeYhXWrg1YKflgqsgzB_fmhXcL0BFcCtTVQY', 'public_format': 'none',
@@ -203,9 +204,9 @@ async def mock_key_db(mock_dbop, mock_dsrc):
         'public_format': None, 'public_encoding': None, 'private_format': 'none', 'private_encoding': 'base64url'
     }
     mock_token_key = {
-        'id': 1, 'algorithm': 'ed448', 'public': '-----BEGIN PUBLIC KEY-----\nMEMwBQYDK2VxAzoAtPGddEupA3b5P5yr9gT3rvjzW'
-                                                 'eQH5cedY6RcwN3A5zTS9n8C\nc6dOR+XUPVLVu0o0i/t46fW1HMQA\n-----END PUBLI'
-                                                 'C KEY-----\n',
+        'id': 1, 'algorithm': 'ed448',
+        'public': '-----BEGIN PUBLIC KEY-----\nMEMwBQYDK2VxAzoAtPGddEupA3b5P5yr9gT3rvjzWeQH5cedY6RcwN3A5zTS9n8C\nc6dOR+'
+                  'XUPVLVu0o0i/t46fW1HMQA\n-----END PUBLIC KEY-----\n',
         'private': '-----BEGIN PRIVATE KEY-----\nMEcCAQAwBQYDK2VxBDsEOY1wa98ZvsK8pYML+ICD9Mbtavr+QC5PC301oVn5jPM6\nT8tE'
                    'CKaZvu5mxG/OfxlEKxl/XIKuClP1mw==\n-----END PRIVATE KEY-----\n',
         'public_format': 'X509PKCS#1', 'public_encoding': 'PEM', 'private_format': 'PKCS#8', 'private_encoding': 'PEM'
@@ -226,8 +227,19 @@ async def mock_key_db(mock_dbop, mock_dsrc):
     yield mock_dbop
 
 
+@pytest_asyncio.fixture
+async def mock_insert_return_id_refresh(mock_dbop, mock_dsrc):
+    async def insert_return_id_mock(db, table, row):
+        if db == mock_dsrc.db:
+            if table == REFRESH_TOKEN_TABLE:
+                return 74
+
+    mock_dbop.insert_return_id.side_effect = insert_return_id_mock
+    yield mock_dbop
+
+
 @pytest.mark.asyncio
-async def test_wrong_code(module_mocker: MockerFixture, mock_kv, test_client: AsyncClient):
+async def test_wrong_code(mock_kv, test_client: AsyncClient):
     req = {
         "client_id": frontend_client_id,
         "grant_type": "authorization_code",
@@ -245,7 +257,7 @@ async def test_wrong_code(module_mocker: MockerFixture, mock_kv, test_client: As
 
 
 @pytest.mark.asyncio
-async def test_code(module_mocker: MockerFixture, mock_kv, mock_key_db, test_client: AsyncClient):
+async def test_code(mock_kv, mock_retrieve_id_key, mock_insert_return_id_refresh, test_client: AsyncClient):
     verifier = "aIhn-rcznAqlfjvmaX7aS3ZLcmycIGWWnnAFDEn-VLI"
     req = {
         "client_id": frontend_client_id,
@@ -260,6 +272,7 @@ async def test_code(module_mocker: MockerFixture, mock_kv, mock_key_db, test_cli
     res_j = response.json()
     print(res_j)
     # {'id_token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJFZERTQSJ9.eyJzdWIiOiJtcm1vY2siLCJpc3MiOiJodHRwczovL2RzYXZkb2Rla2EubmwvYXV0aCIsImF1ZCI6WyJkb2Rla2F3ZWJfY2xpZW50Il0sImF1dGhfdGltZSI6MTY0ODM4MjI5Miwibm9uY2UiOiItZUIybHByMUlxWmRKenQ5Q2ZEWjVqckhHYTZ5RTg3VVVURmQ0Q1d3ZU9JIiwiaWF0IjoxNjQ4MzgyMzEyLCJleHAiOjE2NDg0MTgzMTJ9.yI1SySLtDPgcbGktsJhh5kW2dt97Z2o__DBXrhYfFb68MlMFXa38BnTBTE8Kqe7nnXVF1SkzTacA3MfgFufND4HT0S56R-hI9Tq091tevazxPYfYGF-Se5IzqOer66TTnjpTl5bUFGqYQP0OaS6WaTIA', 'access_token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJFZERTQSJ9.eyJzdWIiOiJtcm1vY2siLCJpc3MiOiJodHRwczovL2RzYXZkb2Rla2EubmwvYXV0aCIsImF1ZCI6WyJkb2Rla2F3ZWJfY2xpZW50IiwiZG9kZWthYmFja2VuZF9jbGllbnQiXSwic2NvcGUiOiJ0ZXN0IiwiaWF0IjoxNjQ4MzgyMzEyLCJleHAiOjE2NDgzODU5MTJ9.h6WOdEv5XmDKlloC-e_Mdd4P9MxTnaL16UeiL4lpARQsUyR6VRuapljFvjNaPH2BKxsqlAuLJVwAVCY03XQllz0l555pRPs01AsjBFJlGhBBwqAfuF9ionUPMbxbwsgh-W30t5QJk76tgfzGLF4TETcA', 'refresh_token': 'Pne6w5l14knJ12cP_djtxXi9zHrEXxaWYIoJqwcX6I2Vz7UdiieWIyAqcE-7LYSshU9YKKCGqJFBFTr3hAykrvT1c_1p4teQV9qibPwe5XY36H369tG2uXo', 'token_type': 'Bearer', 'expires_in': 3600, 'scope': 'test'}
+
 
 # @pytest.fixture
 # async def mock_user_retrieve(mock_dbop):

@@ -1,7 +1,7 @@
 from typing import Optional
 
 from dodekaserver.define.entities import OpaqueKey, TokenKey, SymmetricKey
-from dodekaserver.data.source import Source
+from dodekaserver.data.source import Source, DataError
 from dodekaserver.db import KEY_TABLE
 from dodekaserver.auth.key_util import new_ed448_keypair, new_curve25519_keypair, new_symmetric_key
 
@@ -16,12 +16,13 @@ async def _get_key_row(dsrc: Source, id_int: int) -> Optional[dict]:
 
 async def _get_opaque_key(dsrc: Source) -> OpaqueKey:
     # TODO set id in config
-    key_row = await _get_key_row(dsrc, 0)
+    id_int = 0
+    key_row = await _get_key_row(dsrc, id_int)
     if key_row is None:
-        new_key = new_curve25519_keypair(0)
-
-        await upsert_key_row(dsrc, new_key.dict())
-        key_row = await dsrc.ops.retrieve_by_id(dsrc.db, KEY_TABLE, 0)
+        # new_key = new_curve25519_keypair(id_int)
+        # await upsert_key_row(dsrc, new_key.dict())
+        # key_row = await dsrc.ops.retrieve_by_id(dsrc.db, KEY_TABLE, id_int)
+        raise DataError(message=f"Key missing for id {id_int}", key="missing_key")
     return OpaqueKey.parse_obj(key_row)
 
 
@@ -33,23 +34,27 @@ async def get_opaque_public(dsrc: Source) -> str:
     return (await _get_opaque_key(dsrc)).public
 
 
-async def _get_token_key(dsrc: Source):
+async def _get_token_key(dsrc: Source) -> TokenKey:
     # TODO set id in config
-    key_row = await _get_key_row(dsrc, 1)
+    id_int = 1
+    key_row = await _get_key_row(dsrc, id_int)
     if key_row is None:
-        new_key = new_ed448_keypair(1)
-        await upsert_key_row(dsrc, new_key.dict())
-        key_row = await dsrc.ops.retrieve_by_id(dsrc.db, KEY_TABLE, 1)
+        # new_key = new_ed448_keypair(1)
+        # await upsert_key_row(dsrc, new_key.dict())
+        # key_row = await dsrc.ops.retrieve_by_id(dsrc.db, KEY_TABLE, 1)
+        raise DataError(message=f"Key missing for id {id_int}", key="missing_key")
     return TokenKey.parse_obj(key_row)
 
 
 async def _get_symmetric_key(dsrc: Source):
     # TODO set id in config
-    key_row = await _get_key_row(dsrc, 2)
+    id_int = 2
+    key_row = await _get_key_row(dsrc, id_int)
     if key_row is None:
-        new_key = new_symmetric_key(2)
-        await upsert_key_row(dsrc, new_key.dict())
-        key_row = await dsrc.ops.retrieve_by_id(dsrc.db, KEY_TABLE, 2)
+        # new_key = new_symmetric_key(id_int)
+        # await upsert_key_row(dsrc, new_key.dict())
+        # key_row = await dsrc.ops.retrieve_by_id(dsrc.db, KEY_TABLE, 2)
+        raise DataError(message=f"Key missing for id {id_int}", key="missing_key")
     return SymmetricKey.parse_obj(key_row)
 
 

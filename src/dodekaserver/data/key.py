@@ -9,7 +9,7 @@ __all__ = ['get_opaque_public', 'get_opaque_private', 'get_token_private', 'get_
 
 
 async def _get_key_row(dsrc: Source, id_int: int) -> Optional[dict]:
-    key_row = await dsrc.ops.retrieve_by_id(dsrc.db, KEY_TABLE, id_int)
+    key_row = await dsrc.gateway.ops.retrieve_by_id(dsrc.gateway.db, KEY_TABLE, id_int)
 
     return key_row
 

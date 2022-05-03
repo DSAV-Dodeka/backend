@@ -4,7 +4,7 @@ from typing import Optional
 from databases import Database
 
 
-__all__ = ['DatabaseOperations', 'execute_queries_unsafe']
+__all__ = ['DatabaseOperations', 'execute_queries_unsafe', 'retrieve_by_id']
 
 
 def _row_keys_vars_set(row: dict):
@@ -26,6 +26,13 @@ async def execute_queries_unsafe(db: Database, queries: list[str]):
      Do NOT use with user input. """
     executions = [db.execute(query) for query in queries]
     return await asyncio.gather(*executions)
+
+
+async def retrieve_by_id(db: Database, table: str, id_int: int) -> Optional[dict]:
+    """ Ensure `table` is never user-defined. """
+    query = f"SELECT * FROM {table} WHERE id = :id"
+    record = await db.fetch_one(query, values={"id": id_int})
+    return dict(record) if record is not None else None
 
 
 class DatabaseOperations:

@@ -257,7 +257,7 @@ async def test_wrong_code(mock_kv, test_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_code(mock_kv, mock_retrieve_id_key, mock_insert_return_id_refresh, test_client: AsyncClient):
+async def test_code(test_client: AsyncClient):
     verifier = "aIhn-rcznAqlfjvmaX7aS3ZLcmycIGWWnnAFDEn-VLI"
     req = {
         "client_id": frontend_client_id,

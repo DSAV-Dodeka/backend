@@ -1,4 +1,6 @@
+import abc
 from typing import Type
+from abc import ABC
 
 import redis
 from databases import Database
@@ -10,7 +12,7 @@ from dodekaserver.kv.settings import KvAddress, KV_ADDRESS
 
 from dodekaserver.db import DatabaseOperations as Db
 
-__all__ = ['Source', 'dsrc', 'DataError']
+__all__ = ['Source', 'dsrc', 'DataError', 'Gateway']
 
 
 class SourceError(ConnectionError):
@@ -25,9 +27,7 @@ class DataError(ValueError):
         self.key = key
 
 
-class Source:
-    """ Abstraction layer between the API endpoints and the database layer. """
-
+class Gateway:
     db: Database = None
     db_url: str
     kv_addr: KvAddress
@@ -35,12 +35,14 @@ class Source:
     # Just store the class/type since we only use static methods
     ops: Type[Db]
 
-    def __init__(self):
+    def __init__(self, do_init: bool = True):
         self.db_url = DB_URL
         self.kv_addr = KV_ADDRESS
         self.ops = Db
+        if do_init:
+            self.init_objects()
 
-    def init(self):
+    def init_objects(self):
         # Connections are not actually established, it simply initializes the connection parameters
         self.db = Database(self.db_url)
         self.kv = Redis(host=self.kv_addr.host, port=self.kv_addr.port, db=self.kv_addr.db_n)
@@ -53,13 +55,28 @@ class Source:
         try:
             # Redis requires no explicit call to connect, it simply connects the first time
             # a call is made to the database, so we test the connection by pinging
-            self.kv.ping()
+            await self.kv.ping()
         except redis.ConnectionError:
             raise SourceError(f"Unable to ping Redis server! Please check if it is running.")
 
     async def disconnect(self):
         await self.db.disconnect()
 
+    async def startup(self):
+        await self.connect()
+
+    async def shutdown(self):
+        await self.disconnect()
+
+
+class Source:
+    gateway: Gateway = Gateway()
+
+    async def startup(self):
+        await self.gateway.startup()
+
+    async def shutdown(self):
+        await self.gateway.shutdown()
+
 
 dsrc = Source()
-dsrc.init()

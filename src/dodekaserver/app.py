@@ -62,11 +62,11 @@ app = create_app()
 async def app_startup(dsrc_inst: Source):
     # Only startup events that do not work in all environments or require other processes to run belong here
     # Safe startup events (that always work) can be included in the 'create_app()' above
-    await dsrc_inst.connect()
+    await dsrc_inst.startup()
 
 
 async def app_shutdown(dsrc_inst: Source):
-    await dsrc_inst.connect()
+    await dsrc_inst.shutdown()
 
 
 # Hooks defined by FastAPI to run on startup and shutdown

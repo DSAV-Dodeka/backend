@@ -9,7 +9,6 @@ from httpx import AsyncClient
 
 from dodekaserver.auth.models import FlowUser, AuthRequest
 from dodekaserver.data import Source
-from dodekaserver.db import DatabaseOperations
 from dodekaserver.env import frontend_client_id
 import dodekaserver.data.key
 from dodekaserver.utilities import utc_timestamp

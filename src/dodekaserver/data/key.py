@@ -1,5 +1,6 @@
 from typing import Optional
 
+from dodekaserver.data.use import retrieve_by_id, upsert_by_id
 from dodekaserver.define.entities import OpaqueKey, TokenKey, SymmetricKey
 from dodekaserver.data.source import Source, DataError
 from dodekaserver.db import KEY_TABLE
@@ -9,7 +10,7 @@ __all__ = ['get_opaque_public', 'get_opaque_private', 'get_token_private', 'get_
 
 
 async def _get_key_row(dsrc: Source, id_int: int) -> Optional[dict]:
-    key_row = await dsrc.gateway.ops.retrieve_by_id(dsrc.gateway.db, KEY_TABLE, id_int)
+    key_row = await retrieve_by_id(dsrc, KEY_TABLE, id_int)
 
     return key_row
 
@@ -71,4 +72,4 @@ async def get_refresh_symmetric(dsrc: Source) -> str:
 
 
 async def upsert_key_row(dsrc: Source, key_row: dict):
-    return await dsrc.ops.upsert_by_id(dsrc.db, KEY_TABLE, key_row)
+    return await upsert_by_id(dsrc, KEY_TABLE, key_row)

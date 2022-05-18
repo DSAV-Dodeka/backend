@@ -62,6 +62,8 @@ app = create_app()
 async def app_startup(dsrc_inst: Source):
     # Only startup events that do not work in all environments or require other processes to run belong here
     # Safe startup events (that always work) can be included in the 'create_app()' above
+
+    # Db connections, etc.
     await dsrc_inst.startup()
 
 

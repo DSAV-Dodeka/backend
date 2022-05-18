@@ -17,7 +17,6 @@ from dodekaserver.data import Source, DataError
 
 __all__ = ['do_refresh', 'new_token', 'verify_access_token', 'InvalidRefresh', 'BadVerification']
 
-
 logger = logging.getLogger(LOGGER_NAME)
 
 
@@ -67,10 +66,7 @@ async def get_keys(dsrc: Source) -> tuple[AESGCM, str]:
     return aesgcm, signing_key
 
 
-async def do_refresh(dsrc: Source, old_refresh_token: str):
-    aesgcm, signing_key = await get_keys(dsrc)
-    utc_now = utc_timestamp()
-
+def decrypt_old_refresh(aesgcm: AESGCM, old_refresh_token: str):
     # expects base64url-encoded binary
     try:
         # If it has been tampered with, this will also give an error
@@ -85,19 +81,10 @@ async def do_refresh(dsrc: Source, old_refresh_token: str):
         # For example from the JSON decoding
         raise InvalidRefresh("Other parsing")
 
-    try:
-        # See if previous refresh exists
-        saved_refresh = await data.refreshtoken.get_refresh_by_id(dsrc, old_refresh.id)
-    except DataError as e:
-        if e.key != "refresh_empty":
-            # If not refresh_empty, it was some other internal error
-            raise e
-        # Only the most recent token should be valid and is always returned
-        # So if someone possesses some deleted token family member, it is most likely an attacker
-        # For this reason, all tokens in the family are invalidated to prevent further compromise
-        await data.refreshtoken.delete_family(dsrc, old_refresh.family_id)
-        raise InvalidRefresh("Not recent")
+    return old_refresh
 
+
+def verify_refresh(saved_refresh: SavedRefreshToken, old_refresh: RefreshToken, utc_now: int) -> None:
     if saved_refresh.nonce != old_refresh.nonce or saved_refresh.family_id != old_refresh.family_id:
         raise InvalidRefresh("Bad comparison")
     elif saved_refresh.iat > utc_now or saved_refresh.iat < 1640690242:
@@ -106,6 +93,9 @@ async def do_refresh(dsrc: Source, old_refresh_token: str):
     elif utc_now > saved_refresh.exp + grace_period:
         # refresh no longer valid
         raise InvalidRefresh
+
+
+def build_refresh_save(saved_refresh: SavedRefreshToken, utc_now: int, signing_key: str):
 
     # Rebuild access and ID tokens from value in refresh token
     # We need the core static info to rebuild with new iat, etc.
@@ -129,12 +119,46 @@ async def do_refresh(dsrc: Source, old_refresh_token: str):
                                          access_value=saved_refresh.access_value,
                                          id_token_value=saved_refresh.id_token_value, exp=saved_refresh.exp,
                                          iat=utc_now, nonce=new_nonce)
-    # Deletes previous token, saves new one, only succeeds if all components of the transaction succeed
-    new_refresh_id = await data.refreshtoken.refresh_transaction(dsrc, saved_refresh.id, new_refresh_save)
 
+    return user_usph, access_token, id_token, access_scope, new_refresh_save, new_nonce
+
+
+def build_refresh_token(new_refresh_id: int, saved_refresh: SavedRefreshToken, new_nonce: str, aesgcm: AESGCM):
     # The actual refresh token is an encrypted JSON dictionary containing the id, family_id and nonce
     refresh = RefreshToken(id=new_refresh_id, family_id=saved_refresh.family_id, nonce=new_nonce)
     refresh_token = encrypt_refresh(aesgcm, refresh)
+    return refresh_token
+
+
+async def do_refresh(dsrc: Source, old_refresh_token: str):
+    aesgcm, signing_key = await get_keys(dsrc)
+    utc_now = utc_timestamp()
+
+    old_refresh = decrypt_old_refresh(aesgcm, old_refresh_token)
+
+    try:
+        # See if previous refresh exists
+        saved_refresh = await data.refreshtoken.get_refresh_by_id(dsrc, old_refresh.id)
+    except DataError as e:
+        if e.key != "refresh_empty":
+            # If not refresh_empty, it was some other internal error
+            raise e
+        # Only the most recent token should be valid and is always returned
+        # So if someone possesses some deleted token family member, it is most likely an attacker
+        # For this reason, all tokens in the family are invalidated to prevent further compromise
+        await data.refreshtoken.delete_family(dsrc, old_refresh.family_id)
+        raise InvalidRefresh("Not recent")
+
+    verify_refresh(saved_refresh, old_refresh, utc_now)
+
+    user_usph, access_token, id_token, access_scope, \
+        new_refresh_save, new_nonce = build_refresh_save(saved_refresh, utc_now, signing_key)
+
+    # Deletes previous token, saves new one, only succeeds if all components of the transaction succeed
+    new_refresh_id = await data.refreshtoken.refresh_transaction(dsrc, saved_refresh.id, new_refresh_save)
+
+    refresh_token = build_refresh_token(new_refresh_id, saved_refresh, new_nonce, aesgcm)
+
     return id_token, access_token, refresh_token, id_exp, access_scope, user_usph
 
 
@@ -213,6 +237,7 @@ def decode_refresh(rt: SavedRefreshToken):
 
 class BadVerification(Exception):
     """ Error during token verification. """
+
     def __init__(self, err_type: str, err_desc: str):
         self.err_type = err_type
         self.err_desc = err_desc

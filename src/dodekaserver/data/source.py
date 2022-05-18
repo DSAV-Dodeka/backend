@@ -1,18 +1,16 @@
-import abc
 from typing import Type
-from abc import ABC
 
 import redis
 from databases import Database
 from redis import Redis
 
 # These settings modules contain top-level logic that loads all configuration variables
+from dodekaserver.db.ops import DbOperations
+from dodekaserver.db.use import PostgresOperations
 from dodekaserver.db.settings import DB_URL
 from dodekaserver.kv.settings import KvAddress, KV_ADDRESS
 
-from dodekaserver.db import DatabaseOperations as Db
-
-__all__ = ['Source', 'dsrc', 'DataError', 'Gateway']
+__all__ = ['Source', 'dsrc', 'DataError', 'Gateway', 'DbOperations']
 
 
 class SourceError(ConnectionError):
@@ -33,12 +31,12 @@ class Gateway:
     kv_addr: KvAddress
     kv: Redis = None
     # Just store the class/type since we only use static methods
-    ops: Type[Db]
+    ops: Type['DbOperations']
 
-    def __init__(self, do_init: bool = True):
+    def __init__(self, do_init: bool = True, ops: Type[DbOperations] = None):
         self.db_url = DB_URL
         self.kv_addr = KV_ADDRESS
-        self.ops = Db
+        self.ops = PostgresOperations
         if do_init:
             self.init_objects()
 
@@ -55,7 +53,7 @@ class Gateway:
         try:
             # Redis requires no explicit call to connect, it simply connects the first time
             # a call is made to the database, so we test the connection by pinging
-            await self.kv.ping()
+            self.kv.ping()
         except redis.ConnectionError:
             raise SourceError(f"Unable to ping Redis server! Please check if it is running.")
 
@@ -70,7 +68,10 @@ class Gateway:
 
 
 class Source:
-    gateway: Gateway = Gateway()
+    gateway: Gateway
+
+    def __init__(self):
+        self.gateway = Gateway()
 
     async def startup(self):
         await self.gateway.startup()

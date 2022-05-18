@@ -4,7 +4,9 @@ from typing import Optional
 from databases import Database
 
 
-__all__ = ['DatabaseOperations', 'execute_queries_unsafe', 'retrieve_by_id']
+__all__ = ['PostgresOperations', 'execute_queries_unsafe']
+
+from dodekaserver.db.ops import DbOperations
 
 
 def _row_keys_vars_set(row: dict):
@@ -28,14 +30,7 @@ async def execute_queries_unsafe(db: Database, queries: list[str]):
     return await asyncio.gather(*executions)
 
 
-async def retrieve_by_id(db: Database, table: str, id_int: int) -> Optional[dict]:
-    """ Ensure `table` is never user-defined. """
-    query = f"SELECT * FROM {table} WHERE id = :id"
-    record = await db.fetch_one(query, values={"id": id_int})
-    return dict(record) if record is not None else None
-
-
-class DatabaseOperations:
+class PostgresOperations(DbOperations):
     """
     The DatabaseOperations class provides an easily referencable object that can be mocked.
     This circumvents a problem where mocks are ignored as FastAPI changes the function

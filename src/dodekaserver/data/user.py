@@ -1,6 +1,7 @@
 from typing import Optional
 
 from dodekaserver.data.source import Source, DataError
+from dodekaserver.data.use import retrieve_by_id, retrieve_by_unique, upsert_by_id
 from dodekaserver.define.entities import User
 from dodekaserver.db import USER_TABLE
 from dodekaserver.db.model import USERNAME, PASSWORD
@@ -16,17 +17,17 @@ def parse_user(user_dict: Optional[dict]) -> User:
 
 
 async def get_user_by_id(dsrc: Source, id_int: int) -> User:
-    user_row = await dsrc.ops.retrieve_by_id(dsrc.db, USER_TABLE, id_int)
+    user_row = await retrieve_by_id(dsrc, USER_TABLE, id_int)
     return parse_user(user_row)
 
 
 async def get_user_by_usph(dsrc: Source, usp_hex: str) -> User:
-    user_row = await dsrc.ops.retrieve_by_unique(dsrc.db, USER_TABLE, USERNAME, usp_hex)
+    user_row = await retrieve_by_unique(dsrc, USER_TABLE, USERNAME, usp_hex)
     return parse_user(user_row)
 
 
 async def upsert_user_row(dsrc: Source, user_row: dict):
-    return await dsrc.ops.upsert_by_id(dsrc.db, USER_TABLE, user_row)
+    return await upsert_by_id(dsrc, USER_TABLE, user_row)
 
 
 def create_user(ups_hex, password_file) -> dict:

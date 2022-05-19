@@ -5,12 +5,12 @@ from databases import Database
 from redis import Redis
 
 # These settings modules contain top-level logic that loads all configuration variables
+from dodekaserver.db.ops import DbOperations
+from dodekaserver.db.use import PostgresOperations
 from dodekaserver.db.settings import DB_URL
 from dodekaserver.kv.settings import KvAddress, KV_ADDRESS
 
-from dodekaserver.db import DatabaseOperations as Db
-
-__all__ = ['Source', 'dsrc', 'DataError']
+__all__ = ['Source', 'dsrc', 'DataError', 'Gateway', 'DbOperations']
 
 
 class SourceError(ConnectionError):
@@ -25,22 +25,22 @@ class DataError(ValueError):
         self.key = key
 
 
-class Source:
-    """ Abstraction layer between the API endpoints and the database layer. """
-
+class Gateway:
     db: Database = None
     db_url: str
     kv_addr: KvAddress
     kv: Redis = None
     # Just store the class/type since we only use static methods
-    ops: Type[Db]
+    ops: Type['DbOperations']
 
-    def __init__(self):
+    def __init__(self, do_init: bool = True, ops: Type[DbOperations] = None):
         self.db_url = DB_URL
         self.kv_addr = KV_ADDRESS
-        self.ops = Db
+        self.ops = PostgresOperations
+        if do_init:
+            self.init_objects()
 
-    def init(self):
+    def init_objects(self):
         # Connections are not actually established, it simply initializes the connection parameters
         self.db = Database(self.db_url)
         self.kv = Redis(host=self.kv_addr.host, port=self.kv_addr.port, db=self.kv_addr.db_n)
@@ -60,6 +60,24 @@ class Source:
     async def disconnect(self):
         await self.db.disconnect()
 
+    async def startup(self):
+        await self.connect()
+
+    async def shutdown(self):
+        await self.disconnect()
+
+
+class Source:
+    gateway: Gateway
+
+    def __init__(self):
+        self.gateway = Gateway()
+
+    async def startup(self):
+        await self.gateway.startup()
+
+    async def shutdown(self):
+        await self.gateway.shutdown()
+
 
 dsrc = Source()
-dsrc.init()

@@ -8,13 +8,13 @@ from fastapi.responses import RedirectResponse
 
 import opaquepy.lib as opq
 
-from dodekaserver.define import ErrorResponse
+from dodekaserver.define import ErrorResponse, PasswordResponse, PasswordRequest, SavedState, FinishRequest, \
+    FinishLogin, AuthRequest, TokenResponse, TokenRequest, FlowUser
 from dodekaserver.env import LOGGER_NAME, frontend_client_id
 import dodekaserver.data as data
 from dodekaserver.data import DataError
 import dodekaserver.utilities as util
 from dodekaserver.utilities import enc_b64url
-from dodekaserver.auth.models import *
 from dodekaserver.auth.tokens import *
 
 dsrc = data.dsrc
@@ -38,14 +38,14 @@ async def start_register(register_start: PasswordRequest):
 
     response, state = opq.register(register_start.client_request, public_key)
     saved_state = SavedState(user_usph=user_usph, state=state)
-    data.store_json(dsrc.kv, auth_id, saved_state.dict(), 1000)
+    data.store_json(dsrc.gateway.kv, auth_id, saved_state.dict(), 1000)
 
     return PasswordResponse(server_message=response, auth_id=auth_id)
 
 
 @router.post("/register/finish")
 async def finish_register(register_finish: FinishRequest):
-    state_dict = data.get_json(dsrc.kv, register_finish.auth_id)
+    state_dict = data.get_json(dsrc.gateway.kv, register_finish.auth_id)
     saved_state = SavedState.parse_obj(state_dict)
 
     user_usph = util.usp_hex(register_finish.username)
@@ -76,14 +76,14 @@ async def start_login(login_start: PasswordRequest):
     response, state = opq.login(password_file, login_start.client_request, private_key)
 
     saved_state = SavedState(user_usph=user_usph, state=state)
-    data.store_json(dsrc.kv, auth_id, saved_state.dict(), 1000)
+    data.store_json(dsrc.gateway.kv, auth_id, saved_state.dict(), 1000)
 
     return PasswordResponse(server_message=response, auth_id=auth_id)
 
 
 @router.post("/login/finish")
 async def finish_login(login_finish: FinishLogin):
-    state_dict = data.get_json(dsrc.kv, login_finish.auth_id)
+    state_dict = data.get_json(dsrc.gateway.kv, login_finish.auth_id)
     saved_state = SavedState.parse_obj(state_dict)
 
     user_usph = util.usp_hex(login_finish.username)
@@ -94,7 +94,7 @@ async def finish_login(login_finish: FinishLogin):
     utc_now = util.utc_timestamp()
     flow_user = FlowUser(flow_id=login_finish.flow_id, user_usph=user_usph, auth_time=utc_now)
 
-    data.store_json(dsrc.kv, session_key, flow_user.dict(), 60)
+    data.store_json(dsrc.gateway.kv, session_key, flow_user.dict(), 60)
 
     return None
 
@@ -110,7 +110,7 @@ async def oauth_endpoint(response_type: str, client_id: str, redirect_uri: str, 
         raise HTTPException(400, detail=e.errors())
     flow_id = util.random_time_hash_hex()
 
-    data.store_json(dsrc.kv, flow_id, auth_request.dict(), expire=1000)
+    data.store_json(dsrc.gateway.kv, flow_id, auth_request.dict(), expire=1000)
 
     # Used to retrieve authentication information
     params = {
@@ -128,7 +128,7 @@ async def oauth_finish(flow_id: str, code: str, response: Response):
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
 
-    auth_req_dict = data.get_json(dsrc.kv, flow_id)
+    auth_req_dict = data.get_json(dsrc.gateway.kv, flow_id)
     auth_request = AuthRequest.parse_obj(auth_req_dict)
     params = {
         "code": code,
@@ -147,7 +147,9 @@ async def token(token_request: TokenRequest, response: Response):
     # We only allow requests meant to be sent from our front end
     # This does not heighten security, only so other clients do not accidentally make requests here
     if token_request.client_id != frontend_client_id:
-        raise ErrorResponse(400, err_type="invalid_client", err_desc="Invalid client ID.")
+        reason = "Invalid client ID."
+        logger.debug(reason)
+        raise ErrorResponse(400, err_type="invalid_client", err_desc=reason)
 
     token_type = "Bearer"
 
@@ -155,29 +157,36 @@ async def token(token_request: TokenRequest, response: Response):
     # The first requires a code provided by the OPAQUE login flow
     if token_request.grant_type == "authorization_code":
         # This grant type requires other body parameters than the refresh token grant type
+
         try:
             assert token_request.redirect_uri
             assert token_request.code_verifier
             assert token_request.code
-        except AssertionError as e:
-            logger.debug(e)
-            raise ErrorResponse(400, err_type="invalid_request", err_desc="redirect_uri, code and code_verifier must "
-                                                                          "be defined", debug_key="incomplete_code")
+        except AssertionError:
+            reason = "redirect_uri, code and code_verifier must be defined"
+            logger.debug(reason)
+            raise ErrorResponse(400, err_type="invalid_request", err_desc=reason, debug_key="incomplete_code")
+        try:
+            flow_user = await data.kv.get_flow_user(dsrc, token_request.code)
+        except DataError as e:
+            if e.key == "flow_user_empty":
+                reason = "Expired or missing auth code"
+                logger.debug(reason)
+                raise ErrorResponse(400, err_type="invalid_grant", err_desc=reason, debug_key="empty_flow")
+            else:
+                raise e
 
-        flow_user_dict = data.get_json(dsrc.kv, token_request.code)
-        if flow_user_dict is None:
-            reason = "Expired or missing auth code"
-            logger.debug(reason)
-            raise ErrorResponse(400, err_type="invalid_grant", err_desc=reason, debug_key="empty_flow")
-        flow_user = FlowUser.parse_obj(flow_user_dict)
-        auth_req_dict = data.get_json(dsrc.kv, flow_user.flow_id)
-        # TODO maybe check auth time just in case
-        if auth_req_dict is None:
-            reason = "Expired or missing auth request"
-            logger.debug(reason)
-            raise ErrorResponse(400, err_type=f"invalid_grant", err_desc=reason)
+        try:
+            auth_request = await data.kv.get_auth_request(dsrc, flow_user.flow_id)
+        except DataError as e:
+            # TODO maybe check auth time just in case
+            if e.key == "auth_request_empty":
+                reason = "Expired or missing auth request"
+                logger.debug(reason)
+                raise ErrorResponse(400, err_type=f"invalid_grant", err_desc=reason)
+            else:
+                raise e
         # TODO get scope from request
-        auth_request = AuthRequest.parse_obj(auth_req_dict)
 
         if token_request.client_id != auth_request.client_id:
             logger.debug(f'Request redirect {token_request.client_id} does not match {auth_request.client_id}')

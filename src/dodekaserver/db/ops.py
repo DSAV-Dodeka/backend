@@ -45,3 +45,11 @@ class DbOperations(ABC):
     async def delete_insert_return_id_transaction(cls, db: Database, table: str, id_int_delete: int, new_row: dict) -> \
             int:
         ...
+
+
+class DbError(Exception):
+    """ Exception that represents special internal errors. """
+    def __init__(self, err_desc: str, err_internal: str, debug_key: str = None):
+        self.err_desc = err_desc
+        self.err_internal = err_internal
+        self.debug_key = debug_key

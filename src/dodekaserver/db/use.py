@@ -2,11 +2,11 @@ import asyncio
 from typing import Optional
 
 from databases import Database
+from asyncpg.exceptions import UniqueViolationError
 
+from dodekaserver.db.ops import DbOperations, DbError
 
 __all__ = ['PostgresOperations', 'execute_queries_unsafe']
-
-from dodekaserver.db.ops import DbOperations
 
 
 def _row_keys_vars_set(row: dict):
@@ -60,7 +60,12 @@ class PostgresOperations(DbOperations):
         query = f"INSERT INTO {table} ({row_keys}) VALUES ({row_keys_vars}) ON CONFLICT (id) DO UPDATE SET " \
                 f"{row_keys_set};"
 
-        return await db.execute(query=query, values=row)
+        try:
+            result = await db.execute(query=query, values=row)
+        except UniqueViolationError as e:
+            raise DbError("Key already exists", str(e), "unique_violation")
+
+        return result
 
     @classmethod
     async def insert_return_id(cls, db: Database, table: str, row: dict) -> int:

@@ -3,19 +3,20 @@ from urllib.parse import urlencode
 import logging
 
 from pydantic import ValidationError
-from fastapi import APIRouter, HTTPException, status, Response
+from fastapi import APIRouter, HTTPException, status, Response, BackgroundTasks
 from fastapi.responses import RedirectResponse
 
 import opaquepy.lib as opq
 
+from dodekaserver.env import LOGGER_NAME, frontend_client_id
 from dodekaserver.define import ErrorResponse, PasswordResponse, PasswordRequest, SavedState, FinishRequest, \
     FinishLogin, AuthRequest, TokenResponse, TokenRequest, FlowUser
-from dodekaserver.env import LOGGER_NAME, frontend_client_id
-import dodekaserver.data as data
-from dodekaserver.data import DataError
 import dodekaserver.utilities as util
 from dodekaserver.utilities import enc_b64url
-from dodekaserver.auth.tokens import *
+import dodekaserver.data as data
+from dodekaserver.data import DataError
+from dodekaserver.auth.tokens import InvalidRefresh
+from dodekaserver.auth.tokens_data import do_refresh, new_token
 
 dsrc = data.dsrc
 
@@ -38,53 +39,64 @@ async def start_register(register_start: PasswordRequest):
 
     response, state = opq.register(register_start.client_request, public_key)
     saved_state = SavedState(user_usph=user_usph, state=state)
-    data.store_json(dsrc.gateway.kv, auth_id, saved_state.dict(), 1000)
+
+    await data.kv.store_auth_state(dsrc, auth_id, saved_state)
 
     return PasswordResponse(server_message=response, auth_id=auth_id)
 
 
-@router.post("/register/finish")
+@router.post("/register/finish/")
 async def finish_register(register_finish: FinishRequest):
-    state_dict = data.get_json(dsrc.gateway.kv, register_finish.auth_id)
-    saved_state = SavedState.parse_obj(state_dict)
+    saved_state = await data.kv.get_state(dsrc, register_finish.auth_id)
 
     user_usph = util.usp_hex(register_finish.username)
     if saved_state.user_usph != user_usph:
-        raise ValueError
+        reason = "User does not match state!"
+        logger.debug(reason)
+        raise ErrorResponse(400, err_type="invalid_registration", err_desc=reason, debug_key="unequal_user")
 
     password_file = opq.register_finish(register_finish.client_request, saved_state.state)
+    print(password_file)
 
     new_user = data.user.create_user(user_usph, password_file)
 
-    await data.user.upsert_user_row(dsrc, new_user)
+    try:
+        await data.user.upsert_user_row(dsrc, new_user)
+    except DataError as e:
+        logger.debug(e.message)
+        if e.key == "unique_violation":
+            raise ErrorResponse(400, err_type="invalid_registration", err_desc="Username already exists!",
+                                debug_key="user_exists")
+        else:
+            raise e
 
 
-@router.post("/login/start", response_model=PasswordResponse)
+@router.post("/login/start/", response_model=PasswordResponse)
 async def start_login(login_start: PasswordRequest):
     user_usph = util.usp_hex(login_start.username)
     private_key = await data.key.get_opaque_private(dsrc)
 
+    fake_password = (await data.user.get_user_by_id(dsrc, 0)).password_file
     try:
         password_file = (await data.user.get_user_by_usph(dsrc, user_usph)).password_file
     except DataError:
         # If user does not exist, pass fake user record to prevent client enumeration
         # TODO ensure this fake record exists
-        password_file = (await data.user.get_user_by_id(dsrc, 0)).password_file
+        password_file = fake_password
 
     auth_id = util.random_time_hash_hex(user_usph)
 
     response, state = opq.login(password_file, login_start.client_request, private_key)
-
     saved_state = SavedState(user_usph=user_usph, state=state)
-    data.store_json(dsrc.gateway.kv, auth_id, saved_state.dict(), 1000)
+
+    await data.kv.store_auth_state(dsrc, auth_id, saved_state)
 
     return PasswordResponse(server_message=response, auth_id=auth_id)
 
 
-@router.post("/login/finish")
+@router.post("/login/finish/")
 async def finish_login(login_finish: FinishLogin):
-    state_dict = data.get_json(dsrc.gateway.kv, login_finish.auth_id)
-    saved_state = SavedState.parse_obj(state_dict)
+    saved_state = await data.kv.get_state(dsrc, login_finish.auth_id)
 
     user_usph = util.usp_hex(login_finish.username)
     if saved_state.user_usph != user_usph:
@@ -94,7 +106,7 @@ async def finish_login(login_finish: FinishLogin):
     utc_now = util.utc_timestamp()
     flow_user = FlowUser(flow_id=login_finish.flow_id, user_usph=user_usph, auth_time=utc_now)
 
-    data.store_json(dsrc.gateway.kv, session_key, flow_user.dict(), 60)
+    await data.kv.store_flow_user(dsrc, session_key, flow_user)
 
     return None
 
@@ -110,7 +122,7 @@ async def oauth_endpoint(response_type: str, client_id: str, redirect_uri: str, 
         raise HTTPException(400, detail=e.errors())
     flow_id = util.random_time_hash_hex()
 
-    data.store_json(dsrc.gateway.kv, flow_id, auth_request.dict(), expire=1000)
+    await data.kv.store_auth_request(dsrc, flow_id, auth_request)
 
     # Used to retrieve authentication information
     params = {
@@ -128,13 +140,15 @@ async def oauth_finish(flow_id: str, code: str, response: Response):
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
 
-    auth_req_dict = data.get_json(dsrc.gateway.kv, flow_id)
-    auth_request = AuthRequest.parse_obj(auth_req_dict)
+    auth_request = await data.kv.get_auth_request(dsrc, flow_id)
+
     params = {
         "code": code,
         "state": auth_request.state
     }
+
     redirect = f"{auth_request.redirect_uri}?{urlencode(params)}"
+
     return RedirectResponse(redirect, status_code=status.HTTP_303_SEE_OTHER)
 
 

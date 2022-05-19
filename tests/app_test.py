@@ -6,9 +6,9 @@ from pytest_mock import MockerFixture
 
 from httpx import AsyncClient
 
-from dodekaserver.define import FlowUser, AuthRequest
+from dodekaserver.define import FlowUser, AuthRequest, SavedState
 from dodekaserver.env import frontend_client_id
-from dodekaserver.utilities import utc_timestamp
+from dodekaserver.utilities import utc_timestamp, usp_hex
 from dodekaserver.define.entities import SavedRefreshToken
 from dodekaserver.db.ops import DbOperations
 
@@ -204,7 +204,7 @@ async def test_refresh(test_client, module_mocker: MockerFixture, mock_get_keys,
     get_r = module_mocker.patch('dodekaserver.data.refreshtoken.get_refresh_by_id')
     get_refr = module_mocker.patch('dodekaserver.data.refreshtoken.refresh_transaction')
 
-    def side_effect(dsrc, id_int):
+    def side_effect(f_dsrc, id_int):
         if id_int == fake_token_id:
             return SavedRefreshToken(family_id=fake_tokens['family_id'], access_value=fake_tokens['acc_val'],
                                      id_token_value=fake_tokens['id_val'], iat=fake_tokens['iat'], exp=fake_tokens['exp'],
@@ -230,13 +230,13 @@ async def test_auth_code(test_client, module_mocker: MockerFixture, mock_get_key
     get_auth = module_mocker.patch('dodekaserver.data.kv.get_auth_request')
     r_save = module_mocker.patch('dodekaserver.data.refreshtoken.refresh_save')
 
-    def flow_side_effect(kv, code):
+    def flow_side_effect(f_dsrc, code):
         if code == session_key:
             return mock_flow_user
 
     get_flow.side_effect = flow_side_effect
 
-    def auth_side_effect(kv, flow_id):
+    def auth_side_effect(f_dsrc, flow_id):
         if flow_id == mock_flow_user.flow_id:
             return mock_auth_request
 
@@ -257,3 +257,70 @@ async def test_auth_code(test_client, module_mocker: MockerFixture, mock_get_key
     # res_j = response.json()
     # print(res_j)
     assert response.status_code == 200
+
+
+mock_opq_key = {
+    'id': 0,
+    'algorithm': 'curve25519ristretto',
+    'public': '8sVYGKrrRS1t6FAuW5gHMw5dgzMz0b5rpDHPnipkrGY',
+    'private': 'ueKnTS9wtXyPb44JER4CJBc6AzIN1Wi2kDXupR6TrQk',
+    'public_format': 'none',
+    'public_encoding': 'base64url',
+    'private_format': 'none',
+    'private_encoding': 'base64url'
+}
+
+
+@pytest.mark.asyncio
+async def test_start_register(test_client, module_mocker: MockerFixture):
+    opq_key = module_mocker.patch('dodekaserver.data.key.get_opaque_public')
+    opq_key.return_value = mock_opq_key['public']
+
+    # password 'clientele'
+    req = {
+        "username": "someone",
+        "client_request": "cC90jRh3KZlP9XpFn_EhIEkjxAgTQ3szGS1pTxDZhjw",
+    }
+
+    response = await test_client.post("/register/start/", json=req)
+    res_j = response.json()
+    print(res_j)
+    # example state 'Nz9lHZwVn2MCQt7hRuaPRiMg7ZKsJJnoU5vdR1SpYgU'
+    # example message 'AC3bbc8Po0jdqTOCmKgzB7W1N9ODB__euvkBTsWygGryxVgYqutFLW3oUC5bmAczDl2DMzPRvmukMc-eKmSsZg'
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_start_register_finish(test_client, module_mocker: MockerFixture):
+    test_auth_id = "e5a289429121408d95d7e3cde62d0f06da22b86bd49c2a34233423ed4b5e877e"
+    test_user = "atestperson"
+
+    # password 'clientele' with mock_opq_key
+    test_state = "DnuCs40tbbcosYBGDyyMrrxNcq-wkzrjZTa65_pJ_QU"
+    test_user_usph = usp_hex(test_user)
+
+    g_state = module_mocker.patch('dodekaserver.data.kv.get_state')
+
+    def state_side_effect(f_dsrc, auth_id):
+        if auth_id == test_auth_id:
+            return SavedState(user_usph=test_user_usph, state=test_state)
+
+    g_state.side_effect = state_side_effect
+
+    # password 'clientele'
+    req = {
+        "username": test_user,
+        "client_request": "jjSusq9xeAzi6YYgc35gXEzv4nJipm0KbPogXDIheQkBp0uqgutLRJhfn37_U4aH7LMf8uXYsUK3Id6wh4P_ZDJaBp3S"
+                          "H7r-5_EsbvLaEA--CiAXjmEH7nn3Sl8uhRkW71JuANOjlb5AxbTaZGyzSBZEYdofpumQ7TMIVy7wQQpc--yaP48xGKG0"
+                          "S93fn-0KxImYaXoRZTdJ-TnnDIjxQvo",
+        "auth_id": test_auth_id
+    }
+
+    response = await test_client.post("/register/finish/", json=req)
+    # res_j = response.json()
+    # print(res_j)
+    """example password file DnuCs40tbbcosYBGDyyMrrxNcq-wkzrjZTa65_pJ_QWONK6yr3F4DOLphiBzfmBcTO_icmKmbQps-iBcMiF5CQGnS6
+    qC60tEmF-ffv9Thofssx_y5dixQrch3rCHg_9kMloGndIfuv7n8Sxu8toQD74KIBeOYQfuefdKXy6FGRbvUm4A06OVvkDFtNpkbLNIFkRh2h-m6ZDtMw
+    hXLvBBClz77Jo_jzEYobRL3d-f7QrEiZhpehFlN0n5OecMiPFC-g"""
+    assert response.status_code == 200
+

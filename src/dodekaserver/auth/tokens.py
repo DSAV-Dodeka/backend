@@ -10,13 +10,11 @@ import jwt
 from jwt import PyJWTError, DecodeError, InvalidSignatureError, ExpiredSignatureError, InvalidTokenError
 
 from dodekaserver.env import LOGGER_NAME, backend_client_id, issuer, id_exp, access_exp, refresh_exp, grace_period
-from dodekaserver.utilities import enc_b64url, dec_b64url, utc_timestamp
-import dodekaserver.data as data
+from dodekaserver.utilities import enc_b64url, dec_b64url
 from dodekaserver.define.entities import SavedRefreshToken, RefreshToken, AccessToken, IdToken
-from dodekaserver.data import Source, DataError
 
-__all__ = ['do_refresh', 'new_token', 'verify_access_token', 'InvalidRefresh', 'BadVerification', 'create_tokens',
-           'aes_from_symmetric', 'finish_tokens', 'encode_token_dict']
+__all__ = ['verify_access_token', 'InvalidRefresh', 'BadVerification', 'create_tokens', 'aes_from_symmetric',
+           'finish_tokens', 'encode_token_dict', 'decrypt_old_refresh', 'verify_refresh', 'build_refresh_save']
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -58,17 +56,6 @@ def aes_from_symmetric(symmetric_key) -> AESGCM:
     symmetric_key_bytes = dec_b64url(symmetric_key)
     # We initialize an AES-GCM key class that will be used for encryption/decryption
     return AESGCM(symmetric_key_bytes)
-
-
-async def get_keys(dsrc: Source) -> tuple[AESGCM, str]:
-    # Symmetric key used to verify and encrypt/decrypt refresh tokens
-    symmetric_key = await data.key.get_refresh_symmetric(dsrc)
-    aesgcm = aes_from_symmetric(symmetric_key)
-    # Asymmetric private key used for signing access and ID tokens
-    # A public key is then used to verify them
-    signing_key = await data.key.get_token_private(dsrc)
-
-    return aesgcm, signing_key
 
 
 def decrypt_old_refresh(aesgcm: AESGCM, old_refresh_token: str):
@@ -130,39 +117,6 @@ def build_refresh_token(new_refresh_id: int, saved_refresh: SavedRefreshToken, n
     return refresh_token
 
 
-async def do_refresh(dsrc: Source, old_refresh_token: str):
-    aesgcm, signing_key = await get_keys(dsrc)
-    utc_now = utc_timestamp()
-
-    old_refresh = decrypt_old_refresh(aesgcm, old_refresh_token)
-
-    try:
-        # See if previous refresh exists
-        saved_refresh = await data.refreshtoken.get_refresh_by_id(dsrc, old_refresh.id)
-    except DataError as e:
-        if e.key != "refresh_empty":
-            # If not refresh_empty, it was some other internal error
-            raise e
-        # Only the most recent token should be valid and is always returned
-        # So if someone possesses some deleted token family member, it is most likely an attacker
-        # For this reason, all tokens in the family are invalidated to prevent further compromise
-        await data.refreshtoken.delete_family(dsrc, old_refresh.family_id)
-        raise InvalidRefresh("Not recent")
-
-    verify_refresh(saved_refresh, old_refresh, utc_now)
-
-    access_token_data, id_token_data, user_usph, access_scope, \
-        new_nonce, new_refresh_save = build_refresh_save(saved_refresh, utc_now, signing_key)
-
-    # Deletes previous token, saves new one, only succeeds if all components of the transaction succeed
-    new_refresh_id = await data.refreshtoken.refresh_transaction(dsrc, saved_refresh.id, new_refresh_save)
-
-    refresh_token, access_token, id_token = finish_tokens(new_refresh_id, new_refresh_save, aesgcm, access_token_data,
-                                                          id_token_data, utc_now, signing_key, nonce=new_nonce)
-
-    return id_token, access_token, refresh_token, id_exp, access_scope, user_usph
-
-
 def create_tokens(user_usph: str, scope: str, auth_time: int, id_nonce: str, utc_now: int):
     # Build new tokens
     access_token_data, id_token_data = id_access_tokens(sub=user_usph,
@@ -196,21 +150,6 @@ def finish_tokens(refresh_id: int, refresh_save: SavedRefreshToken, aesgcm: AESG
     id_token = finish_encode_token(id_token_data.dict(), utc_now, id_exp, signing_key)
 
     return refresh_token, access_token, id_token
-
-
-async def new_token(dsrc: Source, user_usph: str, scope: str, auth_time: int, id_nonce: str):
-    aesgcm, signing_key = await get_keys(dsrc)
-    utc_now = utc_timestamp()
-
-    access_token_data, id_token_data, access_scope, refresh_save = create_tokens(user_usph, scope, auth_time, id_nonce,
-                                                                                 utc_now)
-
-    refresh_id = await data.refreshtoken.refresh_save(dsrc, refresh_save)
-
-    refresh_token, access_token, id_token = finish_tokens(refresh_id, refresh_save, aesgcm, access_token_data,
-                                                          id_token_data, utc_now, signing_key, nonce="")
-
-    return id_token, access_token, refresh_token, id_exp, access_scope
 
 
 def id_access_tokens(sub, iss, aud_access, aud_id, scope, auth_time, id_nonce):

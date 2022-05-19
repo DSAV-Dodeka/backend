@@ -15,7 +15,8 @@ import dodekaserver.data as data
 from dodekaserver.define.entities import SavedRefreshToken, RefreshToken, AccessToken, IdToken
 from dodekaserver.data import Source, DataError
 
-__all__ = ['do_refresh', 'new_token', 'verify_access_token', 'InvalidRefresh', 'BadVerification']
+__all__ = ['do_refresh', 'new_token', 'verify_access_token', 'InvalidRefresh', 'BadVerification', 'create_tokens',
+           'aes_from_symmetric', 'finish_tokens', 'encode_token_dict']
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -52,13 +53,17 @@ def decrypt_refresh(aesgcm: AESGCM, refresh_token) -> RefreshToken:
     return RefreshToken.parse_obj(refresh_dict)
 
 
-async def get_keys(dsrc: Source) -> tuple[AESGCM, str]:
-    # Symmetric key used to verify and encrypt/decrypt refresh tokens
-    symmetric_key = await data.key.get_refresh_symmetric(dsrc)
+def aes_from_symmetric(symmetric_key) -> AESGCM:
     # We store it unpadded (to match convention of not storing padding throughout the DB)
     symmetric_key_bytes = dec_b64url(symmetric_key)
     # We initialize an AES-GCM key class that will be used for encryption/decryption
-    aesgcm = AESGCM(symmetric_key_bytes)
+    return AESGCM(symmetric_key_bytes)
+
+
+async def get_keys(dsrc: Source) -> tuple[AESGCM, str]:
+    # Symmetric key used to verify and encrypt/decrypt refresh tokens
+    symmetric_key = await data.key.get_refresh_symmetric(dsrc)
+    aesgcm = aes_from_symmetric(symmetric_key)
     # Asymmetric private key used for signing access and ID tokens
     # A public key is then used to verify them
     signing_key = await data.key.get_token_private(dsrc)
@@ -96,15 +101,10 @@ def verify_refresh(saved_refresh: SavedRefreshToken, old_refresh: RefreshToken, 
 
 
 def build_refresh_save(saved_refresh: SavedRefreshToken, utc_now: int, signing_key: str):
-
     # Rebuild access and ID tokens from value in refresh token
     # We need the core static info to rebuild with new iat, etc.
     saved_access, saved_id_token = decode_refresh(saved_refresh)
     user_usph = saved_id_token.sub
-
-    # Add new expiry, iat and encode token
-    access_token = finish_encode_token(saved_access.dict(), utc_now, access_exp, signing_key)
-    id_token = finish_encode_token(saved_id_token.dict(), utc_now, id_exp, signing_key)
 
     # Scope to be returned in response
     access_scope = saved_access.scope
@@ -120,7 +120,7 @@ def build_refresh_save(saved_refresh: SavedRefreshToken, utc_now: int, signing_k
                                          id_token_value=saved_refresh.id_token_value, exp=saved_refresh.exp,
                                          iat=utc_now, nonce=new_nonce)
 
-    return user_usph, access_token, id_token, access_scope, new_refresh_save, new_nonce
+    return saved_access, saved_id_token, user_usph, access_scope, new_nonce, new_refresh_save
 
 
 def build_refresh_token(new_refresh_id: int, saved_refresh: SavedRefreshToken, new_nonce: str, aesgcm: AESGCM):
@@ -151,47 +151,64 @@ async def do_refresh(dsrc: Source, old_refresh_token: str):
 
     verify_refresh(saved_refresh, old_refresh, utc_now)
 
-    user_usph, access_token, id_token, access_scope, \
-        new_refresh_save, new_nonce = build_refresh_save(saved_refresh, utc_now, signing_key)
+    access_token_data, id_token_data, user_usph, access_scope, \
+        new_nonce, new_refresh_save = build_refresh_save(saved_refresh, utc_now, signing_key)
 
     # Deletes previous token, saves new one, only succeeds if all components of the transaction succeed
     new_refresh_id = await data.refreshtoken.refresh_transaction(dsrc, saved_refresh.id, new_refresh_save)
 
-    refresh_token = build_refresh_token(new_refresh_id, saved_refresh, new_nonce, aesgcm)
+    refresh_token, access_token, id_token = finish_tokens(new_refresh_id, new_refresh_save, aesgcm, access_token_data,
+                                                          id_token_data, utc_now, signing_key, nonce=new_nonce)
 
     return id_token, access_token, refresh_token, id_exp, access_scope, user_usph
+
+
+def create_tokens(user_usph: str, scope: str, auth_time: int, id_nonce: str, utc_now: int):
+    # Build new tokens
+    access_token_data, id_token_data = id_access_tokens(sub=user_usph,
+                                                        iss="https://dsavdodeka.nl/auth",
+                                                        aud_access=["dodekaweb_client", "dodekabackend_client"],
+                                                        aud_id=["dodekaweb_client"],
+                                                        scope=scope,
+                                                        auth_time=auth_time,
+                                                        id_nonce=id_nonce)
+
+    # Scope to be returned in response
+    access_scope = access_token_data.scope
+
+    # Encoded tokens to store for refresh token
+    access_val_encoded = encode_token_dict(access_token_data.dict())
+    id_token_val_encoded = encode_token_dict(id_token_data.dict())
+    # Each authentication creates a refresh token of a particular family, which has a static lifetime
+    family_id = secrets.token_urlsafe(16)
+    refresh_save = SavedRefreshToken(family_id=family_id, access_value=access_val_encoded,
+                                     id_token_value=id_token_val_encoded, exp=utc_now + refresh_exp, iat=utc_now,
+                                     nonce="")
+    return access_token_data, id_token_data, access_scope, refresh_save
+
+
+def finish_tokens(refresh_id: int, refresh_save: SavedRefreshToken, aesgcm: AESGCM, access_token_data: AccessToken,
+                  id_token_data: IdToken, utc_now: int, signing_key: str, *, nonce: str):
+    refresh = RefreshToken(id=refresh_id, family_id=refresh_save.family_id, nonce=nonce)
+    refresh_token = encrypt_refresh(aesgcm, refresh)
+
+    access_token = finish_encode_token(access_token_data.dict(), utc_now, access_exp, signing_key)
+    id_token = finish_encode_token(id_token_data.dict(), utc_now, id_exp, signing_key)
+
+    return refresh_token, access_token, id_token
 
 
 async def new_token(dsrc: Source, user_usph: str, scope: str, auth_time: int, id_nonce: str):
     aesgcm, signing_key = await get_keys(dsrc)
     utc_now = utc_timestamp()
 
-    # Build new tokens
-    access_val, id_token_val = id_access_tokens(sub=user_usph,
-                                                iss="https://dsavdodeka.nl/auth",
-                                                aud_access=["dodekaweb_client", "dodekabackend_client"],
-                                                aud_id=["dodekaweb_client"],
-                                                scope=scope,
-                                                auth_time=auth_time,
-                                                id_nonce=id_nonce)
+    access_token_data, id_token_data, access_scope, refresh_save = create_tokens(user_usph, scope, auth_time, id_nonce,
+                                                                                 utc_now)
 
-    # Scope to be returned in response
-    access_scope = access_val.scope
-
-    # Encoded tokens to store for refresh token
-    access_val_encoded = enc_b64url(enc_dict(access_val.dict()))
-    id_token_val_encoded = enc_b64url(enc_dict(id_token_val.dict()))
-    # Each authentication creates a refresh token of a particular family, which has a static lifetime
-    family_id = secrets.token_urlsafe(16)
-    refresh_save = SavedRefreshToken(family_id=family_id, access_value=access_val_encoded,
-                                     id_token_value=id_token_val_encoded, exp=utc_now + refresh_exp, iat=utc_now,
-                                     nonce="")
     refresh_id = await data.refreshtoken.refresh_save(dsrc, refresh_save)
-    refresh = RefreshToken(id=refresh_id, family_id=refresh_save.family_id, nonce="")
-    refresh_token = encrypt_refresh(aesgcm, refresh)
 
-    access_token = finish_encode_token(access_val.dict(), utc_now, access_exp, signing_key)
-    id_token = finish_encode_token(id_token_val.dict(), utc_now, id_exp, signing_key)
+    refresh_token, access_token, id_token = finish_tokens(refresh_id, refresh_save, aesgcm, access_token_data,
+                                                          id_token_data, utc_now, signing_key, nonce="")
 
     return id_token, access_token, refresh_token, id_exp, access_scope
 
@@ -209,6 +226,10 @@ def id_access_tokens(sub, iss, aud_access, aud_id, scope, auth_time, id_nonce):
                       nonce=id_nonce)
 
     return access_core, id_core
+
+
+def encode_token_dict(token: dict):
+    return enc_b64url(enc_dict(token))
 
 
 def finish_payload(token_val: dict, utc_now: int, exp: int):

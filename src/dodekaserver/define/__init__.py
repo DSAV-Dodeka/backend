@@ -1,1 +1,1 @@
-from dodekaserver.define.response import *
+from dodekaserver.define.request import *

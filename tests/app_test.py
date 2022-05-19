@@ -1,5 +1,4 @@
 import asyncio
-import random
 
 import pytest
 import pytest_asyncio
@@ -7,12 +6,11 @@ from pytest_mock import MockerFixture
 
 from httpx import AsyncClient
 
-from dodekaserver.auth.models import FlowUser, AuthRequest
-from dodekaserver.data import Source
+from dodekaserver.define import FlowUser, AuthRequest
 from dodekaserver.env import frontend_client_id
-import dodekaserver.data.key
 from dodekaserver.utilities import utc_timestamp
-from dodekaserver.db.model import KEY_TABLE, REFRESH_TOKEN_TABLE
+from dodekaserver.define.entities import SavedRefreshToken
+from dodekaserver.db.ops import DbOperations
 
 
 @pytest.fixture(scope="module")
@@ -24,24 +22,24 @@ def event_loop():
 
 
 @pytest_asyncio.fixture(scope="module")
-async def app():
+async def app_mod():
     import dodekaserver.app as app_mod
+
+    yield app_mod
+
+
+@pytest_asyncio.fixture(scope="module")
+async def app(app_mod):
     # startup, shutdown is not run
-    app = app_mod.create_app()
+    app = app_mod.app
     yield app
 
 
 @pytest_asyncio.fixture(scope="module", autouse=True)
-async def mock_dsrc(module_mocker: MockerFixture):
-    dsrc_mock = module_mocker.patch('dodekaserver.data.dsrc', spec=Source)
-    yield dsrc_mock
-
-
-@pytest_asyncio.fixture(scope="module")
-async def mock_dbop(module_mocker: MockerFixture, mock_dsrc):
-    dbop_mock = module_mocker.patch('dodekaserver.db.use.DatabaseOperations', spec=DatabaseOperations)
-    mock_dsrc.ops = dbop_mock
-    yield dbop_mock
+async def mock_dsrc(app_mod, module_mocker: MockerFixture):
+    app_mod.dsrc.gateway = module_mocker.MagicMock(spec=app_mod.dsrc.gateway)
+    app_mod.dsrc.gateway.ops = module_mocker.MagicMock(spec=DbOperations)
+    yield app_mod.dsrc
 
 
 @pytest_asyncio.fixture(scope="module")
@@ -58,21 +56,8 @@ async def test_root(test_client):
     assert response.json() == {"Hallo": "Atleten"}
 
 
-# @pytest.mark.asyncio
-# async def test_start_login(module_mocker: MockerFixture, test_client):
-#     # ('4shu3p963tb5GATtor7QE-5txnuKB2sr9ypVASvFGAc', 'anBhXnlJ3r212O-6vfeEm8hQQlmr_RXlb9fD0I_3xX8')
-#     # password file abcde:abcde
-#     # HzNNbWK5Ms5cEsYZ0BERY6oiDaMVfpuYs844SH3o4QH4-4GCqCmoVRomoIGjNwHW_o6eDkx6c91cUtljoB9JZAFLTkJXK8YQqjUAyxyk8eyJhLLsiJCH2JvkPDPY1VcOzMqBBzgZOyndW7tomyUIHaVUqV9PY-Lnv8KEl6Q7_eHYeSzKK6cy1nDBjeWZ0IyullsqxNzUwDZMNcW9oRU8dXBOnN7EbzPaHqyLTNU4u8GfU2heKf5L35C9uKtCWPsItg
-#     gt_key = module_mocker.patch('dodekaserver.data.key.get_opaque_private')
-#     gt_key.return_value = "4shu3p963tb5GATtor7QE-5txnuKB2sr9ypVASvFGAc"
-#     get_pass = module_mocker.patch('dodekaserver.data.user.get_user_by_usph')
-#     get_pass.password_file = "HzNNbWK5Ms5cEsYZ0BERY6oiDaMVfpuYs844SH3o4QH4-4GCqCmoVRomoIGjNwHW_o6eDkx6c91cUtljoB9JZA" \
-#                              "FLTkJXK8YQqjUAyxyk8eyJhLLsiJCH2JvkPDPY1VcOzMqBBzgZOyndW7tomyUIHaVUqV9PY-Lnv8KEl6Q7_eHY" \
-#                              "eSzKK6cy1nDBjeWZ0IyullsqxNzUwDZMNcW9oRU8dXBOnN7EbzPaHqyLTNU4u8GfU2heKf5L35C9uKtCWPsItg"
-
-
 @pytest.mark.asyncio
-async def test_incorrect_client_id(module_mocker: MockerFixture, test_client: AsyncClient):
+async def test_incorrect_client_id(test_client: AsyncClient):
     req = {
       "client_id": "incorrect",
       "grant_type": "",
@@ -84,14 +69,10 @@ async def test_incorrect_client_id(module_mocker: MockerFixture, test_client: As
     response = await test_client.post("/oauth/token/", json=req)
     assert response.status_code == 400
     assert response.json()["error"] == "invalid_client"
-    # print(response.request.content)
-    # print(response.text)
-    # print(response.json())
-    # print(response)
 
 
 @pytest.mark.asyncio
-async def test_incorrect_grant_type(module_mocker: MockerFixture, test_client: AsyncClient):
+async def test_incorrect_grant_type(test_client: AsyncClient):
     req = {
       "client_id": frontend_client_id,
       "grant_type": "wrong",
@@ -108,7 +89,7 @@ async def test_incorrect_grant_type(module_mocker: MockerFixture, test_client: A
 
 
 @pytest.mark.asyncio
-async def test_empty_verifier(module_mocker: MockerFixture, test_client: AsyncClient):
+async def test_empty_verifier(test_client: AsyncClient):
     req = {
         "client_id": frontend_client_id,
         "grant_type": "authorization_code",
@@ -126,7 +107,7 @@ async def test_empty_verifier(module_mocker: MockerFixture, test_client: AsyncCl
 
 
 @pytest.mark.asyncio
-async def test_missing_redirect(module_mocker: MockerFixture, test_client: AsyncClient):
+async def test_missing_redirect(test_client: AsyncClient):
     req = {
         "client_id": frontend_client_id,
         "grant_type": "authorization_code",
@@ -143,7 +124,7 @@ async def test_missing_redirect(module_mocker: MockerFixture, test_client: Async
 
 
 @pytest.mark.asyncio
-async def test_empty_code(module_mocker: MockerFixture, test_client: AsyncClient):
+async def test_empty_code(test_client: AsyncClient):
     req = {
         "client_id": frontend_client_id,
         "grant_type": "authorization_code",
@@ -160,103 +141,109 @@ async def test_empty_code(module_mocker: MockerFixture, test_client: AsyncClient
     assert res_j["debug_key"] == "incomplete_code"
 
 
-session_key = "somecomplexsessionkey"
-mock_redirect = "http://localhost:3000/auth/callback"
-
-
-@pytest_asyncio.fixture
-async def mock_kv(module_mocker: MockerFixture, mock_dsrc):
-    get_json = module_mocker.patch('dodekaserver.data.get_json')
-    mock_flow_id = "1d5c621ea3a2da319fe0d0a680046fd6369a60e450ff04f59c51b0bfb3d96eef"
-    mock_flow_user = FlowUser(user_usph="mrmock", auth_time=utc_timestamp()-20, flow_id=mock_flow_id).dict()
-    mock_auth_request = AuthRequest(response_type="code", client_id="dodekaweb_client",
-                                    redirect_uri=mock_redirect,
-                                    state="KV6A2hTOv6mOFYVpTAOmWw",
-                                    code_challenge="OFohb0gwrsAV6Zsvlvr3upWjO1JAiUa9bxtrOrVYELg",
-                                    code_challenge_method="S256",
-                                    nonce="-eB2lpr1IqZdJzt9CfDZ5jrHGa6yE87UUTFd4CWweOI").dict()
-    nonce_original = "6SWk9T1sUfqgSYeq2XlawA"
-
-    def side_effect(kv, key):
-        if kv == mock_dsrc.kv:
-            if key == session_key:
-                return mock_flow_user
-            elif key == mock_flow_id:
-                return mock_auth_request
-            else:
-                return None
-        else:
-            raise ValueError
-
-    get_json.side_effect = side_effect
-
-
-@pytest_asyncio.fixture
-async def mock_retrieve_id_key(mock_dbop, mock_dsrc):
-    mock_opq_key = {
-        'id': 0, 'algorithm': 'curve25519ristretto', 'public': 'lB8G80Go8xwpSGEWuayAfAGirKr70DSUfFCpX20aWx4',
-        'private': 'WCvFeJjVeYhXWrg1YKflgqsgzB_fmhXcL0BFcCtTVQY', 'public_format': 'none',
-        'public_encoding': 'base64url', 'private_format': 'none', 'private_encoding': 'base64url'
-    }
-    mock_symm_key = {
+mock_symm_key = {
         'id': 2, 'algorithm': 'symmetric', 'public': None, 'private': '8T3oEm_haJZbn6xu-klttJXk5QBPYlurQrqA5SDx-Ck',
         'public_format': None, 'public_encoding': None, 'private_format': 'none', 'private_encoding': 'base64url'
     }
-    mock_token_key = {
-        'id': 1, 'algorithm': 'ed448',
-        'public': '-----BEGIN PUBLIC KEY-----\nMEMwBQYDK2VxAzoAtPGddEupA3b5P5yr9gT3rvjzWeQH5cedY6RcwN3A5zTS9n8C\nc6dOR+'
-                  'XUPVLVu0o0i/t46fW1HMQA\n-----END PUBLIC KEY-----\n',
-        'private': '-----BEGIN PRIVATE KEY-----\nMEcCAQAwBQYDK2VxBDsEOY1wa98ZvsK8pYML+ICD9Mbtavr+QC5PC301oVn5jPM6\nT8tE'
-                   'CKaZvu5mxG/OfxlEKxl/XIKuClP1mw==\n-----END PRIVATE KEY-----\n',
-        'public_format': 'X509PKCS#1', 'public_encoding': 'PEM', 'private_format': 'PKCS#8', 'private_encoding': 'PEM'
-    }
-
-    mock_keys = {
-        0: mock_opq_key,
-        1: mock_token_key,
-        2: mock_symm_key
-    }
-
-    async def retrieve_by_id_mock(db, table, id_int):
-        if db == mock_dsrc.db:
-            if table == KEY_TABLE:
-                return mock_keys.get(id_int)
-
-    mock_dbop.retrieve_by_id.side_effect = retrieve_by_id_mock
-    yield mock_dbop
+mock_token_key = {
+    'id': 1, 'algorithm': 'ed448',
+    'public': '-----BEGIN PUBLIC KEY-----\nMEMwBQYDK2VxAzoAtPGddEupA3b5P5yr9gT3rvjzWeQH5cedY6RcwN3A5zTS9n8C\nc6dOR+'
+              'XUPVLVu0o0i/t46fW1HMQA\n-----END PUBLIC KEY-----\n',
+    'private': '-----BEGIN PRIVATE KEY-----\nMEcCAQAwBQYDK2VxBDsEOY1wa98ZvsK8pYML+ICD9Mbtavr+QC5PC301oVn5jPM6\nT8tE'
+               'CKaZvu5mxG/OfxlEKxl/XIKuClP1mw==\n-----END PRIVATE KEY-----\n',
+    'public_format': 'X509PKCS#1', 'public_encoding': 'PEM', 'private_format': 'PKCS#8', 'private_encoding': 'PEM'
+}
 
 
 @pytest_asyncio.fixture
-async def mock_insert_return_id_refresh(mock_dbop, mock_dsrc):
-    async def insert_return_id_mock(db, table, row):
-        if db == mock_dsrc.db:
-            if table == REFRESH_TOKEN_TABLE:
-                return 74
+async def mock_get_keys(module_mocker: MockerFixture):
+    get_k_s = module_mocker.patch('dodekaserver.data.key.get_refresh_symmetric')
+    get_k_s.return_value = mock_symm_key['private']
+    get_k_p = module_mocker.patch('dodekaserver.data.key.get_token_private')
+    get_k_p.return_value = mock_token_key['private']
 
-    mock_dbop.insert_return_id.side_effect = insert_return_id_mock
-    yield mock_dbop
+
+session_key = "somecomplexsessionkey"
+mock_redirect = "http://localhost:3000/auth/callback"
+mock_flow_id = "1d5c621ea3a2da319fe0d0a680046fd6369a60e450ff04f59c51b0bfb3d96eef"
+mock_flow_user = FlowUser(user_usph="mrmock", auth_time=utc_timestamp()-20, flow_id=mock_flow_id)
+mock_auth_request = AuthRequest(response_type="code", client_id="dodekaweb_client",
+                                redirect_uri=mock_redirect,
+                                state="KV6A2hTOv6mOFYVpTAOmWw",
+                                code_challenge="OFohb0gwrsAV6Zsvlvr3upWjO1JAiUa9bxtrOrVYELg",
+                                code_challenge_method="S256",
+                                nonce="-eB2lpr1IqZdJzt9CfDZ5jrHGa6yE87UUTFd4CWweOI")
+nonce_original = "6SWk9T1sUfqgSYeq2XlawA"
+fake_token_scope = "test"
+fake_token_id = 44
+
+
+@pytest_asyncio.fixture
+async def fake_tokens():
+    from dodekaserver.auth.tokens import create_tokens, aes_from_symmetric, finish_tokens, encode_token_dict
+    utc_now = utc_timestamp()
+    access_token_data, id_token_data, access_scope, refresh_save = \
+        create_tokens(mock_flow_user.user_usph, fake_token_scope, mock_flow_user.auth_time, mock_auth_request.nonce, utc_now)
+
+    acc_val = encode_token_dict(access_token_data.dict())
+    id_val = encode_token_dict(id_token_data.dict())
+
+    aesgcm = aes_from_symmetric(mock_symm_key['private'])
+    signing_key = mock_token_key['private']
+
+    refresh_token, access_token, id_token = finish_tokens(fake_token_id, refresh_save, aesgcm, access_token_data,
+                                                          id_token_data, utc_now, signing_key, nonce="")
+    yield {'refresh': refresh_token, 'access': access_token, 'id': id_token, 'family_id': refresh_save.family_id,
+           'iat': refresh_save.iat, 'exp': refresh_save.exp, 'nonce': refresh_save.nonce, 'acc_val': acc_val,
+           'id_val': id_val}
 
 
 @pytest.mark.asyncio
-async def test_wrong_code(mock_kv, test_client: AsyncClient):
+async def test_refresh(test_client, module_mocker: MockerFixture, mock_get_keys, fake_tokens):
+
+    get_r = module_mocker.patch('dodekaserver.data.refreshtoken.get_refresh_by_id')
+    get_refr = module_mocker.patch('dodekaserver.data.refreshtoken.refresh_transaction')
+
+    def side_effect(dsrc, id_int):
+        if id_int == fake_token_id:
+            return SavedRefreshToken(family_id=fake_tokens['family_id'], access_value=fake_tokens['acc_val'],
+                                     id_token_value=fake_tokens['id_val'], iat=fake_tokens['iat'], exp=fake_tokens['exp'],
+                                     nonce=fake_tokens['nonce'])
+    get_r.side_effect = side_effect
+    get_refr.return_value = 45
+
     req = {
         "client_id": frontend_client_id,
-        "grant_type": "authorization_code",
-        "code": "wrong",
-        "redirect_uri": "some",
-        "code_verifier": "some",
-        "refresh_token": ""
+        "grant_type": "refresh_token",
+        "refresh_token": fake_tokens['refresh'],
     }
 
     response = await test_client.post("/oauth/token/", json=req)
-    assert response.status_code == 400
-    res_j = response.json()
-    assert res_j["error"] == "invalid_grant"
-    assert res_j["debug_key"] == "empty_flow"
+    # res_j = response.json()
+    # print(res_j)
+    assert response.status_code == 200
 
 
 @pytest.mark.asyncio
-async def test_code(test_client: AsyncClient):
+async def test_auth_code(test_client, module_mocker: MockerFixture, mock_get_keys):
+    get_flow = module_mocker.patch('dodekaserver.data.kv.get_flow_user')
+    get_auth = module_mocker.patch('dodekaserver.data.kv.get_auth_request')
+    r_save = module_mocker.patch('dodekaserver.data.refreshtoken.refresh_save')
+
+    def flow_side_effect(kv, code):
+        if code == session_key:
+            return mock_flow_user
+
+    get_flow.side_effect = flow_side_effect
+
+    def auth_side_effect(kv, flow_id):
+        if flow_id == mock_flow_user.flow_id:
+            return mock_auth_request
+
+    get_auth.side_effect = auth_side_effect
+
+    r_save.return_value = 44
+
     verifier = "aIhn-rcznAqlfjvmaX7aS3ZLcmycIGWWnnAFDEn-VLI"
     req = {
         "client_id": frontend_client_id,
@@ -267,30 +254,6 @@ async def test_code(test_client: AsyncClient):
     }
 
     response = await test_client.post("/oauth/token/", json=req)
+    # res_j = response.json()
+    # print(res_j)
     assert response.status_code == 200
-    res_j = response.json()
-    print(res_j)
-    # {'id_token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJFZERTQSJ9.eyJzdWIiOiJtcm1vY2siLCJpc3MiOiJodHRwczovL2RzYXZkb2Rla2EubmwvYXV0aCIsImF1ZCI6WyJkb2Rla2F3ZWJfY2xpZW50Il0sImF1dGhfdGltZSI6MTY0ODM4MjI5Miwibm9uY2UiOiItZUIybHByMUlxWmRKenQ5Q2ZEWjVqckhHYTZ5RTg3VVVURmQ0Q1d3ZU9JIiwiaWF0IjoxNjQ4MzgyMzEyLCJleHAiOjE2NDg0MTgzMTJ9.yI1SySLtDPgcbGktsJhh5kW2dt97Z2o__DBXrhYfFb68MlMFXa38BnTBTE8Kqe7nnXVF1SkzTacA3MfgFufND4HT0S56R-hI9Tq091tevazxPYfYGF-Se5IzqOer66TTnjpTl5bUFGqYQP0OaS6WaTIA', 'access_token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJFZERTQSJ9.eyJzdWIiOiJtcm1vY2siLCJpc3MiOiJodHRwczovL2RzYXZkb2Rla2EubmwvYXV0aCIsImF1ZCI6WyJkb2Rla2F3ZWJfY2xpZW50IiwiZG9kZWthYmFja2VuZF9jbGllbnQiXSwic2NvcGUiOiJ0ZXN0IiwiaWF0IjoxNjQ4MzgyMzEyLCJleHAiOjE2NDgzODU5MTJ9.h6WOdEv5XmDKlloC-e_Mdd4P9MxTnaL16UeiL4lpARQsUyR6VRuapljFvjNaPH2BKxsqlAuLJVwAVCY03XQllz0l555pRPs01AsjBFJlGhBBwqAfuF9ionUPMbxbwsgh-W30t5QJk76tgfzGLF4TETcA', 'refresh_token': 'Pne6w5l14knJ12cP_djtxXi9zHrEXxaWYIoJqwcX6I2Vz7UdiieWIyAqcE-7LYSshU9YKKCGqJFBFTr3hAykrvT1c_1p4teQV9qibPwe5XY36H369tG2uXo', 'token_type': 'Bearer', 'expires_in': 3600, 'scope': 'test'}
-
-
-# @pytest.fixture
-# async def mock_user_retrieve(mock_dbop):
-#     user_row = {'id': 0, 'name': 'TEST', 'last_name': 'TEST_LAST'}
-#
-#     async def mock_retrieve(a, b, row_id):
-#         user_row['id'] = row_id
-#         return user_row
-#
-#     mock_dbop.retrieve_by_id = mock_retrieve
-#
-#     yield user_row
-#
-#
-# @pytest.mark.asyncio
-# async def test_get_user(mock_user_retrieve, test_client):
-#
-#     response = await test_client.get("/users/126")
-#
-#     assert response.status_code == 200
-#
-#     assert response.json() == {"user": mock_user_retrieve}

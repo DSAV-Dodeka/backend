@@ -25,3 +25,7 @@ grace_period = 3 * 60   # 3 minutes in which it is still accepted
 issuer = "https://dsavdodeka.nl/auth"
 frontend_client_id = "dodekaweb_client"
 backend_client_id = "dodekabackend_client"
+
+valid_redirects = {"http://localhost:3000/auth/callback", "https://dsavdodeka.nl/auth/callback"}
+
+credentials_url = "http://localhost:4243/credentials/index.html"

@@ -8,6 +8,8 @@ from pydantic import BaseModel, validator
 __all__ = ['AuthRequest', 'PasswordRequest', 'PasswordResponse', 'SavedState', 'FinishRequest', 'FinishLogin',
            'FlowUser', 'TokenRequest', 'TokenResponse', 'ErrorResponse', 'error_response_handler']
 
+from dodekaserver.env import frontend_client_id, valid_redirects
+
 
 class ErrorResponse(Exception):
     """ Exception response type that conforms to standard OAuth 2.0 error response in JSON form. """
@@ -48,12 +50,12 @@ class AuthRequest(BaseModel):
 
     @validator('client_id')
     def check_client(cls, v):
-        assert v == "dodekaweb_client", "Unrecognized client ID!"
+        assert v == frontend_client_id, "Unrecognized client ID!"
         return v
 
     @validator('redirect_uri')
     def check_redirect(cls, v):
-        assert v == "http://localhost:3000/auth/callback", "Unrecognized redirect!"
+        assert v in valid_redirects, "Unrecognized redirect!"
         return v
 
     @validator('state')

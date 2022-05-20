@@ -25,6 +25,10 @@ class DataError(ValueError):
         self.key = key
 
 
+class NoDataError(DataError):
+    pass
+
+
 class Gateway:
     db: Database = None
     db_url: str

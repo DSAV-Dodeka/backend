@@ -1,9 +1,13 @@
 import logging
+from logging import Logger
+from typing import Tuple
+
 import uvicorn
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.exceptions import RequestValidationError
 
 # We rely upon database parameters being set at import time, which is fragile, but the only way to easily re-use it
 # across modules
@@ -32,7 +36,7 @@ def init_logging(logger_name: str, log_level: int):
     return logger
 
 
-def create_app() -> FastAPI:
+def create_app() -> tuple[FastAPI, Logger]:
     # TODO change all origins
     origins = [
         "*",
@@ -47,14 +51,14 @@ def create_app() -> FastAPI:
                            allow_headers=['Authorization'])
     new_app.add_exception_handler(ErrorResponse, handler=error_response_handler)
     # TODO change logger behavior in tests
-    logger = init_logging(LOGGER_NAME, logging.DEBUG)
-    logger.info("Starting...")
-    return new_app
+    new_logger = init_logging(LOGGER_NAME, logging.DEBUG)
+    new_logger.info("Starting...")
+    return new_app, new_logger
 
 
 # Running FastAPI relies on the fact the app is created at module top-level
 # Seperating the logic in a function also allows it to be called elsewhere, like tests
-app = create_app()
+app, logger = create_app()
 
 
 # We use the functions below, so we can also manually call them in tests
@@ -83,3 +87,10 @@ async def startup():
 async def shutdown():
     # It relies on dsrc from the module's top-level imports
     await app_shutdown(dsrc)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    # Also show debug if there is an error in the request
+    logger.debug(str(exc))
+    raise exc

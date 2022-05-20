@@ -8,13 +8,13 @@ from fastapi.responses import RedirectResponse
 
 import opaquepy.lib as opq
 
-from dodekaserver.env import LOGGER_NAME, frontend_client_id
+from dodekaserver.env import LOGGER_NAME, frontend_client_id, credentials_url
 from dodekaserver.define import ErrorResponse, PasswordResponse, PasswordRequest, SavedState, FinishRequest, \
     FinishLogin, AuthRequest, TokenResponse, TokenRequest, FlowUser
 import dodekaserver.utilities as util
 from dodekaserver.utilities import enc_b64url
 import dodekaserver.data as data
-from dodekaserver.data import DataError
+from dodekaserver.data import DataError, NoDataError
 from dodekaserver.auth.tokens import InvalidRefresh
 from dodekaserver.auth.tokens_data import do_refresh, new_token
 
@@ -47,7 +47,12 @@ async def start_register(register_start: PasswordRequest):
 
 @router.post("/register/finish/")
 async def finish_register(register_finish: FinishRequest):
-    saved_state = await data.kv.get_state(dsrc, register_finish.auth_id)
+    try:
+        saved_state = await data.kv.get_state(dsrc, register_finish.auth_id)
+    except NoDataError as e:
+        logger.debug(e.message)
+        reason = "Registration not initialized or expired"
+        raise ErrorResponse(400, err_type="invalid_registration", err_desc=reason, debug_key="no_register_start")
 
     user_usph = util.usp_hex(register_finish.username)
     if saved_state.user_usph != user_usph:
@@ -56,7 +61,6 @@ async def finish_register(register_finish: FinishRequest):
         raise ErrorResponse(400, err_type="invalid_registration", err_desc=reason, debug_key="unequal_user")
 
     password_file = opq.register_finish(register_finish.client_request, saved_state.state)
-    print(password_file)
 
     new_user = data.user.create_user(user_usph, password_file)
 
@@ -76,10 +80,10 @@ async def start_login(login_start: PasswordRequest):
     user_usph = util.usp_hex(login_start.username)
     private_key = await data.key.get_opaque_private(dsrc)
 
-    fake_password = (await data.user.get_user_by_id(dsrc, 0)).password_file
+    fake_password = await data.user.get_user_password_file(dsrc, "fakerecord")
     try:
-        password_file = (await data.user.get_user_by_usph(dsrc, user_usph)).password_file
-    except DataError:
+        password_file = await data.user.get_user_password_file(dsrc, user_usph)
+    except NoDataError:
         # If user does not exist, pass fake user record to prevent client enumeration
         # TODO ensure this fake record exists
         password_file = fake_password
@@ -87,6 +91,7 @@ async def start_login(login_start: PasswordRequest):
     auth_id = util.random_time_hash_hex(user_usph)
 
     response, state = opq.login(password_file, login_start.client_request, private_key)
+
     saved_state = SavedState(user_usph=user_usph, state=state)
 
     await data.kv.store_auth_state(dsrc, auth_id, saved_state)
@@ -96,11 +101,16 @@ async def start_login(login_start: PasswordRequest):
 
 @router.post("/login/finish/")
 async def finish_login(login_finish: FinishLogin):
-    saved_state = await data.kv.get_state(dsrc, login_finish.auth_id)
+    try:
+        saved_state = await data.kv.get_state(dsrc, login_finish.auth_id)
+    except NoDataError as e:
+        logger.debug(e.message)
+        reason = "Login not initialized or expired"
+        raise ErrorResponse(400, err_type="invalid_login", err_desc=reason, debug_key="no_login_start")
 
     user_usph = util.usp_hex(login_finish.username)
     if saved_state.user_usph != user_usph:
-        raise HTTPException(status_code=400, detail="Incorrect username for this login!")
+        raise ErrorResponse(status_code=400, err_type="invalid_login", err_desc="Incorrect username for this login!")
 
     session_key = opq.login_finish(login_finish.client_request, saved_state.state)
     utc_now = util.utc_timestamp()
@@ -119,7 +129,9 @@ async def oauth_endpoint(response_type: str, client_id: str, redirect_uri: str, 
                                    state=state, code_challenge=code_challenge,
                                    code_challenge_method=code_challenge_method, nonce=nonce)
     except ValidationError as e:
-        raise HTTPException(400, detail=e.errors())
+        logger.debug(str(e.errors()))
+        raise ErrorResponse(status_code=400, err_type="invalid_authorize", err_desc=str(e.errors()))
+
     flow_id = util.random_time_hash_hex()
 
     await data.kv.store_auth_request(dsrc, flow_id, auth_request)
@@ -129,7 +141,7 @@ async def oauth_endpoint(response_type: str, client_id: str, redirect_uri: str, 
         "flow_id": flow_id
     }
 
-    redirect = f"http://localhost:4243/credentials/index.html?{urlencode(params)}"
+    redirect = f"{credentials_url}?{urlencode(params)}"
 
     return RedirectResponse(redirect, status_code=status.HTTP_303_SEE_OTHER)
 
@@ -140,7 +152,12 @@ async def oauth_finish(flow_id: str, code: str, response: Response):
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
 
-    auth_request = await data.kv.get_auth_request(dsrc, flow_id)
+    try:
+        auth_request = await data.kv.get_auth_request(dsrc, flow_id)
+    except NoDataError as e:
+        logger.debug(e.message)
+        reason = "Expired or missing auth request"
+        raise ErrorResponse(400, err_type=f"invalid_oauth_callback", err_desc=reason)
 
     params = {
         "code": code,
@@ -182,24 +199,18 @@ async def token(token_request: TokenRequest, response: Response):
             raise ErrorResponse(400, err_type="invalid_request", err_desc=reason, debug_key="incomplete_code")
         try:
             flow_user = await data.kv.get_flow_user(dsrc, token_request.code)
-        except DataError as e:
-            if e.key == "flow_user_empty":
-                reason = "Expired or missing auth code"
-                logger.debug(reason)
-                raise ErrorResponse(400, err_type="invalid_grant", err_desc=reason, debug_key="empty_flow")
-            else:
-                raise e
+        except NoDataError as e:
+            logger.debug(e.message)
+            reason = "Expired or missing auth code"
+            raise ErrorResponse(400, err_type="invalid_grant", err_desc=reason, debug_key="empty_flow")
 
         try:
             auth_request = await data.kv.get_auth_request(dsrc, flow_user.flow_id)
-        except DataError as e:
+        except NoDataError as e:
             # TODO maybe check auth time just in case
-            if e.key == "auth_request_empty":
-                reason = "Expired or missing auth request"
-                logger.debug(reason)
-                raise ErrorResponse(400, err_type=f"invalid_grant", err_desc=reason)
-            else:
-                raise e
+            logger.debug(e.message)
+            reason = "Expired or missing auth request"
+            raise ErrorResponse(400, err_type=f"invalid_grant", err_desc=reason)
         # TODO get scope from request
 
         if token_request.client_id != auth_request.client_id:

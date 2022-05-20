@@ -22,8 +22,8 @@ async def get_user_by_id(dsrc: Source, id_int: int) -> User:
     return parse_user(user_row)
 
 
-async def get_user_by_usph(dsrc: Source, usp_hex: str) -> User:
-    user_row = await retrieve_by_unique(dsrc, USER_TABLE, USERNAME, usp_hex)
+async def get_user_by_usph(dsrc: Source, user_usph: str) -> User:
+    user_row = await retrieve_by_unique(dsrc, USER_TABLE, USERNAME, user_usph)
     return parse_user(user_row)
 
 
@@ -33,6 +33,10 @@ async def upsert_user_row(dsrc: Source, user_row: dict):
     except DbError as e:
         raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
     return result
+
+
+async def get_user_password_file(dsrc: Source, user_usph):
+    return (await get_user_by_usph(dsrc, user_usph)).password_file
 
 
 def create_user(ups_hex, password_file) -> dict:

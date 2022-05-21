@@ -9,7 +9,7 @@ import dodekaserver.utilities as util
 @pytest_asyncio.fixture
 async def mock_random(mocker: MockerFixture):
     time_patch = mocker.patch('time.time_ns')
-    time_patch.side_effect = lambda: 1642276599151222841
+    time_patch.return_value = 1642276599151222841
     secrets_patch = mocker.patch('secrets.token_bytes')
     secrets_patch.side_effect = lambda b: bytes.fromhex("8ca96077b3191e3c")
 

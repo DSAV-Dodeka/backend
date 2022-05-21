@@ -87,7 +87,7 @@ def verify_refresh(saved_refresh: SavedRefreshToken, old_refresh: RefreshToken, 
         raise InvalidRefresh
 
 
-def build_refresh_save(saved_refresh: SavedRefreshToken, utc_now: int, signing_key: str):
+def build_refresh_save(saved_refresh: SavedRefreshToken, utc_now: int):
     # Rebuild access and ID tokens from value in refresh token
     # We need the core static info to rebuild with new iat, etc.
     saved_access, saved_id_token = decode_refresh(saved_refresh)

@@ -6,15 +6,15 @@ from pydantic import ValidationError
 from fastapi import APIRouter, HTTPException, status, Response, BackgroundTasks
 from fastapi.responses import RedirectResponse
 
-import opaquepy.lib as opq
+import opaquepy as opq
 
 from dodekaserver.env import LOGGER_NAME, frontend_client_id, credentials_url
 from dodekaserver.define import ErrorResponse, PasswordResponse, PasswordRequest, SavedState, FinishRequest, \
     FinishLogin, AuthRequest, TokenResponse, TokenRequest, FlowUser
 import dodekaserver.utilities as util
-from dodekaserver.utilities import enc_b64url
 import dodekaserver.data as data
 from dodekaserver.data import DataError, NoDataError
+import dodekaserver.auth.authentication as authentication
 from dodekaserver.auth.tokens import InvalidRefresh
 from dodekaserver.auth.tokens_data import do_refresh, new_token
 
@@ -37,8 +37,7 @@ async def start_register(register_start: PasswordRequest):
     user_usph = util.usp_hex(username)
     auth_id = util.random_time_hash_hex(user_usph)
 
-    response, state = opq.register(register_start.client_request, public_key)
-    saved_state = SavedState(user_usph=user_usph, state=state)
+    response, saved_state = authentication.opaque_register(register_start.client_request, user_usph, public_key)
 
     await data.kv.store_auth_state(dsrc, auth_id, saved_state)
 
@@ -224,7 +223,7 @@ async def token(token_request: TokenRequest, response: Response):
             # We only support S256, so don't have to check the code_challenge_method
             computed_challenge_hash = hashlib.sha256(token_request.code_verifier.encode('ascii')).digest()
             # Remove "=" as we do not store those
-            challenge = enc_b64url(computed_challenge_hash)
+            challenge = util.enc_b64url(computed_challenge_hash)
         except UnicodeError:
             reason = "Incorrect code_verifier format"
             logger.debug(f'{reason}: {token_request.code_verifier}')

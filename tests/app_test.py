@@ -9,6 +9,8 @@ from pytest_mock import MockerFixture
 from httpx import AsyncClient
 from fastapi import status
 
+import opaquepy as opq
+
 from dodekaserver.define import FlowUser, AuthRequest, SavedState
 from dodekaserver.env import frontend_client_id
 from dodekaserver.utilities import utc_timestamp, usp_hex
@@ -159,10 +161,10 @@ mock_token_key = {
 
 
 @pytest_asyncio.fixture
-async def mock_get_keys(module_mocker: MockerFixture):
-    get_k_s = module_mocker.patch('dodekaserver.data.key.get_refresh_symmetric')
+async def mock_get_keys(mocker: MockerFixture):
+    get_k_s = mocker.patch('dodekaserver.data.key.get_refresh_symmetric')
     get_k_s.return_value = mock_symm_key['private']
-    get_k_p = module_mocker.patch('dodekaserver.data.key.get_token_private')
+    get_k_p = mocker.patch('dodekaserver.data.key.get_token_private')
     get_k_p.return_value = mock_token_key['private']
 
 
@@ -203,10 +205,10 @@ async def fake_tokens():
 
 
 @pytest.mark.asyncio
-async def test_refresh(test_client, module_mocker: MockerFixture, mock_get_keys, fake_tokens):
+async def test_refresh(test_client, mocker: MockerFixture, mock_get_keys, fake_tokens):
 
-    get_r = module_mocker.patch('dodekaserver.data.refreshtoken.get_refresh_by_id')
-    get_refr = module_mocker.patch('dodekaserver.data.refreshtoken.refresh_transaction')
+    get_r = mocker.patch('dodekaserver.data.refreshtoken.get_refresh_by_id')
+    get_refr = mocker.patch('dodekaserver.data.refreshtoken.refresh_transaction')
 
     def side_effect(f_dsrc, id_int):
         if id_int == fake_token_id:
@@ -229,10 +231,10 @@ async def test_refresh(test_client, module_mocker: MockerFixture, mock_get_keys,
 
 
 @pytest.mark.asyncio
-async def test_auth_code(test_client, module_mocker: MockerFixture, mock_get_keys):
-    get_flow = module_mocker.patch('dodekaserver.data.kv.get_flow_user')
-    get_auth = module_mocker.patch('dodekaserver.data.kv.get_auth_request')
-    r_save = module_mocker.patch('dodekaserver.data.refreshtoken.refresh_save')
+async def test_auth_code(test_client, mocker: MockerFixture, mock_get_keys):
+    get_flow = mocker.patch('dodekaserver.data.kv.get_flow_user')
+    get_auth = mocker.patch('dodekaserver.data.kv.get_auth_request')
+    r_save = mocker.patch('dodekaserver.data.refreshtoken.refresh_save')
 
     def flow_side_effect(f_dsrc, code):
         if code == session_key:
@@ -274,29 +276,70 @@ mock_opq_key = {
 }
 
 
+@pytest_asyncio.fixture
+async def store_fix():
+    store = dict()
+    yield store
+
+
+@pytest_asyncio.fixture
+async def state_store(store_fix, mocker: MockerFixture):
+    s_store = mocker.patch('dodekaserver.data.kv.store_auth_state')
+
+    def store_side_effect(f_dsrc, auth_id, state):
+        store_fix[auth_id] = state
+
+    s_store.side_effect = store_side_effect
+
+    yield store_fix
+
+
 @pytest.mark.asyncio
-async def test_start_register(test_client, module_mocker: MockerFixture):
-    opq_key = module_mocker.patch('dodekaserver.data.key.get_opaque_public')
+async def test_start_register(test_client, mocker: MockerFixture, state_store: dict):
+    test_username = "startregister"
+    test_user_usph = usp_hex(test_username)
+    test_auth_id = "9a051d2a4860b9d48624be0206f0743d6ce2f0686cc4cc842d97ea4e51c0b181"
+
+    opq_key = mocker.patch('dodekaserver.data.key.get_opaque_public')
     opq_key.return_value = mock_opq_key['public']
+    t_hash = mocker.patch('dodekaserver.utilities.random_time_hash_hex')
+    r_opq = mocker.patch('dodekaserver.auth.authentication.opaque_register')
+
+    def hash_side_effect(user_usph):
+        if user_usph == test_user_usph:
+            return test_auth_id
+    t_hash.side_effect = hash_side_effect
+
+    def opq_side_effect(request, user_usph, key):
+        opq_response, state = opq.register(request, key)
+        state_store['state'] = state
+        state_store['opq_response'] = opq_response
+        return opq_response, SavedState(user_usph=user_usph, state=state)
+    r_opq.side_effect = opq_side_effect
 
     # password 'clientele'
     req = {
-        "username": "someone",
+        "username": test_username,
         "client_request": "1nE62MQOsSCan3raiuU8UKuPkmCv41rxb41QrVY6ZFk",
     }
 
     response = await test_client.post("/register/start/", json=req)
     res_j = response.json()
-    print(res_j)
+    # print(res_j)
     # example state
     # n-aQ8YSkFMbIoTJPS46lBeO4X4v5KbQ52ztB9-xP8wg
     # example message
     # GGnMPMzUGlKDTd0O4Yjw2S3sNrte4a1ybatXCr_-cRvyxVgYqutFLW3oUC5bmAczDl2DMzPRvmukMc-eKmSsZg
+    assert res_j['auth_id'] == test_auth_id
+    assert res_j['server_message'] == state_store['opq_response']
     assert response.status_code == 200
+    saved_state = SavedState.parse_obj(state_store[test_auth_id])
+    assert saved_state.user_usph == test_user_usph
+    assert saved_state.state == state_store['state']
 
 
 @pytest.mark.asyncio
-async def test_finish_register(test_client, module_mocker: MockerFixture):
+async def test_finish_register(test_client, mocker: MockerFixture):
     test_auth_id = "e5a289429121408d95d7e3cde62d0f06da22b86bd49c2a34233423ed4b5e877e"
     test_user = "atestperson"
 
@@ -304,7 +347,7 @@ async def test_finish_register(test_client, module_mocker: MockerFixture):
     test_state = "n-aQ8YSkFMbIoTJPS46lBeO4X4v5KbQ52ztB9-xP8wg"
     test_user_usph = usp_hex(test_user)
 
-    g_state = module_mocker.patch('dodekaserver.data.kv.get_state')
+    g_state = mocker.patch('dodekaserver.data.kv.get_state')
 
     def state_side_effect(f_dsrc, auth_id):
         if auth_id == test_auth_id:
@@ -329,13 +372,13 @@ async def test_finish_register(test_client, module_mocker: MockerFixture):
 
 
 @pytest.mark.asyncio
-async def test_start_login(test_client, module_mocker: MockerFixture):
+async def test_start_login(test_client, mocker: MockerFixture):
     test_user = "startloginer"
 
-    opq_key = module_mocker.patch('dodekaserver.data.key.get_opaque_private')
+    opq_key = mocker.patch('dodekaserver.data.key.get_opaque_private')
     opq_key.return_value = mock_opq_key['private']
 
-    g_pw = module_mocker.patch('dodekaserver.data.user.get_user_password_file')
+    g_pw = mocker.patch('dodekaserver.data.user.get_user_password_file')
 
     test_user_usph = usp_hex(test_user)
 
@@ -364,7 +407,7 @@ async def test_start_login(test_client, module_mocker: MockerFixture):
 
 
 @pytest.mark.asyncio
-async def test_finish_login(test_client, module_mocker: MockerFixture):
+async def test_finish_login(test_client, mocker: MockerFixture):
     test_auth_id = "15dae3786b6d0f20629cf3a35187a8a9a3d038f2c31b7c55e658b35906f86e41"
     test_user = "finishloginer"
 
@@ -372,7 +415,7 @@ async def test_finish_login(test_client, module_mocker: MockerFixture):
     test_state = "WwX2il7d7yrV5ni0dkXFgLC4FCzIVJnFdg2zTGRgW8XGTTmS-O7usDTweIenOSNZRfs2D4r0eN1bV977GDWCS6kfVhgEwslqlaUbExXvFBlvEN1JY1ICYo5u5qDIVYaMscQiuf8oNNRHANPZ_l6gtdkBN6eTQ7SWY6F4Iy0gE3LPJKPBrkKl10zNLJ2oo69dkdCu1Er5UPzdo48wAH_WARXFKxwHLCZLxfFnN7eV6033CFdSJF9IR8Z6X177lcaB"
     test_user_usph = usp_hex(test_user)
 
-    g_state = module_mocker.patch('dodekaserver.data.kv.get_state')
+    g_state = mocker.patch('dodekaserver.data.kv.get_state')
 
     def state_side_effect(f_dsrc, auth_id):
         if auth_id == test_auth_id:
@@ -414,11 +457,11 @@ async def test_oauth_authorize(test_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_oauth_callback(test_client: AsyncClient, module_mocker: MockerFixture):
+async def test_oauth_callback(test_client: AsyncClient, mocker: MockerFixture):
     test_flow_id = "1cd7afeca7eb420201ea69e06d9085ae2b8dd84adaae8d27c89746aab75d1dff"
     test_code = "zySjwa5CpddMzSydqKOvXZHQrtRK-VD83aOPMAB_1gEVxSscBywmS8XxZze3letN9whXUiRfSEfGel9e-5XGgQ"
 
-    get_auth = module_mocker.patch('dodekaserver.data.kv.get_auth_request')
+    get_auth = mocker.patch('dodekaserver.data.kv.get_auth_request')
 
     def auth_side_effect(f_dsrc, flow_id):
         if flow_id == test_flow_id:

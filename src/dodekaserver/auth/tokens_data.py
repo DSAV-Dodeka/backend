@@ -41,7 +41,7 @@ async def do_refresh(dsrc: Source, old_refresh_token: str):
     verify_refresh(saved_refresh, old_refresh, utc_now)
 
     access_token_data, id_token_data, user_usph, access_scope, \
-        new_nonce, new_refresh_save = build_refresh_save(saved_refresh, utc_now, signing_key)
+        new_nonce, new_refresh_save = build_refresh_save(saved_refresh, utc_now)
 
     # Deletes previous token, saves new one, only succeeds if all components of the transaction succeed
     new_refresh_id = await data.refreshtoken.refresh_transaction(dsrc, saved_refresh.id, new_refresh_save)

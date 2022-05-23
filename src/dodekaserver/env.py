@@ -16,10 +16,11 @@ config = {
 LOGGER_NAME = "backend"
 
 id_exp = 10 * 60 * 60  # 10 hours
-# access_exp = 20
+# access_exp = 5
 access_exp = 1 * 60 * 60  # 1 hour
 refresh_exp = 30 * 24 * 60 * 60  # 1 month
 
+# grace_period = 1
 grace_period = 3 * 60   # 3 minutes in which it is still accepted
 
 issuer = "https://dsavdodeka.nl/auth"

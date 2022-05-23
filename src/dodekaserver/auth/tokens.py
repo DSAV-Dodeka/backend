@@ -198,9 +198,8 @@ def decode_refresh(rt: SavedRefreshToken):
 class BadVerification(Exception):
     """ Error during token verification. """
 
-    def __init__(self, err_type: str, err_desc: str):
-        self.err_type = err_type
-        self.err_desc = err_desc
+    def __init__(self, err_key: str):
+        self.err_key = err_key
 
 
 def verify_access_token(public_key: str, access_token: str):
@@ -208,15 +207,15 @@ def verify_access_token(public_key: str, access_token: str):
         decoded_payload = jwt.decode(access_token, public_key, algorithms=["EdDSA"], leeway=grace_period,
                                      require=["exp", "aud"], issuer=issuer, audience=[backend_client_id])
     except InvalidSignatureError:
-        raise BadVerification("invalid_signature", "")
+        raise BadVerification("invalid_signature")
     except DecodeError:
-        raise BadVerification("decode_error", "")
+        raise BadVerification("decode_error")
     except ExpiredSignatureError:
-        raise BadVerification("expired", "")
+        raise BadVerification("expired_access_token")
     except InvalidTokenError:
-        raise BadVerification("bad_token", "")
+        raise BadVerification("bad_token")
     except PyJWTError as e:
         logging.debug(e)
-        raise BadVerification("other", "")
+        raise BadVerification("other")
 
     return AccessToken.parse_obj(decoded_payload)

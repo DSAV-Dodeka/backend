@@ -23,6 +23,7 @@ from dodekaserver.define import ErrorResponse, error_response_handler
 import dodekaserver.routers.basic as basic
 import dodekaserver.routers.auth as auth
 import dodekaserver.routers.profile as profile
+import dodekaserver.routers.onboard as onboard
 
 
 def init_logging(logger_name: str, log_level: int):
@@ -47,6 +48,7 @@ def create_app() -> tuple[FastAPI, Logger]:
     new_app.include_router(basic.router)
     new_app.include_router(auth.router)
     new_app.include_router(profile.router)
+    new_app.include_router(onboard.router)
     new_app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=['*'],
                            allow_headers=['Authorization'])
     new_app.add_exception_handler(ErrorResponse, handler=error_response_handler)

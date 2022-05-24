@@ -122,3 +122,11 @@ class IdToken(BaseModel):
     aud: list[str]
     auth_time: int
     nonce: str
+
+
+class SignedUp(BaseModel):
+    id: int = None
+    firstname: str
+    lastname: str
+    email: str
+    phone: str

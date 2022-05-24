@@ -60,3 +60,19 @@ refreshtokens = sqlalchemy.Table(
     sqlalchemy.Column(ISSUED_AT, sqlalchemy.Integer),
     sqlalchemy.Column(NONCE, sqlalchemy.String(length=200))
 )
+
+SIGNEDUP_TABLE = "signedup"
+SU_FIRSTNAME = "firstname"
+SU_LASTNAME = "lastname"
+SU_PHONE = "phone"
+SU_EMAIL = "email"
+signedup = sqlalchemy.Table(
+    SIGNEDUP_TABLE,
+    metadata,
+    # binary int of usp_hex
+    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
+    sqlalchemy.Column(SU_FIRSTNAME, sqlalchemy.String(length=100)),
+    sqlalchemy.Column(SU_LASTNAME, sqlalchemy.String(length=100)),
+    sqlalchemy.Column(SU_PHONE, sqlalchemy.String(length=15), unique=True),
+    sqlalchemy.Column(SU_EMAIL, sqlalchemy.String(length=100), unique=True),
+)

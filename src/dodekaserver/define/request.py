@@ -4,10 +4,6 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, validator
 
-
-__all__ = ['AuthRequest', 'PasswordRequest', 'PasswordResponse', 'SavedState', 'FinishRequest', 'FinishLogin',
-           'FlowUser', 'TokenRequest', 'TokenResponse', 'ErrorResponse', 'error_response_handler']
-
 from dodekaserver.env import frontend_client_id, valid_redirects
 
 
@@ -137,3 +133,10 @@ class TokenResponse(BaseModel):
     token_type: str
     expires_in: int
     scope: str
+
+
+class SignupRequest(BaseModel):
+    firstname: str
+    lastname: str
+    email: str
+    phone: str

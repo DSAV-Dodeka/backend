@@ -15,6 +15,10 @@ async def upsert_by_id(dsrc: Source, table: str, row: dict):
     return await dsrc.gateway.ops.upsert_by_id(dsrc.gateway.db, table, row)
 
 
+async def insert(dsrc: Source, table: str, row: dict):
+    return await dsrc.gateway.ops.insert(dsrc.gateway.db, table, row)
+
+
 async def insert_return_id(dsrc: Source, table: str, row: dict) -> int:
     return await dsrc.gateway.ops.insert_return_id(dsrc.gateway.db, table, row)
 
@@ -30,3 +34,8 @@ async def delete_by_column(dsrc: Source, table: str, column: str, column_val):
 async def delete_insert_return_id_transaction(dsrc: Source, table: str, id_int_delete: int, new_row: dict) -> int:
     return await dsrc.gateway.ops.delete_insert_return_id_transaction(dsrc.gateway.db, table, id_int_delete, new_row)
 
+
+async def double_insert_transaction(dsrc: Source, first_table: str, first_row: dict, second_table: str,
+                                    second_row: dict):
+    return await dsrc.gateway.ops.double_insert_transaction(dsrc.gateway.db, first_table, first_row, second_table,
+                                                            second_row)

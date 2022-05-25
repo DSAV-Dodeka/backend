@@ -79,13 +79,18 @@ async def start_login(login_start: PasswordRequest):
     user_usph = util.usp_hex(login_start.username)
     private_key = await data.key.get_opaque_private(dsrc)
 
-    fake_password = await data.user.get_user_password_file(dsrc, "fakerecord")
+    password_file = await data.user.get_user_password_file(dsrc, "fakerecord")
+    data_password = ""
     try:
-        password_file = await data.user.get_user_password_file(dsrc, user_usph)
+        data_password = await data.user.get_user_password_file(dsrc, user_usph)
+
     except NoDataError:
         # If user does not exist, pass fake user record to prevent client enumeration
         # TODO ensure this fake record exists
-        password_file = fake_password
+        pass
+    # If password is empty or was not set due to non-existent user, make login impossible
+    if data_password:
+        password_file = data_password
 
     auth_id = util.random_time_hash_hex(user_usph)
 

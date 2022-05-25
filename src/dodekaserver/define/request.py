@@ -1,4 +1,5 @@
 from typing import Optional
+from datetime import date
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -140,3 +141,10 @@ class SignupRequest(BaseModel):
     lastname: str
     email: str
     phone: str
+
+
+class SignupConfirm(BaseModel):
+    email: str
+    av40id: int
+    joined: date
+    birthdate: date

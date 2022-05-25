@@ -69,10 +69,33 @@ SU_EMAIL = "email"
 signedup = sqlalchemy.Table(
     SIGNEDUP_TABLE,
     metadata,
-    # binary int of usp_hex
-    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
     sqlalchemy.Column(SU_FIRSTNAME, sqlalchemy.String(length=100)),
     sqlalchemy.Column(SU_LASTNAME, sqlalchemy.String(length=100)),
     sqlalchemy.Column(SU_PHONE, sqlalchemy.String(length=15), unique=True),
-    sqlalchemy.Column(SU_EMAIL, sqlalchemy.String(length=100), unique=True),
+    sqlalchemy.Column(SU_EMAIL, sqlalchemy.String(length=100), primary_key=True),
+)
+
+USERDATA_TABLE = "userdata"
+UD_ACTIVE = "active"
+UD_FIRSTNAME = "firstname"
+UD_LASTNAME = "lastname"
+UD_CALLNAME = "callname"
+UD_PHONE = "phone"
+UD_EMAIL = "email"
+AV40_ID = "av40id"
+JOINED = "joined"
+BIRTHDATE = "birthdate"
+userdata = sqlalchemy.Table(
+    USERDATA_TABLE,
+    metadata,
+    sqlalchemy.Column("id", sqlalchemy.Integer, sqlalchemy.ForeignKey("users.id"), primary_key=True),
+    sqlalchemy.Column(UD_ACTIVE, sqlalchemy.Boolean),
+    sqlalchemy.Column(UD_FIRSTNAME, sqlalchemy.String(length=100)),
+    sqlalchemy.Column(UD_LASTNAME, sqlalchemy.String(length=100)),
+    sqlalchemy.Column(UD_CALLNAME, sqlalchemy.String(length=100)),
+    sqlalchemy.Column(UD_PHONE, sqlalchemy.String(length=15), unique=True),
+    sqlalchemy.Column(UD_EMAIL, sqlalchemy.String(length=100), unique=True),
+    sqlalchemy.Column(AV40_ID, sqlalchemy.Integer),
+    sqlalchemy.Column(JOINED, sqlalchemy.Date),
+    sqlalchemy.Column(BIRTHDATE, sqlalchemy.Date),
 )

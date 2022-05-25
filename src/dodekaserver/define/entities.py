@@ -1,3 +1,5 @@
+from datetime import date
+
 from pydantic import BaseModel, validator, conint
 
 
@@ -125,8 +127,20 @@ class IdToken(BaseModel):
 
 
 class SignedUp(BaseModel):
-    id: int = None
     firstname: str
     lastname: str
     email: str
     phone: str
+
+
+class UserData(BaseModel):
+    id: int
+    active: bool
+    firstname: str
+    lastname: str
+    callname: str = None
+    email: str
+    phone: str
+    av40id: int
+    joined: date
+    birthdate: date = date.today()

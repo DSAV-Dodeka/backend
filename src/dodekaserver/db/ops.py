@@ -27,6 +27,11 @@ class DbOperations(ABC):
 
     @classmethod
     @abstractmethod
+    async def insert(cls, db: Database, table: str, row: dict):
+        ...
+
+    @classmethod
+    @abstractmethod
     async def insert_return_id(cls, db: Database, table: str, row: dict) -> int:
         ...
 
@@ -44,6 +49,12 @@ class DbOperations(ABC):
     @abstractmethod
     async def delete_insert_return_id_transaction(cls, db: Database, table: str, id_int_delete: int, new_row: dict) -> \
             int:
+        ...
+
+    @classmethod
+    @abstractmethod
+    async def double_insert_transaction(cls, db: Database, first_table: str, first_row: dict, second_table: str,
+                                        second_row: dict):
         ...
 
 

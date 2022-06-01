@@ -8,8 +8,8 @@ authors = ["Tip ten Brink <75669206+tiptenbrink@users.noreply.github.com>"]
 python = ">=3.9, <3.11"
 fastapi = "0.78.0"
 uvicorn = {extras = ["standard"], version = "^0.17.5"}
-databases = {extras = ["postgresql"], version = "^0.5.5"}
-alembic = "^1.7.6"
+databases = {extras = ["postgresql"], version = "^0.6.0"}
+alembic = "^1.8.0"
 psycopg2-binary = "^2.9.2"
 gunicorn = "^20.1.0"
 pytest-asyncio = "^0.18.2"
@@ -17,7 +17,7 @@ pytest-mock = "^3.7.0"
 requests = "^2.26.0"
 httpx = "^0.23.0"
 hiredis = "^2.0.0"
-redis = "^4.1.4"
+redis = "^4.3.1"
 python-dotenv = "^0.20.0"
 opaquepy = "^0.2.0"
 PyJWT = "2.3.0"

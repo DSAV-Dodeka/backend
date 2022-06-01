@@ -2,7 +2,7 @@ from typing import Type
 
 import redis
 from databases import Database
-from redis import Redis
+from redis.asyncio import Redis
 
 # These settings modules contain top-level logic that loads all configuration variables
 from dodekaserver.db.ops import DbOperations
@@ -57,12 +57,13 @@ class Gateway:
         try:
             # Redis requires no explicit call to connect, it simply connects the first time
             # a call is made to the database, so we test the connection by pinging
-            self.kv.ping()
+            await self.kv.ping()
         except redis.ConnectionError:
             raise SourceError(f"Unable to ping Redis server! Please check if it is running.")
 
     async def disconnect(self):
         await self.db.disconnect()
+        await self.kv.close()
 
     async def startup(self):
         await self.connect()

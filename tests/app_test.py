@@ -294,6 +294,18 @@ async def state_store(store_fix, mocker: MockerFixture):
     yield store_fix
 
 
+@pytest_asyncio.fixture
+async def flow_store(store_fix, mocker: MockerFixture):
+    f_store = mocker.patch('dodekaserver.data.kv.store_flow_user')
+
+    def store_side_effect(f_dsrc, s_key, flow_user):
+        store_fix[s_key] = flow_user
+
+    f_store.side_effect = store_side_effect
+
+    yield store_fix
+
+
 @pytest.mark.asyncio
 async def test_start_register(test_client, mocker: MockerFixture, state_store: dict):
     test_username = "startregister"
@@ -372,7 +384,7 @@ async def test_finish_register(test_client, mocker: MockerFixture):
 
 
 @pytest.mark.asyncio
-async def test_start_login(test_client, mocker: MockerFixture):
+async def test_start_login(test_client, mocker: MockerFixture, state_store):
     test_user = "startloginer"
 
     opq_key = mocker.patch('dodekaserver.data.key.get_opaque_private')
@@ -407,7 +419,7 @@ async def test_start_login(test_client, mocker: MockerFixture):
 
 
 @pytest.mark.asyncio
-async def test_finish_login(test_client, mocker: MockerFixture):
+async def test_finish_login(test_client, mocker: MockerFixture, flow_store):
     test_auth_id = "15dae3786b6d0f20629cf3a35187a8a9a3d038f2c31b7c55e658b35906f86e41"
     test_user = "finishloginer"
 
@@ -439,8 +451,20 @@ async def test_finish_login(test_client, mocker: MockerFixture):
     assert response.status_code == 200
 
 
+@pytest_asyncio.fixture
+async def req_store(store_fix, mocker: MockerFixture):
+    r_store = mocker.patch('dodekaserver.data.kv.store_auth_request')
+
+    def store_side_effect(f_dsrc, flow_id, req):
+        store_fix[flow_id] = req
+
+    r_store.side_effect = store_side_effect
+
+    yield store_fix
+
+
 @pytest.mark.asyncio
-async def test_oauth_authorize(test_client: AsyncClient):
+async def test_oauth_authorize(test_client: AsyncClient, req_store):
     req = {
         "response_type": "code",
         "client_id": "dodekaweb_client",

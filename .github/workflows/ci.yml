@@ -76,6 +76,12 @@ jobs:
         node-version: '16'
         cache: 'npm'
         cache-dependency-path: ${{ github.workspace }}/authpage/package-lock.json
+    - name: Cache authpage
+      id: cached-authpage
+      uses: actions/cache@v2
+      with:
+        key: authpage-${{ hashFiles('${{ github.workspace }}/authpage') }}
+        path: ${{ github.workspace }}/src/dodekaserver/resources/static/credentials
     - name: Build credentials
       run: |
         npm install

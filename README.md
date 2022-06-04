@@ -66,8 +66,8 @@ Use `./down.sh` to turn Redis off. Do this *before* shutting down the PostgreSQL
 * Now you can run the server either by just running the `main.py` in src/dodekaserver or by running `poetry run s-dodeka`. The server will automatically reload if you change any files. It will tell you at which address you can access it.
 
 ##### Production
-* First, build a Python environment with the dependencies installed by running: `docker build --tag dodeka/server-deps .` while in the /server/build-server-deps folder.
-* Next, build the project itself by running `docker build --tag dodeka/server .` in the main /server directory.
+* First, build a Python environment with the dependencies installed by running: `docker build --tag dodeka/server-deps -f server-deps.Dockerfile .`
+* Next, build the project itself by running `docker build --tag dodeka/server .` in the main directory.
 * If you did not yet build the Redis server, first build the Redis server by running `./build.sh` in the /server/redis folder.
 * Be sure you have the database running with the `dodeka` network turned on, after which you can run `./deploy.sh` in /server/deployment. It works similar to the database and can be shut down using `./down.sh`. 
 

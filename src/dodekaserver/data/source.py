@@ -47,7 +47,8 @@ class Gateway:
     def init_objects(self):
         # Connections are not actually established, it simply initializes the connection parameters
         self.db = Database(self.db_url)
-        self.kv = Redis(host=self.kv_addr.host, port=self.kv_addr.port, db=self.kv_addr.db_n)
+        self.kv = Redis(host=self.kv_addr.host, port=self.kv_addr.port, db=self.kv_addr.db_n,
+                        password=self.kv_addr.password)
 
     async def connect(self):
         try:

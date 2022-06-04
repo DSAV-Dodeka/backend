@@ -8,38 +8,8 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
-    env:
-      # The place the configuration repo will be placed at temporarily
-      CONF_REPO_PATH: 'config_source'
-      # The location of the useful configuration in the configuration repo
-      IN_REPO_CONF_PATH: 'use/backend'
-      # The location the configuration will be moved to in the current repo
-      CONF_TARGET: 'build_conf/autosourced_config'
     steps:
     - uses: actions/checkout@v2
-    # Check out the main deployment repository that contains all config files
-    - uses: actions/checkout@v2
-      with:
-        repository: 'DSAV-Dodeka/dodeka'
-        token: ${{ secrets.GH_DODEKACOMCOM_TOKEN }}
-        # Relative to ${{ github.workspace }}
-        path: ${{ env.CONF_REPO_PATH }}
-    # Old configuration is first removed, then the new configuration is moved in its place
-    # Then the build_conf script is run, which copies it into dodekaserver/resources
-    # It is placed in that location so it is bundled with the package and can be accessed
-    # no matter what path you run from.
-    - name: Move conf
-      run: |
-        rm -rf ${{ github.workspace }}/${{ env.CONF_TARGET }}
-        mv ${{ github.workspace }}/${{ env.CONF_REPO_PATH }}/${{ env.IN_REPO_CONF_PATH }} ${{ github.workspace }}/${{ env.CONF_TARGET }}
-        cd build_conf
-        ./build_conf.sh
-    # If configuration changes occurred (file-pattern indicates the places to look for changes)
-    # a new commit will be auto-created
-    - uses: stefanzweifel/git-auto-commit-action@v4
-      with:
-        commit_message: Autosource config (automated)
-        file_pattern: ${{ env.CONF_TARGET }}/ src/dodekaserver/resources/conf/
     - name: Set up Python
       uses: actions/setup-python@v2
       with:

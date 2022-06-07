@@ -147,4 +147,18 @@ class SignupConfirm(BaseModel):
     email: str
     av40id: int
     joined: date
+
+
+class Register(BaseModel):
+    email: str
+    registerid: str
+    callname: str
+    eduinstitution: str
     birthdate: date
+
+
+class UserDataRegisterResponse(BaseModel):
+    firstname: str
+    lastname: str
+    email: str
+    phone: str

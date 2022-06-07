@@ -85,6 +85,9 @@ UD_EMAIL = "email"
 AV40_ID = "av40id"
 JOINED = "joined"
 BIRTHDATE = "birthdate"
+REGISTER_ID = "registerid"
+EDUCATION_INSTITUTION = "eduinstitution"
+USER_REGISTERED = "registered"
 userdata = sqlalchemy.Table(
     USERDATA_TABLE,
     metadata,
@@ -98,4 +101,7 @@ userdata = sqlalchemy.Table(
     sqlalchemy.Column(AV40_ID, sqlalchemy.Integer),
     sqlalchemy.Column(JOINED, sqlalchemy.Date),
     sqlalchemy.Column(BIRTHDATE, sqlalchemy.Date),
+    sqlalchemy.Column(REGISTER_ID, sqlalchemy.String(length=100), unique=True),
+    sqlalchemy.Column(EDUCATION_INSTITUTION, sqlalchemy.String(length=100)),
+    sqlalchemy.Column(USER_REGISTERED, sqlalchemy.Boolean, nullable=False),
 )

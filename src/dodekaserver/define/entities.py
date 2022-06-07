@@ -138,9 +138,12 @@ class UserData(BaseModel):
     active: bool
     firstname: str
     lastname: str
-    callname: str = None
+    callname: str = ""
     email: str
     phone: str
     av40id: int
     joined: date
+    eduinstitution: str = ""
     birthdate: date = date.today()
+    registerid: str = ""
+    registered: bool

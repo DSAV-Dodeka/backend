@@ -3,8 +3,8 @@ import config from "./config";
 
 async function init_opq() {
     // Works in dev, not in prod, for prod just use init()
-    //await init("../node_modules/@tiptenbrink/opaquewasm/opaquewasm_bg.wasm");
-    await init()
+    await init("../node_modules/@tiptenbrink/opaquewasm/opaquewasm_bg.wasm");
+    //await init()
 }
 
 export async function clientRegister(username: string, password: string) {

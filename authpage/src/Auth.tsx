@@ -40,21 +40,17 @@ const Auth = () => {
 
     return (
         <>
-            <h1 className="title">Auth</h1>
+            <h1 className="title">Login</h1>
             <div className="auth-form">
                 <form onSubmit={handleSubmit}>
                     <div>
-                        <label>Username</label>
-                        <input id="username" placeholder="e-mail/username" type="text" value={username}
+                        <input id="username" placeholder="e-mail" type="text" value={username}
                                onChange={e => setUsername(e.target.value)}/>
-
-                        <label>Password</label>
                         <input type="password" placeholder="password" value={password}
                                onChange={e => setPassword(e.target.value)} />
-                        <input type='checkbox' placeholder="ja als registreren" checked={isRegister}
-                               onChange={e => setIsRegister(e.target.checked)}/>
+                        <button id="submit_button" type="submit">Inloggen</button><br />
                     </div>
-                    <button id="submit_button" type="submit">Inloggen</button><br />
+                    
                 </form>
             </div>
         </>

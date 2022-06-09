@@ -92,7 +92,7 @@ class PasswordRequest(BaseModel):
 class RegisterRequest(BaseModel):
     email: str
     client_request: str
-    registerid: str
+    register_id: str
 
 
 class PasswordResponse(BaseModel):
@@ -163,7 +163,7 @@ class SignupConfirm(BaseModel):
 
 class Register(BaseModel):
     email: str
-    registerid: str
+    register_id: str
     callname: str
     eduinstitution: str
     birthdate: date

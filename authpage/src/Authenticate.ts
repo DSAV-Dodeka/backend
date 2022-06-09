@@ -19,7 +19,7 @@ export async function clientRegister(username: string, password: string, registe
         const reqst = {
             "email": username,
             "client_request": message1,
-            "registerid": register_id
+            "register_id": register_id
         }
         const res = await fetch(`${config.auth_location}/register/start/`, {
             method: 'POST', body: JSON.stringify(reqst),

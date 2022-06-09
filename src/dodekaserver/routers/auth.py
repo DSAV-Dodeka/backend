@@ -34,7 +34,7 @@ async def start_register(register_start: RegisterRequest):
     step."""
     email_usph = util.usp_hex(register_start.email)
     try:
-        ud = await data.user.get_userdata_by_register_id(dsrc, register_start.registerid)
+        ud = await data.user.get_userdata_by_register_id(dsrc, register_start.register_id)
     except DataError as e:
         logger.debug(e)
         reason = "No registration for that register_id"

@@ -70,7 +70,7 @@ async def register_user(register: Register):
     """ Board confirms data from AV`40 signup through admin tool. """
     email_usph = util.usp_hex(register.email)
     try:
-        ud = await data.user.get_userdata_by_register_id(dsrc, register.registerid)
+        ud = await data.user.get_userdata_by_register_id(dsrc, register.register_id)
     except DataError as e:
         logger.debug(e)
         reason = "No registration for that register_id"

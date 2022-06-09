@@ -1,3 +1,4 @@
+from datetime import date
 from urllib.parse import urlparse, parse_qs
 
 import asyncio
@@ -11,10 +12,10 @@ from fastapi import status
 
 import opaquepy as opq
 
-from dodekaserver.define import FlowUser, AuthRequest, SavedState
+from dodekaserver.define import FlowUser, AuthRequest, SavedState, SavedRegisterState
 from dodekaserver.env import frontend_client_id
 from dodekaserver.utilities import utc_timestamp, usp_hex
-from dodekaserver.define.entities import SavedRefreshToken
+from dodekaserver.define.entities import SavedRefreshToken, UserData, User
 from dodekaserver.db.ops import DbOperations
 
 
@@ -295,6 +296,18 @@ async def state_store(store_fix, mocker: MockerFixture):
 
 
 @pytest_asyncio.fixture
+async def register_state_store(store_fix, mocker: MockerFixture):
+    s_store = mocker.patch('dodekaserver.data.kv.store_auth_register_state')
+
+    def store_side_effect(f_dsrc, auth_id, state):
+        store_fix[auth_id] = state
+
+    s_store.side_effect = store_side_effect
+
+    yield store_fix
+
+
+@pytest_asyncio.fixture
 async def flow_store(store_fix, mocker: MockerFixture):
     f_store = mocker.patch('dodekaserver.data.kv.store_flow_user')
 
@@ -307,8 +320,10 @@ async def flow_store(store_fix, mocker: MockerFixture):
 
 
 @pytest.mark.asyncio
-async def test_start_register(test_client, mocker: MockerFixture, state_store: dict):
-    test_username = "startregister"
+async def test_start_register(test_client, mocker: MockerFixture, register_state_store: dict):
+    test_username = "start@register.nl"
+    test_id = 91
+    test_register_id = "8c01e95c6021f62f7fc7a0c6149df725129fa4ea846edc1cdc0b13905e880f0c"
     test_user_usph = usp_hex(test_username)
     test_auth_id = "9a051d2a4860b9d48624be0206f0743d6ce2f0686cc4cc842d97ea4e51c0b181"
 
@@ -316,60 +331,75 @@ async def test_start_register(test_client, mocker: MockerFixture, state_store: d
     opq_key.return_value = mock_opq_key['public']
     t_hash = mocker.patch('dodekaserver.utilities.random_time_hash_hex')
     r_opq = mocker.patch('dodekaserver.auth.authentication.opaque_register')
+    g_ud = mocker.patch('dodekaserver.data.user.get_userdata_by_register_id')
+    g_u = mocker.patch('dodekaserver.data.user.get_user_by_id')
 
     def hash_side_effect(user_usph):
         if user_usph == test_user_usph:
             return test_auth_id
     t_hash.side_effect = hash_side_effect
 
-    def opq_side_effect(request, user_usph, key):
+    def opq_side_effect(request, key, user_usph, user_id):
         opq_response, state = opq.register(request, key)
-        state_store['state'] = state
-        state_store['opq_response'] = opq_response
-        return opq_response, SavedState(user_usph=user_usph, state=state)
+        register_state_store['state'] = state
+        register_state_store['opq_response'] = opq_response
+        return opq_response, SavedRegisterState(user_usph=user_usph, state=state, id=user_id)
     r_opq.side_effect = opq_side_effect
+
+    def ud_side_effect(f_dsrc, register_id):
+        if register_id == test_register_id:
+            return UserData(id=test_id, active=True, firstname="Test", lastname="Register", email=test_user_usph, phone="06",
+                            av40id=123, joined=date.today(), registered=False)
+    g_ud.side_effect = ud_side_effect
+
+    def u_side_effect(f_dsrc, user_id):
+        if user_id == test_id:
+            return User(id=test_id, usp_hex=test_user_usph, password_file="")
+    g_u.side_effect = u_side_effect
 
     # password 'clientele'
     req = {
-        "username": test_username,
+        "email": test_username,
         "client_request": "1nE62MQOsSCan3raiuU8UKuPkmCv41rxb41QrVY6ZFk",
+        "register_id": test_register_id
     }
 
     response = await test_client.post("/register/start/", json=req)
     res_j = response.json()
-    # print(res_j)
+    print(res_j)
     # example state
     # n-aQ8YSkFMbIoTJPS46lBeO4X4v5KbQ52ztB9-xP8wg
     # example message
     # GGnMPMzUGlKDTd0O4Yjw2S3sNrte4a1ybatXCr_-cRvyxVgYqutFLW3oUC5bmAczDl2DMzPRvmukMc-eKmSsZg
     assert res_j['auth_id'] == test_auth_id
-    assert res_j['server_message'] == state_store['opq_response']
+    assert res_j['server_message'] == register_state_store['opq_response']
     assert response.status_code == 200
-    saved_state = SavedState.parse_obj(state_store[test_auth_id])
+    saved_state = SavedRegisterState.parse_obj(register_state_store[test_auth_id])
     assert saved_state.user_usph == test_user_usph
-    assert saved_state.state == state_store['state']
+    assert saved_state.state == register_state_store['state']
 
 
 @pytest.mark.asyncio
 async def test_finish_register(test_client, mocker: MockerFixture):
     test_auth_id = "e5a289429121408d95d7e3cde62d0f06da22b86bd49c2a34233423ed4b5e877e"
     test_user = "atestperson"
+    test_id = 95
 
     # password 'clientele' with mock_opq_key
     test_state = "n-aQ8YSkFMbIoTJPS46lBeO4X4v5KbQ52ztB9-xP8wg"
     test_user_usph = usp_hex(test_user)
 
-    g_state = mocker.patch('dodekaserver.data.kv.get_state')
+    g_state = mocker.patch('dodekaserver.data.kv.get_register_state')
 
     def state_side_effect(f_dsrc, auth_id):
         if auth_id == test_auth_id:
-            return SavedState(user_usph=test_user_usph, state=test_state)
+            return SavedRegisterState(user_usph=test_user_usph, state=test_state, id=test_id)
 
     g_state.side_effect = state_side_effect
 
     # password 'clientele'
     req = {
-        "username": test_user,
+        "email": test_user,
         "client_request": "HokzHOdiLQ2BULIauK38OflkqCKpIPh9gZqCBUGxgTcBP4WnKHuZZWI6BMXPd7hTnOznBrPIKsG4CZFlqeNK6QuCHku1lM4fi8Ep-n8dguVb8dpvU9vVP2w9L6A3RDETmYv6wCdX3PJw7y7WoRafdZ-v2DZGR9D_NvPcKVHcH03KQudID2lnpf00R_M4CtmXXajttWVdd3eh40Xp0YW41n8",
         "auth_id": test_auth_id
     }
@@ -404,7 +434,7 @@ async def test_start_login(test_client, mocker: MockerFixture, state_store):
 
     # password 'clientele'
     req = {
-        "username": test_user,
+        "email": test_user,
         "client_request": "IBLgmoQ-rRjs9otxi8niNKXwEPnvqjfONz8IA6LzIjnwGqkLclrQy7fGi1doawiamM7ftIZaihkhNVKHeIx4IAAAxEhDt_NBTRwKsZNQ0noZfr5_tbI3ZzZfjf5L-yxv-38",
     }
 
@@ -437,7 +467,7 @@ async def test_finish_login(test_client, mocker: MockerFixture, flow_store):
 
     # password 'clientele'
     req = {
-        "username": test_user,
+        "email": test_user,
         "client_request": "YATUKRGRBXjup27rb8TeoHFw8AlyZ1Kx5FB2oa4HLohCyU-BDaPLWm9CiRRCGHvp-PV9PThsLtjDLJXDEtnoXA",
         "auth_id": test_auth_id,
         "flow_id": "434586aeb15dcca4279446a0e386b863694d7bb75b6d48c63e408eae62eb297d"

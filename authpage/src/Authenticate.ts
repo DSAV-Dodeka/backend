@@ -39,7 +39,7 @@ export async function clientRegister(username: string, password: string, registe
         console.log(message2)
 
         const reqst2 = {
-            "username": username,
+            "email": username,
             "client_request": message2,
             "auth_id": auth_id
         }
@@ -68,7 +68,7 @@ export async function clientLogin(username: string, password: string, flow_id: s
 
         // get message to server and get message back
         const reqst = {
-            "username": username,
+            "email": username,
             "client_request": message1
         }
         const res = await fetch(`${config.auth_location}/login/start/`, {
@@ -94,7 +94,7 @@ export async function clientLogin(username: string, password: string, flow_id: s
         console.log(message2)
 
         const reqst2 = {
-            "username": username,
+            "email": username,
             "client_request": message2,
             "auth_id": auth_id,
             "flow_id": flow_id

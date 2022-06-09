@@ -87,6 +87,11 @@ class PasswordRequest(BaseModel):
     """
     email: str
     client_request: str
+
+
+class RegisterRequest(BaseModel):
+    email: str
+    client_request: str
     registerid: str
 
 

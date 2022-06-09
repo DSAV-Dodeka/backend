@@ -11,7 +11,7 @@ import opaquepy as opq
 from dodekaserver.define.entities import User
 from dodekaserver.env import LOGGER_NAME, frontend_client_id, credentials_url
 from dodekaserver.define import ErrorResponse, PasswordResponse, PasswordRequest, SavedState, FinishRequest, \
-    FinishLogin, AuthRequest, TokenResponse, TokenRequest, FlowUser
+    FinishLogin, AuthRequest, TokenResponse, TokenRequest, FlowUser, RegisterRequest
 import dodekaserver.utilities as util
 import dodekaserver.data as data
 from dodekaserver.data import DataError, NoDataError
@@ -29,7 +29,7 @@ logger = logging.getLogger(LOGGER_NAME)
 
 
 @router.post("/register/start/", response_model=PasswordResponse)
-async def start_register(register_start: PasswordRequest):
+async def start_register(register_start: RegisterRequest):
     """ First step of OPAQUE registration, requires username and client message generated in first client registration
     step."""
     email_usph = util.usp_hex(register_start.email)
@@ -40,6 +40,18 @@ async def start_register(register_start: PasswordRequest):
         reason = "No registration for that register_id"
         raise ErrorResponse(400, err_type="invalid_register", err_desc=reason, debug_key="no_register_for_id")
 
+    try:
+        u = await data.user.get_user_by_id(dsrc, ud.id)
+    except DataError as e:
+        logger.debug(e)
+        reason = "No registration for that user"
+        raise ErrorResponse(400, err_type="invalid_register", err_desc=reason, debug_key="no_register_for_user")
+
+    if ud.registered or len(u.password_file) > 0:
+        logger.debug("Already registered.")
+        reason = "Bad registration."
+        raise ErrorResponse(400, err_type="invalid_register", err_desc=reason, debug_key="bad_registration_start")
+
     if ud.email != email_usph:
         logger.debug("Registration start does not match e-mail")
         reason = "Bad registration."
@@ -49,7 +61,7 @@ async def start_register(register_start: PasswordRequest):
     public_key = await data.key.get_opaque_public(dsrc)
     auth_id = util.random_time_hash_hex(email_usph)
 
-    response, saved_state = authentication.opaque_register(register_start.client_request, email_usph, public_key, ud.id)
+    response, saved_state = authentication.opaque_register(register_start.client_request, public_key, email_usph, ud.id)
 
     await data.kv.store_auth_register_state(dsrc, auth_id, saved_state)
 

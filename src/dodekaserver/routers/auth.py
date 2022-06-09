@@ -240,7 +240,8 @@ async def token(token_request: TokenRequest, response: Response):
         auth_time = flow_user.auth_time
         id_nonce = auth_request.nonce
         token_user = flow_user.user_usph
-        token_scope = "test"
+
+        token_scope = "test" if token_user != "admin" else "admin"
         id_token, access, refresh, exp, returned_scope = \
             await new_token(dsrc, token_user, token_scope, auth_time, id_nonce)
 

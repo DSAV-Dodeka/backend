@@ -121,3 +121,75 @@ export async function clientLogin(username: string, password: string, flow_id: s
         return null
     }
 }
+
+export function binToBase64Url(byte_array: Uint8Array) {
+    const random_chrpts = Array.from(byte_array).map((num) => {
+        return String.fromCharCode(num)
+    }).join('')
+    return btoa(random_chrpts)
+        .replaceAll("/", "_").replaceAll("+", "-")
+        .replaceAll("=", "")
+}
+
+export function base64ToBin(encoded_string: string) {
+    const base64 = encoded_string.replaceAll("_", "/").replaceAll("-", "+");
+    const decoded = atob(base64)
+    return new Uint8Array(Array.from(decoded).map((char) => {
+        return char.charCodeAt(0)
+    }))
+}
+
+export async function keys() {
+    const keyPair = await window.crypto.subtle.generateKey(
+        {
+            name: "RSA-OAEP",
+            modulusLength: 4096,
+            publicExponent: new Uint8Array([1, 0, 1]),
+            hash: "SHA-256"
+        },
+        true,
+        ["encrypt", "decrypt"]
+    );
+    const exported_private = await window.crypto.subtle.exportKey(
+        "pkcs8",
+        keyPair.privateKey
+    );
+
+    const exported_public = await window.crypto.subtle.exportKey(
+        "spki",
+        keyPair.publicKey
+    );
+
+    return {
+        "private_key": binToBase64Url(new Uint8Array(exported_private)),
+        "public_key": binToBase64Url(new Uint8Array(exported_public))
+    }
+}
+
+export async function decryptPass(private_key_str: string, encrypted_pass: string) {
+    const private_bytes = base64ToBin(private_key_str)
+
+    const private_key = await window.crypto.subtle.importKey(
+        "pkcs8",
+        private_bytes,
+        {
+            name: "RSA-OAEP",
+            hash: "SHA-256"
+        },
+        true,
+        ["decrypt"]
+    );
+
+    const encrypted_pass_bytes = base64ToBin(encrypted_pass)
+
+    const pass_bytes = await window.crypto.subtle.decrypt(
+        {
+            name: "RSA-OAEP"
+        },
+        private_key,
+        encrypted_pass_bytes
+    );
+
+    let enc = new TextDecoder();
+    return enc.decode(pass_bytes);
+}

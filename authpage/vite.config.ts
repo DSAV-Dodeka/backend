@@ -7,6 +7,9 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: '../src/dodekaserver/resources/static/credentials'
+  },
+  server: {
+    port: 4243
   }
 })
 

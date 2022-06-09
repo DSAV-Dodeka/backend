@@ -48,7 +48,7 @@ async def confirm_join(signup: SignupConfirm, authorization: str = Security(auth
     # send register email
 
     return {
-        "ok": "ok"
+        "ok": register_id
     }
 
 

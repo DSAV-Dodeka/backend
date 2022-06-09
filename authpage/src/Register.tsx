@@ -17,8 +17,15 @@ const Register = () => {
             // }
             const { private_key, public_key } = await keys()
             localStorage.setItem("private_key", private_key)
+            const email = source_params.get("email")
+            const register_id = source_params.get("register_id")
+            if (!email || !register_id) {
+                throw Error
+            }
             const target_params = new URLSearchParams({
                 "public_key": public_key,
+                "email": email,
+                "register_id": register_id
             }).toString()
             console.log(target_params)
 
@@ -28,11 +35,19 @@ const Register = () => {
         } else {
             console.log("hi")
             const private_key = localStorage.getItem("private_key")
+            if (!private_key) {
+                throw Error
+            }
             const password = await decryptPass(private_key, encrypted_pass)
             localStorage.removeItem("private_key")
-            console.log(pass)
+            console.log(password)
 
-            const is_ok = await clientRegister(username, password)
+            const email = source_params.get("email")
+            const register_id = source_params.get("register_id")
+            if (!email || !register_id) {
+                throw Error
+            }
+            const is_ok = await clientRegister(email, password, register_id)
 
             // const handleSubmit = async (evt: React.FormEvent<HTMLFormElement>) => {
             //     const is_ok = await clientRegister(username, password)
@@ -56,9 +71,9 @@ const Register = () => {
     }, [handled]);
 
     return (
-        <>
+        <div className="page">
             <h1 className="title">Register</h1>
-        </>
+        </div>
     )
 }
 

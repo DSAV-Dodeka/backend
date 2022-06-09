@@ -3,11 +3,11 @@ import config from "./config";
 
 async function init_opq() {
     // Works in dev, not in prod, for prod just use init()
-    await init("../node_modules/@tiptenbrink/opaquewasm/opaquewasm_bg.wasm");
-    //await init()
+    //await init("../node_modules/@tiptenbrink/opaquewasm/opaquewasm_bg.wasm");
+    await init()
 }
 
-export async function clientRegister(username: string, password: string) {
+export async function clientRegister(username: string, password: string, register_id: string) {
     try {
         await init_opq()
         const { message: message1, state } = client_register_wasm(password)
@@ -17,8 +17,9 @@ export async function clientRegister(username: string, password: string) {
 
         // get message to server and get message back
         const reqst = {
-            "username": username,
-            "client_request": message1
+            "email": username,
+            "client_request": message1,
+            "registerid": register_id
         }
         const res = await fetch(`${config.auth_location}/register/start/`, {
             method: 'POST', body: JSON.stringify(reqst),
@@ -150,11 +151,17 @@ export async function keys() {
         true,
         ["encrypt", "decrypt"]
     );
+    if (!keyPair.privateKey) {
+        throw Error
+    }
     const exported_private = await window.crypto.subtle.exportKey(
         "pkcs8",
         keyPair.privateKey
     );
 
+    if (!keyPair.publicKey) {
+        throw Error
+    }
     const exported_public = await window.crypto.subtle.exportKey(
         "spki",
         keyPair.publicKey

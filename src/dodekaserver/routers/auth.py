@@ -8,6 +8,7 @@ from fastapi.responses import RedirectResponse
 
 import opaquepy as opq
 
+from dodekaserver.define.entities import User
 from dodekaserver.env import LOGGER_NAME, frontend_client_id, credentials_url
 from dodekaserver.define import ErrorResponse, PasswordResponse, PasswordRequest, SavedState, FinishRequest, \
     FinishLogin, AuthRequest, TokenResponse, TokenRequest, FlowUser
@@ -31,15 +32,26 @@ logger = logging.getLogger(LOGGER_NAME)
 async def start_register(register_start: PasswordRequest):
     """ First step of OPAQUE registration, requires username and client message generated in first client registration
     step."""
+    email_usph = util.usp_hex(register_start.email)
+    try:
+        ud = await data.user.get_userdata_by_register_id(dsrc, register_start.registerid)
+    except DataError as e:
+        logger.debug(e)
+        reason = "No registration for that register_id"
+        raise ErrorResponse(400, err_type="invalid_register", err_desc=reason, debug_key="no_register_for_id")
+
+    if ud.email != email_usph:
+        logger.debug("Registration start does not match e-mail")
+        reason = "Bad registration."
+        raise ErrorResponse(400, err_type="invalid_register", err_desc=reason, debug_key="bad_registration_start")
+
     # OPAQUE public key
     public_key = await data.key.get_opaque_public(dsrc)
-    username = register_start.username
-    user_usph = util.usp_hex(username)
-    auth_id = util.random_time_hash_hex(user_usph)
+    auth_id = util.random_time_hash_hex(email_usph)
 
-    response, saved_state = authentication.opaque_register(register_start.client_request, user_usph, public_key)
+    response, saved_state = authentication.opaque_register(register_start.client_request, email_usph, public_key, ud.id)
 
-    await data.kv.store_auth_state(dsrc, auth_id, saved_state)
+    await data.kv.store_auth_register_state(dsrc, auth_id, saved_state)
 
     return PasswordResponse(server_message=response, auth_id=auth_id)
 
@@ -47,21 +59,21 @@ async def start_register(register_start: PasswordRequest):
 @router.post("/register/finish/")
 async def finish_register(register_finish: FinishRequest):
     try:
-        saved_state = await data.kv.get_state(dsrc, register_finish.auth_id)
+        saved_state = await data.kv.get_register_state(dsrc, register_finish.auth_id)
     except NoDataError as e:
         logger.debug(e.message)
         reason = "Registration not initialized or expired"
         raise ErrorResponse(400, err_type="invalid_registration", err_desc=reason, debug_key="no_register_start")
 
-    user_usph = util.usp_hex(register_finish.username)
-    if saved_state.user_usph != user_usph:
+    email_usph = util.usp_hex(register_finish.email)
+    if saved_state.user_usph != email_usph:
         reason = "User does not match state!"
         logger.debug(reason)
         raise ErrorResponse(400, err_type="invalid_registration", err_desc=reason, debug_key="unequal_user")
 
     password_file = opq.register_finish(register_finish.client_request, saved_state.state)
 
-    new_user = data.user.create_user(user_usph, password_file)
+    new_user = User(id=saved_state.id, usp_hex=email_usph, password_file=password_file).dict()
 
     try:
         await data.user.upsert_user_row(dsrc, new_user)
@@ -76,7 +88,7 @@ async def finish_register(register_finish: FinishRequest):
 
 @router.post("/login/start/", response_model=PasswordResponse)
 async def start_login(login_start: PasswordRequest):
-    user_usph = util.usp_hex(login_start.username)
+    user_usph = util.usp_hex(login_start.email)
     private_key = await data.key.get_opaque_private(dsrc)
 
     password_file = await data.user.get_user_password_file(dsrc, "fakerecord")
@@ -112,7 +124,7 @@ async def finish_login(login_finish: FinishLogin):
         reason = "Login not initialized or expired"
         raise ErrorResponse(400, err_type="invalid_login", err_desc=reason, debug_key="no_login_start")
 
-    user_usph = util.usp_hex(login_finish.username)
+    user_usph = util.usp_hex(login_finish.email)
     if saved_state.user_usph != user_usph:
         raise ErrorResponse(status_code=400, err_type="invalid_login", err_desc="Incorrect username for this login!")
 

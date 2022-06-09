@@ -85,13 +85,20 @@ class PasswordRequest(BaseModel):
     :var client_request: serialized (base64url-encoded) opaque-ke RegistrationUpload using the same cipher suite as the
         backend server
     """
-    username: str
+    email: str
     client_request: str
+    registerid: str
 
 
 class PasswordResponse(BaseModel):
     server_message: str
     auth_id: str
+
+
+class SavedRegisterState(BaseModel):
+    user_usph: str
+    id: int
+    state: str
 
 
 class SavedState(BaseModel):
@@ -101,13 +108,13 @@ class SavedState(BaseModel):
 
 class FinishRequest(BaseModel):
     auth_id: str
-    username: str
+    email: str
     client_request: str
 
 
 class FinishLogin(BaseModel):
     auth_id: str
-    username: str
+    email: str
     client_request: str
     flow_id: str
 

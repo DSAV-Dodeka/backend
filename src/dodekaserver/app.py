@@ -44,7 +44,7 @@ def create_app() -> tuple[FastAPI, Logger]:
     ]
 
     new_app = FastAPI()
-    new_app.mount("/credentials", StaticFiles(directory=res_path.joinpath("static/credentials")), name="credentials")
+    new_app.mount("/credentials", StaticFiles(directory=res_path.joinpath("static/credentials"), html=True), name="credentials")
     new_app.include_router(basic.router)
     new_app.include_router(auth.router)
     new_app.include_router(profile.router)

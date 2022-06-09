@@ -1,8 +1,8 @@
 import opaquepy as opq
 
-from dodekaserver.define import SavedState
+from dodekaserver.define import SavedRegisterState
 
 
-def opaque_register(client_request, user_usph, public_key):
+def opaque_register(client_request, user_usph, user_id, public_key):
     response, state = opq.register(client_request, public_key)
-    return response, SavedState(user_usph=user_usph, state=state)
+    return response, SavedRegisterState(user_usph=user_usph, id=user_id, state=state)

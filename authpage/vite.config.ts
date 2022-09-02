@@ -13,7 +13,7 @@ export default defineConfig({
         register: resolve(__dirname, 'register/index.html')
       }
     },
-    outDir: '../src/dodekaserver/resources/static/credentials'
+    outDir: '../src/apiserver/resources/static/credentials'
   },
   server: {
     port: 4243

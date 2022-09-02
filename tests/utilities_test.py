@@ -3,7 +3,7 @@ import time
 import pytest_asyncio
 from pytest_mock import MockerFixture
 
-import dodekaserver.utilities as util
+import apiserver.utilities as util
 
 
 @pytest_asyncio.fixture

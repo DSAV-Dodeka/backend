@@ -4,11 +4,11 @@ import asyncio
 import sqlalchemy.engine
 from databases import Database
 
-import dodekaserver.db
-from dodekaserver.db.settings import ADMIN_DB_NAME, DB_CLUSTER
-from dodekaserver.db import model
-from dodekaserver.db.admin import remove_test_dbs
-from dodekaserver.utilities import random_time_hash_hex
+import apiserver.db
+from apiserver.db.settings import ADMIN_DB_NAME, DB_CLUSTER
+from apiserver.db import model
+from apiserver.db.admin import remove_test_dbs
+from apiserver.utilities import random_time_hash_hex
 
 
 @pytest.fixture(scope="module")
@@ -59,7 +59,7 @@ async def test_db():
 @pytest.fixture(scope="module")
 @pytest.mark.asyncio
 async def test_dbops():
-    yield dodekaserver.db.DatabaseOperations
+    yield apiserver.db.DatabaseOperations
 
 
 @pytest.mark.asyncio

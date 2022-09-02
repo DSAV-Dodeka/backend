@@ -1,11 +1,11 @@
 [tool.poetry]
-name = "dodekaserver"
+name = "apiserver"
 version = "0.1.1"
 description = ""
 authors = ["Tip ten Brink <75669206+tiptenbrink@users.noreply.github.com>"]
 
 [tool.poetry.dependencies]
-python = ">=3.9, <3.11"
+python = ">=3.10, <3.11"
 fastapi = "0.81.0"
 uvicorn = {extras = ["standard"], version = "^0.18.1"}
 databases = {extras = ["postgresql"], version = "^0.6.0"}
@@ -23,14 +23,13 @@ opaquepy = "^0.2.0"
 PyJWT = "2.4.0"
 cryptography = "37.0.4"
 cffi = "^1.15.0"
-pydantic = "^1.9.1"
-optimize-images = "^1.5.1"
+pydantic = "^1.10.1"
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
 
 [tool.poetry.scripts]
-s-dodeka = "dodekaserver.main:run"
+s-api = "apiserver.main:run"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0.1"

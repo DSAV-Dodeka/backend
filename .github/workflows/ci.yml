@@ -51,7 +51,7 @@ jobs:
       uses: actions/cache@v2
       with:
         key: authpage-${{ hashFiles('${{ github.workspace }}/authpage') }}
-        path: ${{ github.workspace }}/src/dodekaserver/resources/static/credentials
+        path: ${{ github.workspace }}/src/apiserver/resources/static/credentials
     - name: Build credentials
       run: |
         npm install

@@ -13,14 +13,14 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.9'
+        python-version: '3.10'
     # Cache means install is saved in repo cache
     # Increment poetry-0 if new install is necessary
     - name: Load cached Poetry installation
       uses: actions/cache@v2
       with:
         path: ~/.local
-        key: poetry-0
+        key: poetry-1
     - name: Install Poetry
       uses: snok/install-poetry@v1
       with:

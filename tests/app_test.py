@@ -44,7 +44,8 @@ async def app(app_mod):
 
 @pytest.fixture(scope="module")
 def api_config():
-    yield load_config(Path('test.config.toml'))
+    test_config_path = Path(__file__).parent.joinpath("test.config.toml")
+    yield load_config(test_config_path)
 
 
 @pytest.fixture(scope="module")

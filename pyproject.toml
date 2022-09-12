@@ -32,7 +32,6 @@ pytest-mock = "^3.7.0"
 httpx = "^0.23.0"
 alembic = "^1.8.0"
 psycopg2-binary = "^2.9.2"
-numpy = "^1.18"
 coverage = "^6.3.2"
 
 [build-system]

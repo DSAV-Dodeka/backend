@@ -1,5 +1,6 @@
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
+from apiserver.define.config import Config
 from apiserver.env import id_exp
 from apiserver.utilities import utc_timestamp
 from apiserver.auth.tokens import aes_from_symmetric, decrypt_old_refresh, InvalidRefresh, verify_refresh, \
@@ -52,12 +53,12 @@ async def do_refresh(dsrc: Source, old_refresh_token: str):
     return id_token, access_token, refresh_token, id_exp, access_scope, user_usph
 
 
-async def new_token(dsrc: Source, user_usph: str, scope: str, auth_time: int, id_nonce: str):
+async def new_token(dsrc: Source, config: Config, user_usph: str, scope: str, auth_time: int, id_nonce: str):
     aesgcm, signing_key = await get_keys(dsrc)
     utc_now = utc_timestamp()
 
     access_token_data, id_token_data, access_scope, refresh_save = create_tokens(user_usph, scope, auth_time, id_nonce,
-                                                                                 utc_now)
+                                                                                 utc_now, config)
 
     refresh_id = await data.refreshtoken.refresh_save(dsrc, refresh_save)
 

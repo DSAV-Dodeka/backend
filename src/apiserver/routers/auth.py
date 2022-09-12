@@ -3,23 +3,22 @@ from urllib.parse import urlencode
 import logging
 
 from pydantic import ValidationError
-from fastapi import APIRouter, HTTPException, status, Response, BackgroundTasks
+from fastapi import APIRouter, status, Response, Request
 from fastapi.responses import RedirectResponse
 
 import opaquepy as opq
 
+from apiserver.define.config import Config
 from apiserver.define.entities import User
-from apiserver.env import LOGGER_NAME, frontend_client_id, credentials_url
+from apiserver.env import LOGGER_NAME
 from apiserver.define import ErrorResponse, PasswordResponse, PasswordRequest, SavedState, FinishRequest, \
     FinishLogin, AuthRequest, TokenResponse, TokenRequest, FlowUser, RegisterRequest
 import apiserver.utilities as util
 import apiserver.data as data
-from apiserver.data import DataError, NoDataError
+from apiserver.data import DataError, NoDataError, Source
 import apiserver.auth.authentication as authentication
 from apiserver.auth.tokens import InvalidRefresh
 from apiserver.auth.tokens_data import do_refresh, new_token
-
-dsrc = data.dsrc
 
 router = APIRouter()
 
@@ -29,9 +28,10 @@ logger = logging.getLogger(LOGGER_NAME)
 
 
 @router.post("/register/start/", response_model=PasswordResponse)
-async def start_register(register_start: RegisterRequest):
+async def start_register(register_start: RegisterRequest, request: Request):
     """ First step of OPAQUE registration, requires username and client message generated in first client registration
     step."""
+    dsrc: Source = request.app.state.dsrc
     email_usph = util.usp_hex(register_start.email)
     try:
         ud = await data.user.get_userdata_by_register_id(dsrc, register_start.register_id)
@@ -69,7 +69,8 @@ async def start_register(register_start: RegisterRequest):
 
 
 @router.post("/register/finish/")
-async def finish_register(register_finish: FinishRequest):
+async def finish_register(register_finish: FinishRequest, request: Request):
+    dsrc: Source = request.app.state.dsrc
     try:
         saved_state = await data.kv.get_register_state(dsrc, register_finish.auth_id)
     except NoDataError as e:
@@ -99,7 +100,9 @@ async def finish_register(register_finish: FinishRequest):
 
 
 @router.post("/login/start/", response_model=PasswordResponse)
-async def start_login(login_start: PasswordRequest):
+async def start_login(login_start: PasswordRequest, request: Request):
+    dsrc: Source = request.app.state.dsrc
+
     user_usph = util.usp_hex(login_start.email)
     private_key = await data.key.get_opaque_private(dsrc)
 
@@ -128,7 +131,8 @@ async def start_login(login_start: PasswordRequest):
 
 
 @router.post("/login/finish/")
-async def finish_login(login_finish: FinishLogin):
+async def finish_login(login_finish: FinishLogin, request: Request):
+    dsrc: Source = request.app.state.dsrc
     try:
         saved_state = await data.kv.get_state(dsrc, login_finish.auth_id)
     except NoDataError as e:
@@ -151,14 +155,23 @@ async def finish_login(login_finish: FinishLogin):
 
 @router.get("/oauth/authorize/", status_code=303)
 async def oauth_endpoint(response_type: str, client_id: str, redirect_uri: str, state: str,
-                         code_challenge: str, code_challenge_method: str, nonce: str):
+                         code_challenge: str, code_challenge_method: str, nonce: str, request: Request):
+    dsrc: Source = request.app.state.dsrc
+    config: Config = request.app.state.config
     try:
         auth_request = AuthRequest(response_type=response_type, client_id=client_id, redirect_uri=redirect_uri,
                                    state=state, code_challenge=code_challenge,
                                    code_challenge_method=code_challenge_method, nonce=nonce)
+
+        assert auth_request.client_id == config.frontend_client_id, "Unrecognized client ID!"
+        assert auth_request.redirect_uri in config.valid_redirects, "Unrecognized redirect!"
+
     except ValidationError as e:
         logger.debug(str(e.errors()))
         raise ErrorResponse(status_code=400, err_type="invalid_authorize", err_desc=str(e.errors()))
+    except AssertionError as e:
+        logger.debug(str(e))
+        raise ErrorResponse(status_code=400, err_type="invalid_authorize", err_desc=str(e))
 
     flow_id = util.random_time_hash_hex()
 
@@ -168,18 +181,19 @@ async def oauth_endpoint(response_type: str, client_id: str, redirect_uri: str, 
     params = {
         "flow_id": flow_id
     }
-
-    redirect = f"{credentials_url}?{urlencode(params)}"
+    config: Config = request.app.state.config
+    redirect = f"{config.credentials_url}?{urlencode(params)}"
 
     return RedirectResponse(redirect, status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/oauth/callback/", status_code=303)
-async def oauth_finish(flow_id: str, code: str, response: Response):
+async def oauth_finish(flow_id: str, code: str, response: Response, request: Request):
     # Prevents cache of value
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
 
+    dsrc: Source = request.app.state.dsrc
     try:
         auth_request = await data.kv.get_auth_request(dsrc, flow_id)
     except NoDataError as e:
@@ -198,14 +212,16 @@ async def oauth_finish(flow_id: str, code: str, response: Response):
 
 
 @router.post("/oauth/token/", response_model=TokenResponse)
-async def token(token_request: TokenRequest, response: Response):
+async def token(token_request: TokenRequest, response: Response, request: Request):
     # Prevents cache, required by OpenID Connect
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
 
+    dsrc: Source = request.app.state.dsrc
+    config: Config = request.app.state.config
     # We only allow requests meant to be sent from our front end
     # This does not heighten security, only so other clients do not accidentally make requests here
-    if token_request.client_id != frontend_client_id:
+    if token_request.client_id != config.frontend_client_id:
         reason = "Invalid client ID."
         logger.debug(reason)
         raise ErrorResponse(400, err_type="invalid_client", err_desc=reason)
@@ -267,7 +283,7 @@ async def token(token_request: TokenRequest, response: Response):
 
         token_scope = "test" if token_user != "admin" else "admin"
         id_token, access, refresh, exp, returned_scope = \
-            await new_token(dsrc, token_user, token_scope, auth_time, id_nonce)
+            await new_token(dsrc, config, token_user, token_scope, auth_time, id_nonce)
 
     elif token_request.grant_type == "refresh_token":
         try:

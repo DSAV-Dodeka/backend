@@ -1,7 +1,8 @@
 import logging
 
-from fastapi import APIRouter, Security, status, HTTPException
+from fastapi import APIRouter, Security, status, HTTPException, Request
 
+from apiserver.define.config import Config
 from apiserver.env import LOGGER_NAME
 from apiserver.define import ErrorResponse
 from apiserver.define.entities import AccessToken, SignedUp, UserData
@@ -9,11 +10,8 @@ from apiserver.define.request import SignupRequest, SignupConfirm, Register, Use
 import apiserver.utilities as util
 from apiserver.auth.header import auth_header
 import apiserver.data as data
-from apiserver.data import DataError
+from apiserver.data import DataError, Source
 from apiserver.routers.helper import require_admin
-
-
-dsrc = data.dsrc
 
 router = APIRouter()
 
@@ -21,10 +19,11 @@ logger = logging.getLogger(LOGGER_NAME)
 
 
 @router.post("/onboard/signup")
-async def init_signup(signup: SignupRequest):
+async def init_signup(signup: SignupRequest, request: Request):
     """ Signup is initiated by leaving basic information. User is redirected to AV'40 page, where they will actually
     sign up. Board can see who has signed up this way. There might not be full correspondence between exact signup and
     what is provided to AV'40. So there is a manual check."""
+    dsrc: Source = request.app.state.dsrc
     print(signup.dict())
     signed_up = SignedUp(firstname=signup.firstname, lastname=signup.lastname, email=signup.email, phone=signup.phone)
     await data.signedup.insert_su_row(dsrc, signed_up.dict())
@@ -36,9 +35,13 @@ async def init_signup(signup: SignupRequest):
 
 
 @router.post("/onboard/confirm")
-async def confirm_join(signup: SignupConfirm, authorization: str = Security(auth_header)):
+async def confirm_join(signup: SignupConfirm, request: Request, authorization: str = Security(auth_header)):
     """ Board confirms data from AV`40 signup through admin tool. """
-    await require_admin(authorization)
+    dsrc: Source = request.app.state.dsrc
+    config: Config = request.app.state.config
+    await require_admin(authorization, dsrc, config)
+
+    dsrc: Source = request.app.state.dsrc
 
     signed_up = await data.signedup.get_signedup_by_email(dsrc, signup.email)
     email_usph = util.usp_hex(signup.email)
@@ -53,7 +56,8 @@ async def confirm_join(signup: SignupConfirm, authorization: str = Security(auth
 
 
 @router.get("/onboard/userdata/{register_id}")
-async def register_id_userdata(register_id: str):
+async def register_id_userdata(register_id: str, request: Request):
+    dsrc: Source = request.app.state.dsrc
 
     try:
         ud = await data.user.get_userdata_by_register_id(dsrc, register_id)
@@ -66,8 +70,10 @@ async def register_id_userdata(register_id: str):
 
 
 @router.post("/onboard/register")
-async def register_user(register: Register):
+async def register_user(register: Register, request: Request):
     """ Final registration. """
+    dsrc: Source = request.app.state.dsrc
+
     email_usph = util.usp_hex(register.email)
     try:
         ud = await data.user.get_userdata_by_register_id(dsrc, register.register_id)

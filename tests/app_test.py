@@ -1,4 +1,5 @@
 from datetime import date
+from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
 import asyncio
@@ -13,7 +14,7 @@ from fastapi import status
 import opaquepy as opq
 
 from apiserver.define import FlowUser, AuthRequest, SavedState, SavedRegisterState
-from apiserver.env import frontend_client_id
+from apiserver.define.config import load_config, Config
 from apiserver.utilities import utc_timestamp, usp_hex
 from apiserver.define.entities import SavedRefreshToken, UserData, User
 from apiserver.db.ops import DbOperations
@@ -41,11 +42,22 @@ async def app(app_mod):
     yield app
 
 
+@pytest.fixture(scope="module")
+def api_config():
+    yield load_config(Path('test.config.toml'))
+
+
+@pytest.fixture(scope="module")
+def frontend_client_id(api_config: Config):
+    yield api_config.frontend_client_id
+
+
 @pytest_asyncio.fixture(scope="module", autouse=True)
-async def mock_dsrc(app_mod, module_mocker: MockerFixture):
-    app_mod.dsrc.gateway = module_mocker.MagicMock(spec=app_mod.dsrc.gateway)
-    app_mod.dsrc.gateway.ops = module_mocker.MagicMock(spec=DbOperations)
-    yield app_mod.dsrc
+async def mock_dsrc(app_mod, app, api_config, module_mocker: MockerFixture):
+    app.state.dsrc.gateway = module_mocker.MagicMock(spec=app.state.dsrc.gateway)
+    app.state.dsrc.gateway.ops = module_mocker.MagicMock(spec=DbOperations)
+    app_mod.safe_startup(app, app.state.dsrc, api_config)
+    yield app.state.dsrc
 
 
 @pytest_asyncio.fixture(scope="module")
@@ -78,7 +90,7 @@ async def test_incorrect_client_id(test_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_incorrect_grant_type(test_client: AsyncClient):
+async def test_incorrect_grant_type(test_client: AsyncClient, frontend_client_id: str):
     req = {
       "client_id": frontend_client_id,
       "grant_type": "wrong",
@@ -95,7 +107,7 @@ async def test_incorrect_grant_type(test_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_empty_verifier(test_client: AsyncClient):
+async def test_empty_verifier(test_client: AsyncClient, frontend_client_id: str):
     req = {
         "client_id": frontend_client_id,
         "grant_type": "authorization_code",
@@ -113,7 +125,7 @@ async def test_empty_verifier(test_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_missing_redirect(test_client: AsyncClient):
+async def test_missing_redirect(test_client: AsyncClient, frontend_client_id: str):
     req = {
         "client_id": frontend_client_id,
         "grant_type": "authorization_code",
@@ -130,7 +142,7 @@ async def test_missing_redirect(test_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_empty_code(test_client: AsyncClient):
+async def test_empty_code(test_client: AsyncClient, frontend_client_id: str):
     req = {
         "client_id": frontend_client_id,
         "grant_type": "authorization_code",
@@ -186,11 +198,12 @@ fake_token_id = 44
 
 
 @pytest_asyncio.fixture
-async def fake_tokens():
+async def fake_tokens(api_config):
     from apiserver.auth.tokens import create_tokens, aes_from_symmetric, finish_tokens, encode_token_dict
     utc_now = utc_timestamp()
     access_token_data, id_token_data, access_scope, refresh_save = \
-        create_tokens(mock_flow_user.user_usph, fake_token_scope, mock_flow_user.auth_time, mock_auth_request.nonce, utc_now)
+        create_tokens(mock_flow_user.user_usph, fake_token_scope, mock_flow_user.auth_time, mock_auth_request.nonce,
+                      utc_now, api_config)
 
     acc_val = encode_token_dict(access_token_data.dict())
     id_val = encode_token_dict(id_token_data.dict())
@@ -206,7 +219,7 @@ async def fake_tokens():
 
 
 @pytest.mark.asyncio
-async def test_refresh(test_client, mocker: MockerFixture, mock_get_keys, fake_tokens):
+async def test_refresh(test_client, mocker: MockerFixture, mock_get_keys, fake_tokens, frontend_client_id: str):
 
     get_r = mocker.patch('apiserver.data.refreshtoken.get_refresh_by_id')
     get_refr = mocker.patch('apiserver.data.refreshtoken.refresh_transaction')
@@ -232,7 +245,7 @@ async def test_refresh(test_client, mocker: MockerFixture, mock_get_keys, fake_t
 
 
 @pytest.mark.asyncio
-async def test_auth_code(test_client, mocker: MockerFixture, mock_get_keys):
+async def test_auth_code(test_client, mocker: MockerFixture, mock_get_keys, frontend_client_id: str):
     get_flow = mocker.patch('apiserver.data.kv.get_flow_user')
     get_auth = mocker.patch('apiserver.data.kv.get_auth_request')
     r_save = mocker.patch('apiserver.data.refreshtoken.refresh_save')

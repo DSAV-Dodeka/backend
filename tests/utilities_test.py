@@ -1,5 +1,3 @@
-import time
-
 import pytest_asyncio
 from pytest_mock import MockerFixture
 

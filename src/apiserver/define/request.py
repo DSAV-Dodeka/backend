@@ -5,8 +5,6 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, validator
 
-from apiserver.env import frontend_client_id, valid_redirects
-
 
 class ErrorResponse(Exception):
     """ Exception response type that conforms to standard OAuth 2.0 error response in JSON form. """
@@ -43,16 +41,6 @@ class AuthRequest(BaseModel):
     @validator('response_type')
     def check_type(cls, v):
         assert v == "code", "'response_type' must be 'code'"
-        return v
-
-    @validator('client_id')
-    def check_client(cls, v):
-        assert v == frontend_client_id, "Unrecognized client ID!"
-        return v
-
-    @validator('redirect_uri')
-    def check_redirect(cls, v):
-        assert v in valid_redirects, "Unrecognized redirect!"
         return v
 
     @validator('state')

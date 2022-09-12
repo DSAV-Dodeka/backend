@@ -1,5 +1,3 @@
-from typing import Union
-
 from redis.asyncio import Redis
 # from redis import Redis
 from redis.commands.json.path import Path

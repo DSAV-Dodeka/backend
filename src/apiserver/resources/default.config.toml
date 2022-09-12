@@ -1,0 +1,8 @@
+app_port = 4243
+
+DB_HOST="localhost"
+DB_PORT=3141
+DB_NAME_ADMIN="postgres"
+
+KV_HOST="localhost"
+KV_PORT=6379

@@ -9,7 +9,8 @@ from pydantic import ValidationError
 import jwt
 from jwt import PyJWTError, DecodeError, InvalidSignatureError, ExpiredSignatureError, InvalidTokenError
 
-from apiserver.env import LOGGER_NAME, backend_client_id, issuer, id_exp, access_exp, refresh_exp, grace_period
+from apiserver.env import LOGGER_NAME, frontend_client_id, backend_client_id, issuer, id_exp, access_exp, refresh_exp, \
+    grace_period
 from apiserver.utilities import enc_b64url, dec_b64url
 from apiserver.define.entities import SavedRefreshToken, RefreshToken, AccessToken, IdToken
 
@@ -120,9 +121,9 @@ def build_refresh_token(new_refresh_id: int, saved_refresh: SavedRefreshToken, n
 def create_tokens(user_usph: str, scope: str, auth_time: int, id_nonce: str, utc_now: int):
     # Build new tokens
     access_token_data, id_token_data = id_access_tokens(sub=user_usph,
-                                                        iss="https://dsavdodeka.nl/auth",
-                                                        aud_access=["dodekaweb_client", "dodekabackend_client"],
-                                                        aud_id=["dodekaweb_client"],
+                                                        iss=issuer,
+                                                        aud_access=[frontend_client_id, backend_client_id],
+                                                        aud_id=[frontend_client_id],
                                                         scope=scope,
                                                         auth_time=auth_time,
                                                         id_nonce=id_nonce)

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from apiserver.env import config
+from apiserver.env import config, ConfigError, config_path
 
 
 class KvAddress(BaseModel):
@@ -9,12 +9,11 @@ class KvAddress(BaseModel):
     password: str
 
 
-env_kv_host = config.get('KV_HOST')
-env_kv_port = config.get('KV_PORT')
-env_kv_pass = config.get('KV_PASS')
+try:
+    KV_HOST = config['KV_HOST']
+    KV_PORT = config['KV_PORT']
+    KV_PASSWORD = config['KV_PASS']
+except KeyError as e:
+    raise ConfigError(f"Not all mandatory config values set in {config_path.resolve()}!") from e
 
-KV_HOST = env_kv_host if env_kv_port is not None else "localhost"
-KV_PORT = env_kv_port if env_kv_port is not None else 6379
-KV_PASSWORD = env_kv_pass if env_kv_pass is not None else "redisredis"
 KV_ADDRESS = KvAddress(host=KV_HOST, port=KV_PORT, db_n=0, password=KV_PASSWORD)
-

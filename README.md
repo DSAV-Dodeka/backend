@@ -81,6 +81,7 @@ First you need to have the Poetry environment running as described earlier and e
 * From there run `poetry run alembic revision --autogenerate -m "Some message"`
 * This will generate a Python file in the migrations/versions directory, which you can view to see if everything looks good. It basically looks at the database, looks at the schema described in db/model.py and generates code to migrate to the described schema.
 * Then, you can run `poetry run alembic upgrade head`, which will apply the latest generated revision. If you now use your database viewer, the table will have hopefully appeared.
+* If there is a mismatch with the current revision, use `poetry run alembic stamp head` before the above 2 commmands.
 
 To check if everything is working, try out the following:
 
@@ -91,3 +92,8 @@ To check if everything is working, try out the following:
 ### Startup and shutdown flow
 
 * Start the DB
+
+
+### Dev vs production
+
+If you are in a dev environment, you can start by running `dev.py`

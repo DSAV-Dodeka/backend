@@ -67,7 +67,7 @@ async def register_id_userdata(register_id: str):
 
 @router.post("/onboard/register")
 async def register_user(register: Register):
-    """ Board confirms data from AV`40 signup through admin tool. """
+    """ Final registration. """
     email_usph = util.usp_hex(register.email)
     try:
         ud = await data.user.get_userdata_by_register_id(dsrc, register.register_id)

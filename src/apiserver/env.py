@@ -1,14 +1,17 @@
 import os
-from dotenv import dotenv_values
+from pathlib import Path
+import tomli
 from apiserver import res_path
 
-# These config values are automatically moved to resources by a script
-# These are sourced from the DSAV/dodeka repository
-# Config will contain all environment variables in a dict
+env_config_path = os.environ.get("APISERVER_CONFIG")
+config_path = Path(env_config_path) if env_config_path is not None else res_path.joinpath("default.config.toml")
+
+with open(config_path, "rb") as f:
+    config_dict = tomli.load(f)
+
+# Config will contain all variables in a dict
 config = {
-    **dotenv_values(res_path.joinpath("conf/db/deploydb.env")),
-    **dotenv_values(res_path.joinpath("conf/kv/deploykv.env")),
-    **dotenv_values(res_path.joinpath("conf/dev/dev.env")),
+    **config_dict,
     **os.environ,  # override loaded values with environment variables
 }
 
@@ -21,12 +24,22 @@ access_exp = 1 * 60 * 60  # 1 hour
 refresh_exp = 30 * 24 * 60 * 60  # 1 month
 
 # grace_period = 1
-grace_period = 3 * 60   # 3 minutes in which it is still accepted
+grace_period = 3 * 60  # 3 minutes in which it is still accepted
 
-issuer = "https://dsavdodeka.nl/auth"
-frontend_client_id = "dodekaweb_client"
-backend_client_id = "dodekabackend_client"
 
-valid_redirects = {"http://localhost:3000/auth/callback", "https://dsavdodeka.nl/auth/callback"}
+class ConfigError(Exception):
+    pass
 
-credentials_url = "http://localhost:4243/credentials/index.html"
+
+try:
+    app_port: int = config['app_port']
+
+    issuer: str = config['issuer']
+    frontend_client_id: str = config['frontend_client_id']
+    backend_client_id: str = config['backend_client_id']
+
+    valid_redirects: set[str] = set(config['valid_redirects'])
+
+    credentials_url: str = config['credentials_url']
+except KeyError as e:
+    raise ConfigError(f"Not all mandatory config values set in {config_path.resolve()}!") from e

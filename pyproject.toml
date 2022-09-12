@@ -6,23 +6,17 @@ authors = ["Tip ten Brink <75669206+tiptenbrink@users.noreply.github.com>"]
 
 [tool.poetry.dependencies]
 python = ">=3.10, <3.11"
+tomli = "2.0.1"
 fastapi = "0.81.0"
 uvicorn = {extras = ["standard"], version = "^0.18.1"}
 databases = {extras = ["postgresql"], version = "^0.6.0"}
-alembic = "^1.8.0"
-psycopg2-binary = "^2.9.2"
 gunicorn = "^20.1.0"
-pytest-asyncio = "^0.19.0"
-pytest-mock = "^3.7.0"
-requests = "^2.26.0"
-httpx = "^0.23.0"
 hiredis = "^2.0.0"
 redis = "^4.3.1"
 python-dotenv = "^0.20.0"
 opaquepy = "^0.2.0"
 PyJWT = "2.4.0"
 cryptography = "37.0.4"
-cffi = "^1.15.0"
 pydantic = "^1.10.1"
 
 [tool.pytest.ini_options]
@@ -33,6 +27,11 @@ s-api = "apiserver.main:run"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.0.1"
+pytest-asyncio = "^0.19.0"
+pytest-mock = "^3.7.0"
+httpx = "^0.23.0"
+alembic = "^1.8.0"
+psycopg2-binary = "^2.9.2"
 numpy = "^1.18"
 coverage = "^6.3.2"
 

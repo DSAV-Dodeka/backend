@@ -1,6 +1,5 @@
 import logging
 from logging import Logger
-from typing import Tuple
 
 import uvicorn
 
@@ -27,14 +26,14 @@ import apiserver.routers.onboard as onboard
 
 
 def init_logging(logger_name: str, log_level: int):
-    logger = logging.getLogger(logger_name)
-    logger.setLevel(log_level)
+    logger_init = logging.getLogger(logger_name)
+    logger_init.setLevel(log_level)
     handler = logging.StreamHandler()
     log_format = "%(levelprefix)s %(asctime)s | %(message)s"
     formatter = uvicorn.logging.DefaultFormatter(log_format, datefmt="%Y-%m-%d %H:%M:%S")
     handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    return logger
+    logger_init.addHandler(handler)
+    return logger_init
 
 
 def create_app() -> tuple[FastAPI, Logger]:

@@ -13,8 +13,8 @@ from fastapi import status
 
 import opaquepy as opq
 
-from apiserver.define import FlowUser, AuthRequest, SavedState, SavedRegisterState
-from apiserver.define.config import load_config, Config
+from apiserver.define import FlowUser, AuthRequest, SavedState, SavedRegisterState, frontend_client_id
+from apiserver.env import load_config, Config
 from apiserver.utilities import utc_timestamp, usp_hex
 from apiserver.define.entities import SavedRefreshToken, UserData, User
 from apiserver.db.ops import DbOperations
@@ -44,13 +44,8 @@ async def app(app_mod):
 
 @pytest.fixture(scope="module")
 def api_config():
-    test_config_path = Path(__file__).parent.joinpath("test.config.toml")
+    test_config_path = Path(__file__).parent.joinpath("testenv.toml")
     yield load_config(test_config_path)
-
-
-@pytest.fixture(scope="module")
-def frontend_client_id(api_config: Config):
-    yield api_config.frontend_client_id
 
 
 @pytest_asyncio.fixture(scope="module", autouse=True)
@@ -91,7 +86,7 @@ async def test_incorrect_client_id(test_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_incorrect_grant_type(test_client: AsyncClient, frontend_client_id: str):
+async def test_incorrect_grant_type(test_client: AsyncClient):
     req = {
       "client_id": frontend_client_id,
       "grant_type": "wrong",
@@ -108,7 +103,7 @@ async def test_incorrect_grant_type(test_client: AsyncClient, frontend_client_id
 
 
 @pytest.mark.asyncio
-async def test_empty_verifier(test_client: AsyncClient, frontend_client_id: str):
+async def test_empty_verifier(test_client: AsyncClient):
     req = {
         "client_id": frontend_client_id,
         "grant_type": "authorization_code",
@@ -126,7 +121,7 @@ async def test_empty_verifier(test_client: AsyncClient, frontend_client_id: str)
 
 
 @pytest.mark.asyncio
-async def test_missing_redirect(test_client: AsyncClient, frontend_client_id: str):
+async def test_missing_redirect(test_client: AsyncClient):
     req = {
         "client_id": frontend_client_id,
         "grant_type": "authorization_code",
@@ -143,7 +138,7 @@ async def test_missing_redirect(test_client: AsyncClient, frontend_client_id: st
 
 
 @pytest.mark.asyncio
-async def test_empty_code(test_client: AsyncClient, frontend_client_id: str):
+async def test_empty_code(test_client: AsyncClient):
     req = {
         "client_id": frontend_client_id,
         "grant_type": "authorization_code",
@@ -199,12 +194,12 @@ fake_token_id = 44
 
 
 @pytest_asyncio.fixture
-async def fake_tokens(api_config):
+async def fake_tokens():
     from apiserver.auth.tokens import create_tokens, aes_from_symmetric, finish_tokens, encode_token_dict
     utc_now = utc_timestamp()
     access_token_data, id_token_data, access_scope, refresh_save = \
         create_tokens(mock_flow_user.user_usph, fake_token_scope, mock_flow_user.auth_time, mock_auth_request.nonce,
-                      utc_now, api_config)
+                      utc_now)
 
     acc_val = encode_token_dict(access_token_data.dict())
     id_val = encode_token_dict(id_token_data.dict())
@@ -220,7 +215,7 @@ async def fake_tokens(api_config):
 
 
 @pytest.mark.asyncio
-async def test_refresh(test_client, mocker: MockerFixture, mock_get_keys, fake_tokens, frontend_client_id: str):
+async def test_refresh(test_client, mocker: MockerFixture, mock_get_keys, fake_tokens):
 
     get_r = mocker.patch('apiserver.data.refreshtoken.get_refresh_by_id')
     get_refr = mocker.patch('apiserver.data.refreshtoken.refresh_transaction')
@@ -246,7 +241,7 @@ async def test_refresh(test_client, mocker: MockerFixture, mock_get_keys, fake_t
 
 
 @pytest.mark.asyncio
-async def test_auth_code(test_client, mocker: MockerFixture, mock_get_keys, frontend_client_id: str):
+async def test_auth_code(test_client, mocker: MockerFixture, mock_get_keys):
     get_flow = mocker.patch('apiserver.data.kv.get_flow_user')
     get_auth = mocker.patch('apiserver.data.kv.get_auth_request')
     r_save = mocker.patch('apiserver.data.refreshtoken.refresh_save')

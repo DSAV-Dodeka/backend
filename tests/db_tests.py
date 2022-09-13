@@ -7,7 +7,7 @@ from databases import Database
 import apiserver.db
 from apiserver.db import model
 from apiserver.db.admin import remove_test_dbs
-from apiserver.define.config import load_config
+from apiserver.env import load_config
 from apiserver.utilities import random_time_hash_hex
 
 

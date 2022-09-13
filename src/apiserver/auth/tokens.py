@@ -9,9 +9,8 @@ from pydantic import ValidationError
 import jwt
 from jwt import PyJWTError, DecodeError, InvalidSignatureError, ExpiredSignatureError, InvalidTokenError
 
-from apiserver.define.config import Config
-from apiserver.env import LOGGER_NAME, id_exp, access_exp, refresh_exp, \
-    grace_period
+from apiserver.define import LOGGER_NAME, id_exp, access_exp, refresh_exp, grace_period, frontend_client_id, \
+    backend_client_id, issuer
 from apiserver.utilities import enc_b64url, dec_b64url
 from apiserver.define.entities import SavedRefreshToken, RefreshToken, AccessToken, IdToken
 
@@ -119,12 +118,12 @@ def build_refresh_token(new_refresh_id: int, saved_refresh: SavedRefreshToken, n
     return refresh_token
 
 
-def create_tokens(user_usph: str, scope: str, auth_time: int, id_nonce: str, utc_now: int, config: Config):
+def create_tokens(user_usph: str, scope: str, auth_time: int, id_nonce: str, utc_now: int):
     # Build new tokens
     access_token_data, id_token_data = id_access_tokens(sub=user_usph,
-                                                        iss=config.issuer,
-                                                        aud_access=[config.frontend_client_id, config.backend_client_id],
-                                                        aud_id=[config.frontend_client_id],
+                                                        iss=issuer,
+                                                        aud_access=[frontend_client_id, backend_client_id],
+                                                        aud_id=[frontend_client_id],
                                                         scope=scope,
                                                         auth_time=auth_time,
                                                         id_nonce=id_nonce)
@@ -204,10 +203,10 @@ class BadVerification(Exception):
         self.err_key = err_key
 
 
-def verify_access_token(public_key: str, access_token: str, config: Config):
+def verify_access_token(public_key: str, access_token: str):
     try:
         decoded_payload = jwt.decode(access_token, public_key, algorithms=["EdDSA"], leeway=grace_period,
-                                     require=["exp", "aud"], issuer=config.issuer, audience=[config.backend_client_id])
+                                     require=["exp", "aud"], issuer=issuer, audience=[backend_client_id])
     except InvalidSignatureError:
         raise BadVerification("invalid_signature")
     except DecodeError:

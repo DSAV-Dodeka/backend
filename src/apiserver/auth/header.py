@@ -1,6 +1,5 @@
 from fastapi.security.api_key import APIKeyHeader
 
-from apiserver.define.config import Config
 from apiserver.define.entities import AccessToken
 from apiserver import data
 from apiserver.data import Source
@@ -21,7 +20,7 @@ class BadAuth(Exception):
         self.debug_key = debug_key
 
 
-async def handle_header(authorization: str, dsrc: Source, config: Config) -> AccessToken:
+async def handle_header(authorization: str, dsrc: Source) -> AccessToken:
     if authorization is None:
         raise BadAuth(400, err_type="invalid_request", err_desc="No authorization provided.")
     if "Bearer " not in authorization:
@@ -29,6 +28,6 @@ async def handle_header(authorization: str, dsrc: Source, config: Config) -> Acc
     token = authorization.removeprefix("Bearer ")
     public_key = await data.key.get_token_public(dsrc)
     try:
-        return verify_access_token(public_key, token, config)
+        return verify_access_token(public_key, token)
     except BadVerification as e:
         raise BadAuth(401, err_type="invalid_token", err_desc="Token verification failed!", debug_key=e.err_key)

@@ -59,6 +59,11 @@ For persistence between requests, we use the Redis key-value database.
 
 Use `./down.sh` to turn Redis off. Do this *before* shutting down the PostgreSQL database.
 
+##### Configuration and import structure
+
+* The first loaded module is loaded is `define/define.py`. It should be fully independent of any other modules. It determines the so-called "compiled configuration", i.e. app-specific configuration. Every application should have this same configuration, no matter the deploy environment. However, it might still change easily and there are good reasons to not define it in the code. It could also vary between "local development" and "production". By default, it loads the `envconfig.toml` in the resources file. This file is populated with values meant for local development and environment-less testing (i.e. without the database). However, if no runtime-flag indicating it is an "envless" environment is set during app startup, a failure will occur.
+* Variables that are more "runtime" are loaded in by `env.py`. Using `APISERVER_CONFIG` the path of the config file can be set. By default it is the incomplete `env.toml`. For a development environment, this variable should be set, with `APISERVER_ENV="envless"` included.
+
 ##### Development
 * If you want to run it locally, [install Poetry](https://python-poetry.org/docs/master/). This can be complicated as it is still a somewhat fragile tool, but it is really easy to make good virtual environments with. 
 * Then, set up your IDE with a Python 3.9 Poetry virtual environment. This step can also be complicated. The best way is to simply run `poetry update` in the /server directory. It will give you a path towards the virtualenv it created, which will contain a python executable in the /bin folder. If you point your IDE to that executable as the project interpreter, everything should work.

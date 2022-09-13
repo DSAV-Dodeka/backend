@@ -12,11 +12,10 @@ from fastapi.exceptions import RequestValidationError
 # in the app state
 # In most cases this is where all environment variables and other configuration is loaded
 
-from apiserver.define.config import load_config, Config
-from apiserver.env import res_path, LOGGER_NAME
+from apiserver.define import res_path, ErrorResponse, error_response_handler, LOGGER_NAME, environment
+from apiserver.env import load_config, Config
 # Import types separately to make it clear in what line the module is first loaded and its top-level run
 from apiserver.data import Source
-from apiserver.define import ErrorResponse, error_response_handler
 
 # Router modules, each router has its own API endpoints
 import apiserver.routers.basic as basic
@@ -80,6 +79,10 @@ async def app_startup(dsrc_inst: Source):
     # the 'safe_startup()' above
     # Safe startup events that do not depend on the environment, can be included in the 'create_app()' above
     config = load_config()
+    if config.APISERVER_ENV != environment:
+        raise RuntimeError("Runtime environment (env.toml) does not correspond to compiled environment (define.toml)! "
+                           "Ensure defined variables are appropriate for the runtime environment before changing the "
+                           "environment!")
     safe_startup(app, dsrc_inst, config)
     # Db connections, etc.
     await dsrc_inst.startup()
@@ -94,12 +97,14 @@ async def app_shutdown(dsrc_inst: Source):
 @app.on_event("startup")
 async def startup():
     dsrc: Source = app.state.dsrc
+    logger.info("Running startup...")
     await app_startup(dsrc)
 
 
 @app.on_event("shutdown")
 async def shutdown():
     dsrc: Source = app.state.dsrc
+    logger.info("Running shutdown...")
     await app_shutdown(dsrc)
 
 

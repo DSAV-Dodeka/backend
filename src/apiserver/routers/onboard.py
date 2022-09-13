@@ -2,9 +2,7 @@ import logging
 
 from fastapi import APIRouter, Security, status, HTTPException, Request
 
-from apiserver.define.config import Config
-from apiserver.env import LOGGER_NAME
-from apiserver.define import ErrorResponse
+from apiserver.define import ErrorResponse, LOGGER_NAME
 from apiserver.define.entities import AccessToken, SignedUp, UserData
 from apiserver.define.request import SignupRequest, SignupConfirm, Register, UserDataRegisterResponse
 import apiserver.utilities as util
@@ -38,8 +36,7 @@ async def init_signup(signup: SignupRequest, request: Request):
 async def confirm_join(signup: SignupConfirm, request: Request, authorization: str = Security(auth_header)):
     """ Board confirms data from AV`40 signup through admin tool. """
     dsrc: Source = request.app.state.dsrc
-    config: Config = request.app.state.config
-    await require_admin(authorization, dsrc, config)
+    await require_admin(authorization, dsrc)
 
     dsrc: Source = request.app.state.dsrc
 

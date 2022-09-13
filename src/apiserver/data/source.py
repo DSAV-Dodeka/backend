@@ -4,7 +4,7 @@ import redis
 from databases import Database
 from redis.asyncio import Redis
 
-from apiserver.define.config import Config
+from apiserver.env import Config
 from apiserver.db.ops import DbOperations
 from apiserver.db.use import PostgresOperations
 

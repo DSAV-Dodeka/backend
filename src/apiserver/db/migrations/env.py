@@ -5,7 +5,7 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from apiserver.define.config import load_config
+from apiserver.env import load_config
 from apiserver.db.model import metadata
 
 

@@ -8,10 +8,9 @@ from fastapi.responses import RedirectResponse
 
 import opaquepy as opq
 
-from apiserver.define.config import Config
+from apiserver.define import frontend_client_id, credentials_url, LOGGER_NAME
 from apiserver.define.entities import User
-from apiserver.env import LOGGER_NAME
-from apiserver.define import ErrorResponse, PasswordResponse, PasswordRequest, SavedState, FinishRequest, \
+from apiserver.define.request import ErrorResponse, PasswordResponse, PasswordRequest, SavedState, FinishRequest, \
     FinishLogin, AuthRequest, TokenResponse, TokenRequest, FlowUser, RegisterRequest
 import apiserver.utilities as util
 import apiserver.data as data
@@ -157,21 +156,13 @@ async def finish_login(login_finish: FinishLogin, request: Request):
 async def oauth_endpoint(response_type: str, client_id: str, redirect_uri: str, state: str,
                          code_challenge: str, code_challenge_method: str, nonce: str, request: Request):
     dsrc: Source = request.app.state.dsrc
-    config: Config = request.app.state.config
     try:
         auth_request = AuthRequest(response_type=response_type, client_id=client_id, redirect_uri=redirect_uri,
                                    state=state, code_challenge=code_challenge,
                                    code_challenge_method=code_challenge_method, nonce=nonce)
-
-        assert auth_request.client_id == config.frontend_client_id, "Unrecognized client ID!"
-        assert auth_request.redirect_uri in config.valid_redirects, "Unrecognized redirect!"
-
     except ValidationError as e:
         logger.debug(str(e.errors()))
         raise ErrorResponse(status_code=400, err_type="invalid_authorize", err_desc=str(e.errors()))
-    except AssertionError as e:
-        logger.debug(str(e))
-        raise ErrorResponse(status_code=400, err_type="invalid_authorize", err_desc=str(e))
 
     flow_id = util.random_time_hash_hex()
 
@@ -181,8 +172,7 @@ async def oauth_endpoint(response_type: str, client_id: str, redirect_uri: str, 
     params = {
         "flow_id": flow_id
     }
-    config: Config = request.app.state.config
-    redirect = f"{config.credentials_url}?{urlencode(params)}"
+    redirect = f"{credentials_url}?{urlencode(params)}"
 
     return RedirectResponse(redirect, status_code=status.HTTP_303_SEE_OTHER)
 
@@ -218,10 +208,9 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
     response.headers["Pragma"] = "no-cache"
 
     dsrc: Source = request.app.state.dsrc
-    config: Config = request.app.state.config
     # We only allow requests meant to be sent from our front end
     # This does not heighten security, only so other clients do not accidentally make requests here
-    if token_request.client_id != config.frontend_client_id:
+    if token_request.client_id != frontend_client_id:
         reason = "Invalid client ID."
         logger.debug(reason)
         raise ErrorResponse(400, err_type="invalid_client", err_desc=reason)
@@ -283,13 +272,14 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
 
         token_scope = "test" if token_user != "admin" else "admin"
         id_token, access, refresh, exp, returned_scope = \
-            await new_token(dsrc, config, token_user, token_scope, auth_time, id_nonce)
+            await new_token(dsrc, token_user, token_scope, auth_time, id_nonce)
 
     elif token_request.grant_type == "refresh_token":
         try:
             assert token_request.refresh_token is not None
         except AssertionError as e:
-            logger.debug(e)
+            error_desc = "refresh_token must be defined"
+            logger.debug(f"{str(e)}: {error_desc}")
             raise ErrorResponse(400, err_type="invalid_grant", err_desc="refresh_token must be defined")
 
         old_refresh = token_request.refresh_token
@@ -297,7 +287,8 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
         try:
             id_token, access, refresh, exp, returned_scope, token_user = await do_refresh(dsrc, old_refresh)
         except InvalidRefresh as e:
-            logger.debug(e)
+            error_desc = "Invalid refresh_token!"
+            logger.debug(f"{str(e)}: {error_desc}")
             raise ErrorResponse(400, err_type="invalid_grant", err_desc="Invalid refresh_token!")
 
     else:

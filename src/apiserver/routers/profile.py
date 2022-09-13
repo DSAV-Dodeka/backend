@@ -1,17 +1,16 @@
-from fastapi import APIRouter, Security
+from fastapi import APIRouter, Security, Request
 
-import apiserver.data as data
+from apiserver.data import Source
 from apiserver.auth.header import auth_header
 from apiserver.routers.helper import handle_auth
-
-dsrc = data.dsrc
 
 router = APIRouter()
 
 
 @router.get("/res/profile")
-async def get_profile(authorization: str = Security(auth_header)):
-    acc = await handle_auth(authorization)
+async def get_profile(request: Request, authorization: str = Security(auth_header)):
+    dsrc: Source = request.app.state.dsrc
+    acc = await handle_auth(authorization, dsrc)
 
     return {
         "username": acc.sub,

@@ -1,9 +1,5 @@
 from fastapi import APIRouter
 
-import apiserver.data as data
-
-dsrc = data.dsrc
-
 router = APIRouter()
 
 

@@ -1,16 +1,14 @@
-from typing import Type
+from typing import Type, Optional
 
 import redis
 from databases import Database
 from redis.asyncio import Redis
 
-# These settings modules contain top-level logic that loads all configuration variables
+from apiserver.env import Config
 from apiserver.db.ops import DbOperations
 from apiserver.db.use import PostgresOperations
-from apiserver.db.settings import DB_URL
-from apiserver.kv.settings import KvAddress, KV_ADDRESS
 
-__all__ = ['Source', 'dsrc', 'DataError', 'Gateway', 'DbOperations']
+__all__ = ['Source', 'DataError', 'Gateway', 'DbOperations', 'NoDataError']
 
 
 class SourceError(ConnectionError):
@@ -30,25 +28,21 @@ class NoDataError(DataError):
 
 
 class Gateway:
-    db: Database = None
-    db_url: str
-    kv_addr: KvAddress
-    kv: Redis = None
+    db: Optional[Database] = None
+    kv: Optional[Redis] = None
     # Just store the class/type since we only use static methods
     ops: Type['DbOperations']
 
-    def __init__(self, do_init: bool = True, ops: Type[DbOperations] = None):
-        self.db_url = DB_URL
-        self.kv_addr = KV_ADDRESS
+    def __init__(self, ops: Type[DbOperations] = None):
         self.ops = PostgresOperations
-        if do_init:
-            self.init_objects()
 
-    def init_objects(self):
+    def init_objects(self, config: Config):
+        db_cluster = f"postgresql://{config.DB_USER}:{config.DB_PASS}@{config.DB_HOST}:{config.DB_PORT}"
+        db_url = f"{db_cluster}/{config.DB_NAME}"
         # Connections are not actually established, it simply initializes the connection parameters
-        self.db = Database(self.db_url)
-        self.kv = Redis(host=self.kv_addr.host, port=self.kv_addr.port, db=self.kv_addr.db_n,
-                        password=self.kv_addr.password)
+        self.db = Database(db_url)
+        self.kv = Redis(host=config.KV_HOST, port=config.KV_PORT, db=0,
+                        password=config.KV_PASS)
 
     async def connect(self):
         try:
@@ -79,11 +73,11 @@ class Source:
     def __init__(self):
         self.gateway = Gateway()
 
+    def init_gateway(self, config: Config):
+        self.gateway.init_objects(config)
+
     async def startup(self):
         await self.gateway.startup()
 
     async def shutdown(self):
         await self.gateway.shutdown()
-
-
-dsrc = Source()

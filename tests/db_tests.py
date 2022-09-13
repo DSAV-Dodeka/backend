@@ -5,9 +5,9 @@ import sqlalchemy.engine
 from databases import Database
 
 import apiserver.db
-from apiserver.db.settings import ADMIN_DB_NAME, DB_CLUSTER
 from apiserver.db import model
 from apiserver.db.admin import remove_test_dbs
+from apiserver.env import load_config
 from apiserver.utilities import random_time_hash_hex
 
 
@@ -24,9 +24,12 @@ def event_loop():
 async def test_db():
     """ Set up a database for testing, is run once each time this module is run. """
 
+    config = load_config()
+
     # Random name that cannot be duplicated
     test_db_name = 'test' + random_time_hash_hex()
-    admin_db_url = f"{DB_CLUSTER}/{ADMIN_DB_NAME}"
+    db_cluster = f"postgresql://{config.DB_USER}:{config.DB_PASS}@{config.DB_HOST}:{config.DB_PORT}"
+    admin_db_url = f"{db_cluster}/{config.DB_NAME_ADMIN}"
     # Connect to admin database that allows us to create new database
     database = Database(admin_db_url)
     await database.connect()
@@ -38,7 +41,7 @@ async def test_db():
     await database.execute(query_create)
     await database.disconnect()
 
-    test_db_url = f"{DB_CLUSTER}/{test_db_name}"
+    test_db_url = f"{db_cluster}/{test_db_name}"
 
     # Use the database model to create an empty database (uses SQLAlchemy connection)
     engine = sqlalchemy.engine.create_engine(test_db_url)

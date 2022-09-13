@@ -59,11 +59,17 @@ For persistence between requests, we use the Redis key-value database.
 
 Use `./down.sh` to turn Redis off. Do this *before* shutting down the PostgreSQL database.
 
+##### Configuration and import structure
+
+* The first loaded module is loaded is `define/define.py`. It should be fully independent of any other modules. It determines the so-called "compiled configuration", i.e. app-specific configuration. Every application should have this same configuration, no matter the deploy environment. However, it might still change easily and there are good reasons to not define it in the code. It could also vary between "local development" and "production". By default, it loads the `envconfig.toml` in the resources file. This file is populated with values meant for local development and environment-less testing (i.e. without the database). However, if no runtime-flag indicating it is an "envless" environment is set during app startup, a failure will occur.
+* Variables that are more "runtime" are loaded in by `env.py`. Using `APISERVER_CONFIG` the path of the config file can be set. By default it is the incomplete `env.toml`. For a development environment, this variable should be set, with `APISERVER_ENV="envless"` included.
+
 ##### Development
 * If you want to run it locally, [install Poetry](https://python-poetry.org/docs/master/). This can be complicated as it is still a somewhat fragile tool, but it is really easy to make good virtual environments with. 
 * Then, set up your IDE with a Python 3.9 Poetry virtual environment. This step can also be complicated. The best way is to simply run `poetry update` in the /server directory. It will give you a path towards the virtualenv it created, which will contain a python executable in the /bin folder. If you point your IDE to that executable as the project interpreter, everything should work.
 * Next run `poetry install`, which will also install the project. Currently the `apiserver` package is in a /src folder which is nice for test isolation, but it might confuse your IDE. In that case, find something like 'project structure' configuration and set the /src folder as a 'sources folder' or similar.
-* Now you can run the server either by just running the `main.py` in src/apiserver or by running `poetry run s-dodeka`. The server will automatically reload if you change any files. It will tell you at which address you can access it.
+* Before running, you must have the environment variable APISERVER_CONFIG set to `./dev.config.toml` in order to be able to run it. This can be most easily done by editing the run configuration in an IDE as PyCharm.
+* Now you can run the server either by just running the `dev.py` in src/apiserver or by running `poetry run s-dodeka`. The server will automatically reload if you change any files. It will tell you at which address you can access it.
 
 ##### Production
 * First, build a Python environment with the dependencies installed by running: `docker build --tag dodeka/server-deps -f server-deps.Dockerfile .`
@@ -81,6 +87,7 @@ First you need to have the Poetry environment running as described earlier and e
 * From there run `poetry run alembic revision --autogenerate -m "Some message"`
 * This will generate a Python file in the migrations/versions directory, which you can view to see if everything looks good. It basically looks at the database, looks at the schema described in db/model.py and generates code to migrate to the described schema.
 * Then, you can run `poetry run alembic upgrade head`, which will apply the latest generated revision. If you now use your database viewer, the table will have hopefully appeared.
+* If there is a mismatch with the current revision, use `poetry run alembic stamp head` before the above 2 commmands.
 
 To check if everything is working, try out the following:
 
@@ -91,3 +98,8 @@ To check if everything is working, try out the following:
 ### Startup and shutdown flow
 
 * Start the DB
+
+
+### Dev vs production
+
+If you are in a dev environment, you can start by running `dev.py`

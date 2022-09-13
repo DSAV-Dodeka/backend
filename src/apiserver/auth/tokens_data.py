@@ -1,6 +1,6 @@
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-from apiserver.env import id_exp
+from apiserver.define import id_exp
 from apiserver.utilities import utc_timestamp
 from apiserver.auth.tokens import aes_from_symmetric, decrypt_old_refresh, InvalidRefresh, verify_refresh, \
     build_refresh_save, finish_tokens, create_tokens

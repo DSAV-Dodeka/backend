@@ -1,4 +1,5 @@
 from datetime import date
+from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
 import asyncio
@@ -12,8 +13,8 @@ from fastapi import status
 
 import opaquepy as opq
 
-from apiserver.define import FlowUser, AuthRequest, SavedState, SavedRegisterState
-from apiserver.env import frontend_client_id
+from apiserver.define import FlowUser, AuthRequest, SavedState, SavedRegisterState, frontend_client_id
+from apiserver.env import load_config, Config
 from apiserver.utilities import utc_timestamp, usp_hex
 from apiserver.define.entities import SavedRefreshToken, UserData, User
 from apiserver.db.ops import DbOperations
@@ -41,11 +42,18 @@ async def app(app_mod):
     yield app
 
 
+@pytest.fixture(scope="module")
+def api_config():
+    test_config_path = Path(__file__).parent.joinpath("testenv.toml")
+    yield load_config(test_config_path)
+
+
 @pytest_asyncio.fixture(scope="module", autouse=True)
-async def mock_dsrc(app_mod, module_mocker: MockerFixture):
-    app_mod.dsrc.gateway = module_mocker.MagicMock(spec=app_mod.dsrc.gateway)
-    app_mod.dsrc.gateway.ops = module_mocker.MagicMock(spec=DbOperations)
-    yield app_mod.dsrc
+async def mock_dsrc(app_mod, app, api_config, module_mocker: MockerFixture):
+    app.state.dsrc.gateway = module_mocker.MagicMock(spec=app.state.dsrc.gateway)
+    app.state.dsrc.gateway.ops = module_mocker.MagicMock(spec=DbOperations)
+    app_mod.safe_startup(app, app.state.dsrc, api_config)
+    yield app.state.dsrc
 
 
 @pytest_asyncio.fixture(scope="module")
@@ -190,7 +198,8 @@ async def fake_tokens():
     from apiserver.auth.tokens import create_tokens, aes_from_symmetric, finish_tokens, encode_token_dict
     utc_now = utc_timestamp()
     access_token_data, id_token_data, access_scope, refresh_save = \
-        create_tokens(mock_flow_user.user_usph, fake_token_scope, mock_flow_user.auth_time, mock_auth_request.nonce, utc_now)
+        create_tokens(mock_flow_user.user_usph, fake_token_scope, mock_flow_user.auth_time, mock_auth_request.nonce,
+                      utc_now)
 
     acc_val = encode_token_dict(access_token_data.dict())
     id_val = encode_token_dict(id_token_data.dict())

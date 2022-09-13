@@ -5,7 +5,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, validator
 
-from apiserver.env import frontend_client_id, valid_redirects
+from apiserver.define import frontend_client_id, valid_redirects
 
 
 class ErrorResponse(Exception):

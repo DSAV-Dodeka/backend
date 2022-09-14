@@ -1,12 +1,10 @@
-@import "../../variables";
+@import "variables";
 
 .registerForm {
     width: 50%;
     background-color: $dodeka_blauw90p;
-    margin: auto;
     border-radius: 0.75rem;
-    margin-top: 4rem;
-    margin-bottom: 4rem;
+    margin: 4rem auto;
     padding: 2rem;
     @include respond(mobile) {
         width: auto;
@@ -39,6 +37,10 @@
     font-size: $font_medium;
     line-height: $line_height_medium;
     margin-bottom: 0.5rem;
+}
+
+.formContents.password {
+    margin-bottom: 0;
 }
 
 .formContents label {
@@ -99,13 +101,12 @@
     border-radius: 0.75rem;
     border: none;
     padding: 0.5rem;
-    margin: 0;
     width: 100%;
     font-family: inherit;
     font-size: $font_medium;
     cursor: pointer;
     line-height: $line_height_medium;
-    margin-bottom: 0.5rem;
+    margin: 0 0 0.5rem;
 }
 
 .dropwdown input {
@@ -114,4 +115,16 @@
 
 .inputHidden {
     display: none !important;
+}
+
+$colors: red, orange, yellow, chartreuse, lime;
+
+$start: 1;
+$end: 5;
+
+@for $i from $start through $end {
+    .passBar#{$i} {
+        color: nth($colors, $i);
+        margin-bottom: 0.5rem;
+    }
 }

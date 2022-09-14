@@ -1,10 +1,11 @@
 import init, {client_register_wasm, client_register_finish_wasm, client_login_wasm, client_login_finish_wasm} from "@tiptenbrink/opaquewasm";
 import config from "./config";
 
-await init()
+
 
 export async function clientRegister(username: string, password: string, register_id: string) {
     try {
+        await init()
         const { message: message1, state } = client_register_wasm(password)
 
         console.log(message1)
@@ -55,6 +56,7 @@ export async function clientRegister(username: string, password: string, registe
 
 export async function clientLogin(username: string, password: string, flow_id: string) {
     try {
+        await init()
         const { message: message1, state } = client_login_wasm(password)
 
         console.log(message1)

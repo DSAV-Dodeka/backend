@@ -1,7 +1,8 @@
-import React, {useReducer, Reducer, useState, FormEvent, ChangeEvent} from "react";
+import React, {useReducer, Suspense, FormEvent, ChangeEvent} from "react";
 import "./Register.scss";
-import PasswordStrengthBar from 'react-password-strength-bar';
 import config from "./config";
+
+const PasswordStrength = React.lazy(() => import('./PasswordStrength'));
 
 const registerReducer = (state: RegisterState, action: RegisterAction): RegisterState => {
     switch (action.type) {
@@ -93,7 +94,7 @@ const Register = () => {
     }
 
     return (
-        <div className="page">
+        <div>
             <h1 className="title">Register</h1>
             <form className="registerForm" onSubmit={handleSubmit}>
                 <div className="formContents">
@@ -105,10 +106,9 @@ const Register = () => {
                            onChange={handleFormChange}/>
                     <input id="phone" type="text" placeholder="Telefoonnummer" name="phone" value={state.phone}
                            onChange={handleFormChange}/>
-                    <input id="password" type="password" placeholder="Wachtwoord" name="password" value={state.password}
+                    <input className="password" id="password" type="password" placeholder="Wachtwoord" name="password" value={state.password}
                            onChange={handleFormChange}/>
-                    <PasswordStrengthBar password={state.password} />
-                    <br/>
+                    <Suspense fallback={null}><PasswordStrength password={state.password} /></Suspense>
                     <input id="password_confirm" type="password" placeholder="Herhaal wachtwoord" name="password_confirm" value={state.password_confirm}
                            onChange={handleFormChange}/>
                     <input id="date_of_birth" type="date" name="date_of_birth" value={state.date_of_birth}

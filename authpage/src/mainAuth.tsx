@@ -1,11 +1,11 @@
-import React from 'react'
-import ReactDOM from 'react-dom'
 import './index.css'
+import React from 'react'
+import {createRoot} from "react-dom/client";
 import Auth from './Auth'
 
-ReactDOM.render(
-  <React.StrictMode>
+const container = document.getElementById('root')
+const root = createRoot(container!)
+root.render(<React.StrictMode>
     <Auth />
-  </React.StrictMode>,
-  document.getElementById('root')
-)
+</React.StrictMode>)
+

@@ -1,15 +1,10 @@
 import init, {client_register_wasm, client_register_finish_wasm, client_login_wasm, client_login_finish_wasm} from "@tiptenbrink/opaquewasm";
 import config from "./config";
 
-async function init_opq() {
-    // Works in dev, not in prod, for prod just use init()
-    //await init("../node_modules/@tiptenbrink/opaquewasm/opaquewasm_bg.wasm");
-    await init()
-}
+await init()
 
 export async function clientRegister(username: string, password: string, register_id: string) {
     try {
-        await init_opq()
         const { message: message1, state } = client_register_wasm(password)
 
         console.log(message1)
@@ -60,7 +55,6 @@ export async function clientRegister(username: string, password: string, registe
 
 export async function clientLogin(username: string, password: string, flow_id: string) {
     try {
-        await init_opq()
         const { message: message1, state } = client_login_wasm(password)
 
         console.log(message1)

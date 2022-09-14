@@ -4,6 +4,8 @@ import zxcvbnCommonPackage from '@zxcvbn-ts/language-common'
 
 export interface Props {
     password: string;
+    passScore: number
+    setPass: React.Dispatch<React.SetStateAction<number>>
 }
 
 const mapper = (score: number): string => {
@@ -18,9 +20,10 @@ const PasswordStrength: React.FC<Props> = (props) => {
     })
 
     const score = zxcvbn(props.password).score
+    props.setPass(score)
 
     return (
-        <div className={"passBar" + (score + 1)}>Your password is <strong>{mapper(score)}</strong></div>
+        <div className={"passBar" + (props.passScore + 1)}>Your password is <strong>{mapper(props.passScore)}</strong></div>
     )
 }
 

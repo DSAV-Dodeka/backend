@@ -1,7 +1,7 @@
-import React, {useReducer, Suspense, FormEvent, ChangeEvent} from "react";
+import React, {useReducer, Suspense, FormEvent, ChangeEvent, FocusEvent, useState} from "react";
 import "./Register.scss";
 import config from "./config";
-
+// Imported lazily due to large library size
 const PasswordStrength = React.lazy(() => import('./PasswordStrength'));
 
 const registerReducer = (state: RegisterState, action: RegisterAction): RegisterState => {
@@ -13,13 +13,7 @@ const registerReducer = (state: RegisterState, action: RegisterAction): Register
                 [action.field]: action.value
             }
         case 'register':
-            localStorage.setItem("register_password", state.password)
-            const target_params = new URLSearchParams({
-                "email": state.email,
-                "register_id": state.register_id
-            }).toString()
 
-            window.location.assign(config.auth_location + "/credentials/register/?" + target_params)
             return state
         default:
             throw new Error()
@@ -63,11 +57,36 @@ const initialState: RegisterState = {
     register_id: ""
 }
 
+const handleFocus = (event: FocusEvent<HTMLInputElement>) => {
+    event.target.type = 'date';
+}
+
+const handleBlur = (event: FocusEvent<HTMLInputElement>) => {
+    event.target.type = 'text';
+}
+
 const Register = () => {
+
     const [state, dispatch] = useReducer(
         registerReducer,
         initialState,
     )
+    const [submitted, setSubmitted] = useState("")
+    const [passScore, setPassScore] = useState(0)
+    const [status, setStatus] = useState("")
+
+    const formIsValid = () => {
+        if (passScore < 2) {
+            setStatus("Je wachtwoord is te zwak, maak het langer of onregelmatiger")
+            return false;
+        }
+        else if (state.password != state.password_confirm) {
+            setStatus("De wachtwoorden zijn niet gelijk")
+            return false;
+        }
+        setStatus("")
+        return true;
+    }
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault()
@@ -75,7 +94,14 @@ const Register = () => {
         let registerId = source_params.get("register_id");
         registerId = registerId != null ? registerId : ""
         dispatch({type: 'change', field: "register_id", value: registerId})
-        dispatch({type: 'register'})
+        if (formIsValid()) {
+            dispatch({type: 'register'})
+        }
+    }
+
+    const handleSubmitClick = () => {
+        setSubmitted("submitted")
+        console.log("hi")
     }
 
     const handleFormChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -98,24 +124,25 @@ const Register = () => {
             <h1 className="title">Register</h1>
             <form className="registerForm" onSubmit={handleSubmit}>
                 <div className="formContents">
-                    <input id="name" type="text" placeholder="Voornaam" name="name" value={state.name}
+                    <input className={submitted} required id="name" type="text" placeholder="Voornaam" name="name" value={state.name}
                            onChange={handleFormChange}/>
-                    <input id="surname" type="text" placeholder="Achternaam" name="surname" value={state.surname}
+                    <input className={submitted} required id="surname" type="text" placeholder="Achternaam" name="surname" value={state.surname}
                            onChange={handleFormChange}/>
-                    <input id="email" type="text" placeholder="E-mail" name="email" value={state.email}
+                    <input className={submitted} required id="email" type="text" placeholder="E-mail" name="email" value={state.email}
                            onChange={handleFormChange}/>
-                    <input id="phone" type="text" placeholder="Telefoonnummer" name="phone" value={state.phone}
+                    <input className={submitted} required id="phone" type="text" placeholder="Telefoonnummer" name="phone" value={state.phone}
                            onChange={handleFormChange}/>
-                    <input className="password" id="password" type="password" placeholder="Wachtwoord" name="password" value={state.password}
+                    <input required className={"password " + submitted}  id="password" type="password" placeholder="Wachtwoord" name="password" value={state.password}
                            onChange={handleFormChange}/>
-                    <Suspense fallback={null}><PasswordStrength password={state.password} /></Suspense>
-                    <input id="password_confirm" type="password" placeholder="Herhaal wachtwoord" name="password_confirm" value={state.password_confirm}
+                    {/** The Suspense is used because the library used for loading is quite big, so it is loaded in the background after page load **/}
+                    <Suspense fallback={<div className="passBar1">""</div>}><PasswordStrength password={state.password} passScore={passScore} setPass={setPassScore}/></Suspense>
+                    <input className={submitted} required id="password_confirm" type="password" placeholder="Herhaal wachtwoord" name="password_confirm" value={state.password_confirm}
                            onChange={handleFormChange}/>
-                    <input id="date_of_birth" type="date" name="date_of_birth" value={state.date_of_birth}
+                    <input className={submitted} required id="date_of_birth" type="text" placeholder="Geboortedatum" onFocus={handleFocus} onBlur={handleBlur} name="date_of_birth" value={state.date_of_birth}
                             onChange={handleFormChange} />
                     <div className="checkbox">
                         <label >Leden mogen mijn verjaardag zien</label>
-                        <input id="birthday_check" type="checkbox" name="birthday_check"
+                        <input className={submitted} id="birthday_check" type="checkbox" name="birthday_check"
                                 onChange={handleCheckboxChange}/>
                     </div>
                     <div className="checkbox">
@@ -138,12 +165,13 @@ const Register = () => {
                             onChange={handleFormChange} />
                     <div className="checkbox">
                         <label >Ik accepteer het privacybeleid</label>
-                        <input id="privacy" type="checkbox" name="privacy"
+                        <input className={submitted} required id="privacy" type="checkbox" name="privacy"
                                 onChange={handleCheckboxChange}/>
                     </div>
+                    <p className="schrijfInStatus">{status}</p>
                     
                 </div>
-                <button className="registerButton" id="submit_button" type="submit">Registreer</button><br />
+                <button className="registerButton" id="submit_button" onClick={handleSubmitClick} type="submit">Registreer</button><br />
             </form>
         </div>
     )

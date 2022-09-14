@@ -53,6 +53,10 @@
     outline: none;
 }
 
+.formContents .submitted:invalid {
+    outline: 0.2rem solid red;
+}
+
 .registerButton {
     margin-left: 25%;
     width: 50%;
@@ -115,6 +119,12 @@
 
 .inputHidden {
     display: none !important;
+}
+
+.schrijfInStatus {
+    font-size: $font_small;
+    line-height: $line_height_small;
+    color: $dodeka_rood;
 }
 
 $colors: red, orange, yellow, chartreuse, lime;

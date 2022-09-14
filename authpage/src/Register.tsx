@@ -1,6 +1,7 @@
 import React, {useReducer, Suspense, FormEvent, ChangeEvent, FocusEvent, useState} from "react";
 import "./Register.scss";
 import config from "./config";
+import {clientRegister} from "./Authenticate";
 // Imported lazily due to large library size
 const PasswordStrength = React.lazy(() => import('./PasswordStrength'));
 
@@ -13,7 +14,9 @@ const registerReducer = (state: RegisterState, action: RegisterAction): Register
                 [action.field]: action.value
             }
         case 'register':
+            clientRegister(state).then(r => {
 
+            })
             return state
         default:
             throw new Error()
@@ -21,11 +24,12 @@ const registerReducer = (state: RegisterState, action: RegisterAction): Register
 
 }
 
-type RegisterState = {
+export type RegisterState = {
     name: string,
     surname: string,
     email: string,
     phone: string,
+    callname: string,
     password: string,
     password_confirm: string,
     date_of_birth: string,
@@ -42,11 +46,12 @@ type RegisterAction =
     | { type: 'change', field: string, value: string }
     | { type: 'change_bool', field: string, value: boolean }
 
-const initialState: RegisterState = {
+let initialState: RegisterState = {
     name: "",
     surname: "",
     email: "",
     phone: "",
+    callname: "",
     password: "",
     password_confirm: "",
     date_of_birth: "",
@@ -66,10 +71,26 @@ const handleBlur = (event: FocusEvent<HTMLInputElement>) => {
 }
 
 const Register = () => {
+    const readUrlS = (): RegisterState => {
+        const source_params = (new URLSearchParams(window.location.search))
+        const register_id = source_params.get("register_id") || "error"
+        const email = source_params.get("email") || "error"
+        const name = source_params.get("name") || "error"
+        const surname = source_params.get("surname") || "error"
+        const phone = source_params.get("phone") || "error"
+        return {
+            ...initialState,
+            register_id,
+            email,
+            name,
+            surname,
+            phone
+        }
+    }
 
     const [state, dispatch] = useReducer(
         registerReducer,
-        initialState,
+        readUrlS(),
     )
     const [submitted, setSubmitted] = useState("")
     const [passScore, setPassScore] = useState(0)
@@ -124,13 +145,16 @@ const Register = () => {
             <h1 className="title">Register</h1>
             <form className="registerForm" onSubmit={handleSubmit}>
                 <div className="formContents">
-                    <input className={submitted} required id="name" type="text" placeholder="Voornaam" name="name" value={state.name}
+                    <input disabled className={submitted} required id="name" type="text" placeholder="Voornaam" name="name" value={state.name}
                            onChange={handleFormChange}/>
-                    <input className={submitted} required id="surname" type="text" placeholder="Achternaam" name="surname" value={state.surname}
+                    <input disabled className={submitted} required id="surname" type="text" placeholder="Achternaam" name="surname" value={state.surname}
                            onChange={handleFormChange}/>
-                    <input className={submitted} required id="email" type="text" placeholder="E-mail" name="email" value={state.email}
+                    <input disabled className={submitted} required id="email" type="text" placeholder="E-mail" name="email" value={state.email}
                            onChange={handleFormChange}/>
-                    <input className={submitted} required id="phone" type="text" placeholder="Telefoonnummer" name="phone" value={state.phone}
+                    <input disabled className={submitted} required id="phone" type="text" placeholder="Telefoonnummer" name="phone" value={state.phone}
+                           onChange={handleFormChange}/>
+                    <p>Staat hierboven een foutje? Laat het weten aan het bestuur en ze zullen je een nieuwe e-mail sturen!</p>
+                    <input className={submitted} required id="name" type="text" placeholder="Roepnaam" name="callname" value={state.callname}
                            onChange={handleFormChange}/>
                     <input required className={"password " + submitted}  id="password" type="password" placeholder="Wachtwoord" name="password" value={state.password}
                            onChange={handleFormChange}/>

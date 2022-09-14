@@ -15,6 +15,7 @@
 }
 
 .formContents {
+    color: white;
     display: block;
     width: 50%;
     margin-left: auto;
@@ -51,6 +52,10 @@
 
 .formContents input:focus {
     outline: none;
+}
+
+.formContents input[disabled] {
+    color: #939393;
 }
 
 .formContents .submitted:invalid {

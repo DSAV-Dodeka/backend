@@ -1,8 +1,15 @@
+from pathlib import Path
+
 import pytest
 import asyncio
 
 import pytest_asyncio
 from httpx import AsyncClient
+import apiserver.utilities as util
+from apiserver.auth.tokens import create_tokens, finish_tokens
+from apiserver.auth.tokens_data import get_keys
+from apiserver.data import Source
+from apiserver.env import load_config
 
 
 @pytest.fixture(scope="module")
@@ -11,6 +18,12 @@ def event_loop():
     loop = asyncio.get_event_loop()
     yield loop
     loop.close()
+
+
+@pytest.fixture(scope="module")
+def api_config():
+    test_config_path = Path(__file__).parent.joinpath("realenv.toml")
+    yield load_config(test_config_path)
 
 
 @pytest_asyncio.fixture(scope="module")
@@ -28,7 +41,7 @@ async def test_root(local_client):
 
 
 @pytest.mark.asyncio
-async def test_root(local_client):
+async def test_onboard_signup(local_client):
     req = {
         "firstname": "mr",
         "lastname": "person",
@@ -37,5 +50,40 @@ async def test_root(local_client):
     }
 
     response = await local_client.post("/onboard/signup/", json=req)
+    print(response.json())
 
+
+@pytest_asyncio.fixture(scope="module")
+async def local_dsrc(api_config):
+    dsrc = Source()
+    dsrc.init_gateway(api_config)
+    await dsrc.startup()
+    yield dsrc
+
+
+@pytest_asyncio.fixture(scope="module")
+async def admin_access(local_dsrc):
+    admin_id = "admin_test"
+    scope = "admin"
+    utc_now = util.utc_timestamp()
+
+    access_token_data, id_token_data, access_scope, refresh_save = create_tokens(admin_id, scope, utc_now, "test_nonce",
+                                                                                 utc_now)
+    refresh_id = 5252626
+    aesgcm, signing_key = await get_keys(local_dsrc)
+    refresh_token, access_token, id_token = finish_tokens(refresh_id, refresh_save, aesgcm, access_token_data,
+                                                          id_token_data, utc_now, signing_key, nonce="")
+    yield access_token
+
+
+@pytest.mark.asyncio
+async def test_onboard_confirm(local_client: AsyncClient, admin_access):
+    req = {
+        "email": "hi@xs.nl",
+        "av40id": "+31068243",
+        "joined": "2022-04-03"
+    }
+    headers = {'Authorization': f'Bearer {admin_access}'}
+    response = await local_client.post("/onboard/confirm/", json=req, headers=headers)
+    print(response.json())
 

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import {clientLogin, clientRegister} from "./Authenticate";
+import {clientLogin} from "./Authenticate";
 import config from "./config";
 
 const Auth = () => {

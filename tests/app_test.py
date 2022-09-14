@@ -73,12 +73,12 @@ async def test_root(test_client):
 @pytest.mark.asyncio
 async def test_incorrect_client_id(test_client: AsyncClient):
     req = {
-      "client_id": "incorrect",
-      "grant_type": "",
-      "code": "",
-      "redirect_uri": "",
-      "code_verifier": "",
-      "refresh_token": ""
+        "client_id": "incorrect",
+        "grant_type": "",
+        "code": "",
+        "redirect_uri": "",
+        "code_verifier": "",
+        "refresh_token": ""
     }
     response = await test_client.post("/oauth/token/", json=req)
     assert response.status_code == 400
@@ -88,12 +88,12 @@ async def test_incorrect_client_id(test_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_incorrect_grant_type(test_client: AsyncClient):
     req = {
-      "client_id": frontend_client_id,
-      "grant_type": "wrong",
-      "code": "",
-      "redirect_uri": "",
-      "code_verifier": "",
-      "refresh_token": ""
+        "client_id": frontend_client_id,
+        "grant_type": "wrong",
+        "code": "",
+        "redirect_uri": "",
+        "code_verifier": "",
+        "refresh_token": ""
     }
 
     response = await test_client.post("/oauth/token/", json=req)
@@ -156,9 +156,9 @@ async def test_empty_code(test_client: AsyncClient):
 
 
 mock_symm_key = {
-        'id': 2, 'algorithm': 'symmetric', 'public': None, 'private': '8T3oEm_haJZbn6xu-klttJXk5QBPYlurQrqA5SDx-Ck',
-        'public_format': None, 'public_encoding': None, 'private_format': 'none', 'private_encoding': 'base64url'
-    }
+    'id': 2, 'algorithm': 'symmetric', 'public': None, 'private': '8T3oEm_haJZbn6xu-klttJXk5QBPYlurQrqA5SDx-Ck',
+    'public_format': None, 'public_encoding': None, 'private_format': 'none', 'private_encoding': 'base64url'
+}
 mock_token_key = {
     'id': 1, 'algorithm': 'ed448',
     'public': '-----BEGIN PUBLIC KEY-----\nMEMwBQYDK2VxAzoAtPGddEupA3b5P5yr9gT3rvjzWeQH5cedY6RcwN3A5zTS9n8C\nc6dOR+'
@@ -180,7 +180,7 @@ async def mock_get_keys(mocker: MockerFixture):
 session_key = "somecomplexsessionkey"
 mock_redirect = "http://localhost:3000/auth/callback"
 mock_flow_id = "1d5c621ea3a2da319fe0d0a680046fd6369a60e450ff04f59c51b0bfb3d96eef"
-mock_flow_user = FlowUser(user_usph="mrmock", auth_time=utc_timestamp()-20, flow_id=mock_flow_id)
+mock_flow_user = FlowUser(user_usph="mrmock", auth_time=utc_timestamp() - 20, flow_id=mock_flow_id)
 mock_auth_request = AuthRequest(response_type="code", client_id="dodekaweb_client",
                                 redirect_uri=mock_redirect,
                                 state="KV6A2hTOv6mOFYVpTAOmWw",
@@ -216,15 +216,16 @@ async def fake_tokens():
 
 @pytest.mark.asyncio
 async def test_refresh(test_client, mocker: MockerFixture, mock_get_keys, fake_tokens):
-
     get_r = mocker.patch('apiserver.data.refreshtoken.get_refresh_by_id')
     get_refr = mocker.patch('apiserver.data.refreshtoken.refresh_transaction')
 
     def side_effect(f_dsrc, id_int):
         if id_int == fake_token_id:
             return SavedRefreshToken(family_id=fake_tokens['family_id'], access_value=fake_tokens['acc_val'],
-                                     id_token_value=fake_tokens['id_val'], iat=fake_tokens['iat'], exp=fake_tokens['exp'],
+                                     id_token_value=fake_tokens['id_val'], iat=fake_tokens['iat'],
+                                     exp=fake_tokens['exp'],
                                      nonce=fake_tokens['nonce'])
+
     get_r.side_effect = side_effect
     get_refr.return_value = 45
 
@@ -346,6 +347,7 @@ async def test_start_register(test_client, mocker: MockerFixture, register_state
     def hash_side_effect(user_usph):
         if user_usph == test_user_usph:
             return test_auth_id
+
     t_hash.side_effect = hash_side_effect
 
     def opq_side_effect(request, key, user_usph, user_id):
@@ -353,17 +355,21 @@ async def test_start_register(test_client, mocker: MockerFixture, register_state
         register_state_store['state'] = state
         register_state_store['opq_response'] = opq_response
         return opq_response, SavedRegisterState(user_usph=user_usph, state=state, id=user_id)
+
     r_opq.side_effect = opq_side_effect
 
     def ud_side_effect(f_dsrc, register_id):
         if register_id == test_register_id:
-            return UserData(id=test_id, active=True, firstname="Test", lastname="Register", email=test_user_usph, phone="06",
+            return UserData(id=test_id, active=True, firstname="Test", lastname="Register", email=test_user_usph,
+                            phone="06",
                             av40id=123, joined=date.today(), registered=False)
+
     g_ud.side_effect = ud_side_effect
 
     def u_side_effect(f_dsrc, user_id):
         if user_id == test_id:
             return User(id=test_id, usp_hex=test_user_usph, password_file="")
+
     g_u.side_effect = u_side_effect
 
     # password 'clientele'
@@ -373,7 +379,7 @@ async def test_start_register(test_client, mocker: MockerFixture, register_state
         "register_id": test_register_id
     }
 
-    response = await test_client.post("/register/start/", json=req)
+    response = await test_client.post("/onboard/register/", json=req)
     res_j = response.json()
     print(res_j)
     # example state
@@ -391,29 +397,43 @@ async def test_start_register(test_client, mocker: MockerFixture, register_state
 @pytest.mark.asyncio
 async def test_finish_register(test_client, mocker: MockerFixture):
     test_auth_id = "e5a289429121408d95d7e3cde62d0f06da22b86bd49c2a34233423ed4b5e877e"
-    test_user = "atestperson"
+    test_user = "atestperson@cool.nl"
     test_id = 95
+    test_r_id = "d4029b04fe88a81eb3f4e8680dc6b06fe9232b340ec2bbb3dc5ad3f726415c01"
 
     # password 'clientele' with mock_opq_key
     test_state = "n-aQ8YSkFMbIoTJPS46lBeO4X4v5KbQ52ztB9-xP8wg"
     test_user_usph = usp_hex(test_user)
 
     g_state = mocker.patch('apiserver.data.kv.get_register_state')
+    g_ud_rid = mocker.patch('apiserver.data.user.get_userdata_by_register_id')
 
     def state_side_effect(f_dsrc, auth_id):
         if auth_id == test_auth_id:
             return SavedRegisterState(user_usph=test_user_usph, state=test_state, id=test_id)
 
+    def ud_side_effect(f_dsrc, r_id):
+        if r_id == test_r_id:
+            return UserData(id=test_id, email=test_user, active=False, firstname="first", lastname="last", phone="063",
+                            av40id=2, joined=date.today(), registered=False)
+
     g_state.side_effect = state_side_effect
+    g_ud_rid.side_effect = ud_side_effect
 
     # password 'clientele'
     req = {
         "email": test_user,
         "client_request": "HokzHOdiLQ2BULIauK38OflkqCKpIPh9gZqCBUGxgTcBP4WnKHuZZWI6BMXPd7hTnOznBrPIKsG4CZFlqeNK6QuCHku1lM4fi8Ep-n8dguVb8dpvU9vVP2w9L6A3RDETmYv6wCdX3PJw7y7WoRafdZ-v2DZGR9D_NvPcKVHcH03KQudID2lnpf00R_M4CtmXXajttWVdd3eh40Xp0YW41n8",
-        "auth_id": test_auth_id
+        "auth_id": test_auth_id,
+        "register_id": "d4029b04fe88a81eb3f4e8680dc6b06fe9232b340ec2bbb3dc5ad3f726415c01",
+        "callname": "somecaller",
+        "eduinstitution": "testinstitution",
+        "birthdate": "2022-09-05"
     }
 
-    response = await test_client.post("/register/finish/", json=req)
+    # TODO check saved data
+
+    response = await test_client.post("/onboard/finish/", json=req)
     # res_j = response.json()
     # print(res_j)
     # example password file

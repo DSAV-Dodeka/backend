@@ -144,6 +144,6 @@ class UserData(BaseModel):
     av40id: int
     joined: date
     eduinstitution: str = ""
-    birthdate: date = date.today()
+    birthdate: date = date.min
     registerid: str = ""
     registered: bool

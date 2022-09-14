@@ -71,7 +71,7 @@ signedup = sqlalchemy.Table(
     metadata,
     sqlalchemy.Column(SU_FIRSTNAME, sqlalchemy.String(length=100)),
     sqlalchemy.Column(SU_LASTNAME, sqlalchemy.String(length=100)),
-    sqlalchemy.Column(SU_PHONE, sqlalchemy.String(length=15), unique=True),
+    sqlalchemy.Column(SU_PHONE, sqlalchemy.String(length=15)),
     sqlalchemy.Column(SU_EMAIL, sqlalchemy.String(length=100), primary_key=True),
 )
 
@@ -96,7 +96,7 @@ userdata = sqlalchemy.Table(
     sqlalchemy.Column(UD_FIRSTNAME, sqlalchemy.String(length=100)),
     sqlalchemy.Column(UD_LASTNAME, sqlalchemy.String(length=100)),
     sqlalchemy.Column(UD_CALLNAME, sqlalchemy.String(length=100)),
-    sqlalchemy.Column(UD_PHONE, sqlalchemy.String(length=15), unique=True),
+    sqlalchemy.Column(UD_PHONE, sqlalchemy.String(length=15)),
     sqlalchemy.Column(UD_EMAIL, sqlalchemy.String(length=100), unique=True),
     sqlalchemy.Column(AV40_ID, sqlalchemy.Integer),
     sqlalchemy.Column(JOINED, sqlalchemy.Date),

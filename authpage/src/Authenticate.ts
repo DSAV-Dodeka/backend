@@ -1,27 +1,22 @@
 import init, {client_register_wasm, client_register_finish_wasm, client_login_wasm, client_login_finish_wasm} from "@tiptenbrink/opaquewasm";
 import config from "./config";
+import {RegisterState} from "./Register";
 
-async function init_opq() {
-    // Works in dev, not in prod, for prod just use init()
-    //await init("../node_modules/@tiptenbrink/opaquewasm/opaquewasm_bg.wasm");
-    await init()
-}
-
-export async function clientRegister(username: string, password: string, register_id: string) {
+export async function clientRegister(registerState: RegisterState) {
     try {
-        await init_opq()
-        const { message: message1, state } = client_register_wasm(password)
+        await init()
+        const { message: message1, state } = client_register_wasm(registerState.password)
 
         console.log(message1)
         console.log(state)
 
         // get message to server and get message back
         const reqst = {
-            "email": username,
+            "email": registerState.email,
             "client_request": message1,
-            "register_id": register_id
+            "register_id": registerState.register_id
         }
-        const res = await fetch(`${config.auth_location}/register/start/`, {
+        const res = await fetch(`${config.auth_location}/onboard/register/`, {
             method: 'POST', body: JSON.stringify(reqst),
             headers: {
                 'Content-Type': 'application/json'
@@ -38,12 +33,19 @@ export async function clientRegister(username: string, password: string, registe
 
         console.log(message2)
 
+        const eduinstitution = registerState.onderwijsinstelling === "Anders, namelijk:" ?
+            registerState.onderwijsinstelling_overig : registerState.onderwijsinstelling
+
         const reqst2 = {
-            "email": username,
+            "email": registerState.email,
             "client_request": message2,
-            "auth_id": auth_id
+            "auth_id": auth_id,
+            "register_id": registerState.register_id,
+            "callname": registerState.callname,
+            eduinstitution,
+            birthdate: registerState.date_of_birth
         }
-        const res_finish = await fetch(`${config.auth_location}/register/finish/`, {
+        const res_finish = await fetch(`${config.auth_location}/onboard/finish/`, {
             method: 'POST', body: JSON.stringify(reqst2),
             headers: {
                 'Content-Type': 'application/json'
@@ -60,7 +62,7 @@ export async function clientRegister(username: string, password: string, registe
 
 export async function clientLogin(username: string, password: string, flow_id: string) {
     try {
-        await init_opq()
+        await init()
         const { message: message1, state } = client_login_wasm(password)
 
         console.log(message1)

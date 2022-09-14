@@ -115,6 +115,10 @@ class FinishRequest(BaseModel):
     auth_id: str
     email: str
     client_request: str
+    register_id: str
+    callname: str
+    eduinstitution: str
+    birthdate: date
 
 
 class FinishLogin(BaseModel):
@@ -159,14 +163,6 @@ class SignupConfirm(BaseModel):
     email: str
     av40id: int
     joined: date
-
-
-class Register(BaseModel):
-    email: str
-    register_id: str
-    callname: str
-    eduinstitution: str
-    birthdate: date
 
 
 class UserDataRegisterResponse(BaseModel):

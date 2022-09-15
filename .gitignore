@@ -3,3 +3,4 @@
 **/*.pyd
 **/.coverage
 .python-version
+localenv.toml

@@ -2,13 +2,13 @@ from typing import Optional
 
 from apiserver.define.entities import SignedUp
 from apiserver.data.source import Source, DataError
-from apiserver.data.use import retrieve_by_id, retrieve_by_unique, insert
+from apiserver.data.use import retrieve_by_id, retrieve_by_unique, insert, exists_by_unique
 from apiserver.db import SIGNEDUP_TABLE
 from apiserver.db.model import SU_FIRSTNAME, SU_LASTNAME, SU_EMAIL, SU_PHONE
 from apiserver.db.ops import DbError
 
 
-__all__ = ['get_signedup_by_email', 'insert_su_row']
+__all__ = ['get_signedup_by_email', 'insert_su_row', 'signedup_exists']
 
 
 def parse_signedup(signedup_dict: Optional[dict]) -> SignedUp:
@@ -20,6 +20,10 @@ def parse_signedup(signedup_dict: Optional[dict]) -> SignedUp:
 async def get_signedup_by_email(dsrc: Source, email: str) -> SignedUp:
     signedup_row = await retrieve_by_unique(dsrc, SIGNEDUP_TABLE, SU_EMAIL, email)
     return parse_signedup(signedup_row)
+
+
+async def signedup_exists(dsrc: Source, email: str) -> bool:
+    return await exists_by_unique(dsrc, SIGNEDUP_TABLE, SU_EMAIL, email)
 
 
 async def insert_su_row(dsrc: Source, su_row: dict):

@@ -73,6 +73,7 @@ signedup = sqlalchemy.Table(
     sqlalchemy.Column(SU_LASTNAME, sqlalchemy.String(length=100)),
     sqlalchemy.Column(SU_PHONE, sqlalchemy.String(length=15)),
     sqlalchemy.Column(SU_EMAIL, sqlalchemy.String(length=100), primary_key=True),
+
 )
 
 USERDATA_TABLE = "userdata"

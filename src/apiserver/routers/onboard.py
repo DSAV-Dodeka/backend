@@ -1,18 +1,24 @@
-import logging
+import time as tm
 
-from fastapi import APIRouter, Security, status, HTTPException, Request
+import logging
+from urllib.parse import urlencode
+
+from anyio import create_task_group
+from fastapi import APIRouter, Security, status, BackgroundTasks, Request, Response
 
 import opaquepy as opq
 
 from apiserver.auth import authentication
-from apiserver.define import ErrorResponse, LOGGER_NAME
-from apiserver.define.entities import AccessToken, SignedUp, UserData, User
+from apiserver.define import ErrorResponse, LOGGER_NAME, signup_url, api_root
+from apiserver.define.entities import SignedUp, UserData, User
 from apiserver.define.request import SignupRequest, SignupConfirm, UserDataRegisterResponse, PasswordResponse, \
     RegisterRequest, FinishRequest
 import apiserver.utilities as util
 from apiserver.auth.header import auth_header
+from apiserver.emailfn import send_email
 import apiserver.data as data
 from apiserver.data import DataError, Source, NoDataError
+from apiserver.env import Config
 from apiserver.routers.helper import require_admin
 
 router = APIRouter()
@@ -20,28 +26,84 @@ router = APIRouter()
 logger = logging.getLogger(LOGGER_NAME)
 
 
+def send_signup_email(background_tasks: BackgroundTasks, receiver: str, mail_pass: str, redirect_link):
+    add_vars = {
+        "redirect_link": redirect_link
+    }
+
+    def send_lam():
+        send_email("confirm.html.jinja2", receiver, mail_pass, add_vars)
+
+    background_tasks.add_task(send_lam)
+
+
 @router.post("/onboard/signup/")
-async def init_signup(signup: SignupRequest, request: Request):
+async def init_signup(signup: SignupRequest, request: Request, background_tasks: BackgroundTasks):
     """ Signup is initiated by leaving basic information. User is redirected to AV'40 page, where they will actually
     sign up. Board can see who has signed up this way. There might not be full correspondence between exact signup and
     what is provided to AV'40. So there is a manual check."""
+    start = tm.perf_counter_ns()
     dsrc: Source = request.app.state.dsrc
-    print(signup.dict())
-    signed_up = SignedUp(firstname=signup.firstname, lastname=signup.lastname, email=signup.email, phone=signup.phone)
-    try:
-        await data.signedup.insert_su_row(dsrc, signed_up.dict())
-    except DataError as e:
-        logger.debug(e.message)
-        if e.key == "unique_violation":
-            raise ErrorResponse(400, err_type="invalid_signup", err_desc="E-ma already exists!",
-                                debug_key="user_exists")
-        else:
-            raise e
-    # send info email
+
+    email_usph = util.usp_hex(signup.email)
+
+    u_ex = await data.user.user_exists(dsrc, email_usph)
+    su_ex = await data.signedup.signedup_exists(dsrc, signup.email)
+
+    do_send_email = not u_ex and not su_ex
+
+    confirm_id = util.random_time_hash_hex(email_usph)
+
+    await data.kv.store_email_confirmation(dsrc, confirm_id, signup)
+    config: Config = request.app.state.config
+
+    params = {
+        "confirm_id": confirm_id
+    }
+    confirmation_url = f"{api_root}/onboard/redirect/?{urlencode(params)}"
+
+    end_p1 = tm.perf_counter_ns()
+    if do_send_email:
+        send_signup_email(background_tasks, signup.email, config.MAIL_PASS, confirmation_url)
+    else:
+        pass
+    end_p2 = tm.perf_counter_ns()
+    logger.debug(end_p1 - start)
+    logger.debug(end_p2 - end_p1)
 
     return {
         "ok": "ok"
     }
+
+# do_send_email = True
+# signed_up = SignedUp(firstname=signup.firstname, lastname=signup.lastname, email=signup.email, phone=signup.phone)
+#     try:
+#         await data.signedup.insert_su_row(dsrc, signed_up.dict())
+#     except DataError as e:
+#         logger.debug(e.message)
+#         if e.key == "unique_violation":
+#             do_send_email = False
+#         else:
+#             raise e
+
+# @router.get("/onboard/redirect/", status_code=303)
+# async def oauth_finish(flow_id: str, response: Response, request: Request):
+#     dsrc: Source = request.app.state.dsrc
+#     try:
+#         auth_request = await data.kv.get_auth_request(dsrc, flow_id)
+#     except NoDataError as e:
+#         logger.debug(e.message)
+#         reason = "Expired or missing auth request"
+#         raise ErrorResponse(400, err_type=f"invalid_oauth_callback", err_desc=reason)
+#
+#     params = {
+#         "code": code,
+#         "state": auth_request.state
+#     }
+#
+#     redirect = f"{auth_request.redirect_uri}?{urlencode(params)}"
+#
+#     return RedirectResponse(redirect, status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/onboard/confirm/")

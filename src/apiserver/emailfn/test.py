@@ -1,12 +1,15 @@
-import smtplib, ssl
+import smtplib
+import ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
-from apiserver.resources import res_path, project_path
-from jinja2 import Environment, FileSystemLoader, select_autoescape
-import tomli
 
-env = Environment(
+import tomli
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+
+from apiserver.resources import res_path, project_path
+
+template_env = Environment(
     loader=FileSystemLoader(res_path.joinpath("templates")),
     autoescape=select_autoescape()
 )

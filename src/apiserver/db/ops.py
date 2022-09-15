@@ -22,6 +22,11 @@ class DbOperations(ABC):
 
     @classmethod
     @abstractmethod
+    async def exists_by_unique(cls, db: Database, table: str, unique_column: str, value) -> bool:
+        ...
+
+    @classmethod
+    @abstractmethod
     async def upsert_by_id(cls, db: Database, table: str, row: dict):
         ...
 

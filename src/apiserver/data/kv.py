@@ -1,5 +1,6 @@
+from apiserver.define import email_expiration
+from apiserver.define.request import FlowUser, AuthRequest, SavedState, SavedRegisterState, SignupRequest
 from apiserver.data.source import NoDataError
-from apiserver.define import FlowUser, AuthRequest, SavedState, SavedRegisterState
 from apiserver.data import Source, DataError
 from apiserver.kv import store_json, get_json, get_kv, store_kv
 
@@ -53,3 +54,14 @@ async def store_flow_user(dsrc: Source, session_key: str, flow_user: FlowUser):
 
 async def store_auth_request(dsrc: Source, flow_id: str, auth_request: AuthRequest):
     await store_json(kv_is_init(dsrc), flow_id, auth_request.dict(), expire=1000)
+
+
+async def store_email_confirmation(dsrc: Source, confirm_id: str, signup: SignupRequest):
+    await store_json(kv_is_init(dsrc), confirm_id, signup.dict(), expire=email_expiration)
+
+
+async def get_email_confirmation(dsrc: Source, confirm_id: str):
+    signup_dict = await get_json(kv_is_init(dsrc), confirm_id)
+    if signup_dict is None:
+        raise NoDataError("Confirmation does not exist or expired.", "saved_confirm_empty")
+    return SignupRequest.parse_obj(signup_dict)

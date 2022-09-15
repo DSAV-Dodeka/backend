@@ -1,4 +1,4 @@
-APISERVER_ENV="envless"
+APISERVER_ENV="local"
 
 DB_USER="dodeka"
 DB_PASS="postpost"
@@ -10,3 +10,5 @@ DB_NAME_ADMIN="postgres"
 KV_HOST="localhost"
 KV_PORT=6379
 KV_PASS="redisredis"
+
+MAIL_PASS=""

@@ -159,6 +159,10 @@ class SignupRequest(BaseModel):
     phone: str
 
 
+class EmailConfirm(BaseModel):
+    confirm_id: str
+
+
 class SignupConfirm(BaseModel):
     email: str
     av40id: int

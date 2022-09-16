@@ -5,6 +5,7 @@ from sqlalchemy import pool
 
 from alembic import context
 
+from apiserver.resources import project_path
 from apiserver.env import load_config
 from apiserver.db.model import metadata
 
@@ -12,7 +13,7 @@ from apiserver.db.model import metadata
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-api_config = load_config()
+api_config = load_config(project_path.joinpath("devenv.toml"))
 db_cluster = f"postgresql://{api_config.DB_USER}:{api_config.DB_PASS}@{api_config.DB_HOST}:{api_config.DB_PORT}"
 db_url = f"{db_cluster}/{api_config.DB_NAME}"
 config.set_main_option('sqlalchemy.url', db_url)

@@ -5,13 +5,13 @@ from apiserver.define.entities import User, SignedUp, UserData
 from apiserver.utilities import usp_hex
 from apiserver.data.source import Source, DataError
 from apiserver.data.use import retrieve_by_id, retrieve_by_unique, upsert_by_id, insert_return_id, \
-    double_insert_transaction
+    double_insert_transaction, exists_by_unique
 from apiserver.db import USER_TABLE, USERDATA_TABLE
 from apiserver.db.model import USERNAME, PASSWORD, REGISTER_ID
 from apiserver.db.ops import DbError
 
 
-__all__ = ['get_user_by_id', 'upsert_user_row', 'create_user']
+__all__ = ['get_user_by_id', 'upsert_user_row', 'create_user', 'user_exists']
 
 
 def parse_user(user_dict: Optional[dict]) -> User:
@@ -24,6 +24,10 @@ def parse_userdata(user_dict: Optional[dict]) -> UserData:
     if user_dict is None:
         raise DataError("UserData does not exist.", "userdata_empty")
     return UserData.parse_obj(user_dict)
+
+
+async def user_exists(dsrc: Source, user_usph: str) -> bool:
+    return await exists_by_unique(dsrc, USER_TABLE, USERNAME, user_usph)
 
 
 async def get_user_by_id(dsrc: Source, id_int: int) -> User:
@@ -49,9 +53,6 @@ async def upsert_user_row(dsrc: Source, user_row: dict):
     return result
 
 
-
-
-
 async def insert_return_user_id(dsrc: Source, user_row: dict):
     try:
         result = await insert_return_id(dsrc, USER_TABLE, user_row)
@@ -74,7 +75,7 @@ async def new_user(dsrc: Source, signed_up: SignedUp, register_id: str, av40id: 
 
 
 async def upsert_userdata(dsrc: Source, userdata: UserData):
-    """ Requires known id. """
+    """ Requires known id. Note that this cannot change any unique constraints, those must remain unaltered."""
     try:
         result = await upsert_by_id(dsrc, USERDATA_TABLE, userdata.dict())
     except DbError as e:

@@ -1,9 +1,16 @@
-environment = "envless"
+allowed_envs = ["envless", "local", "test"]
 
+api_root = "http://localhost:4243"
 issuer = "https://api.dsavdodeka.nl"
 frontend_client_id = "dodekaweb_client"
 backend_client_id = "dodekabackend_client"
 
 valid_redirects = ["http://localhost:3000/auth/callback", "https://dsavdodeka.nl/auth/callback"]
 
-credentials_url = "http://localhost:4243/credentials/index.html"
+credentials_url = "http://localhost:4243/credentials/"
+
+signup_url = "https://www.av40.nl/index.php?page=Inschrijfformulier&sid=1"
+
+onboard_email = "comcom@dsavdodeka.nl"
+smtp_server = "mail.dsavdodeka.nl"
+smtp_port = 465

@@ -6,13 +6,14 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.routing import Mount
 from fastapi.exceptions import RequestValidationError
 
 # We rely upon database parameters being set at import time, which is fragile, but the only way to easily re-use it
 # in the app state
 # In most cases this is where all environment variables and other configuration is loaded
 
-from apiserver.define import res_path, ErrorResponse, error_response_handler, LOGGER_NAME, environment
+from apiserver.define import res_path, ErrorResponse, error_response_handler, LOGGER_NAME, allowed_envs
 from apiserver.env import load_config, Config
 # Import types separately to make it clear in what line the module is first loaded and its top-level run
 from apiserver.data import Source
@@ -40,9 +41,11 @@ def create_app() -> tuple[FastAPI, Logger]:
     origins = [
         "*",
     ]
-
-    new_app = FastAPI()
-    new_app.mount("/credentials", StaticFiles(directory=res_path.joinpath("static/credentials"), html=True), name="credentials")
+    routes = [
+        Mount('/credentials', app=StaticFiles(directory=res_path.joinpath("static/credentials"), html=True),
+              name="credentials")
+    ]
+    new_app = FastAPI(routes=routes)
     new_app.include_router(basic.router)
     new_app.include_router(auth.router)
     new_app.include_router(profile.router)
@@ -79,7 +82,7 @@ async def app_startup(dsrc_inst: Source):
     # the 'safe_startup()' above
     # Safe startup events that do not depend on the environment, can be included in the 'create_app()' above
     config = load_config()
-    if config.APISERVER_ENV != environment:
+    if config.APISERVER_ENV not in allowed_envs:
         raise RuntimeError("Runtime environment (env.toml) does not correspond to compiled environment (define.toml)! "
                            "Ensure defined variables are appropriate for the runtime environment before changing the "
                            "environment!")

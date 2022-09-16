@@ -1,15 +1,17 @@
 from pathlib import Path
-
-import pytest
 import asyncio
 
+import pytest
 import pytest_asyncio
+
 from httpx import AsyncClient
+
+from apiserver.resources import project_path
+from apiserver.env import load_config
 import apiserver.utilities as util
 from apiserver.auth.tokens import create_tokens, finish_tokens
-from apiserver.auth.tokens_data import get_keys
 from apiserver.data import Source
-from apiserver.env import load_config
+from apiserver.auth.tokens_data import get_keys
 
 
 @pytest.fixture(scope="module")
@@ -22,7 +24,7 @@ def event_loop():
 
 @pytest.fixture(scope="module")
 def api_config():
-    test_config_path = Path(__file__).parent.joinpath("realenv.toml")
+    test_config_path = Path(__file__).parent.joinpath("localdead.toml")
     yield load_config(test_config_path)
 
 
@@ -79,7 +81,7 @@ async def admin_access(local_dsrc):
 @pytest.mark.asyncio
 async def test_onboard_confirm(local_client: AsyncClient, admin_access):
     req = {
-        "email": "hi@xs.nl",
+        "email": "comcom@dsavdodeka.nl",
         "av40id": "+31068243",
         "joined": "2022-04-03"
     }

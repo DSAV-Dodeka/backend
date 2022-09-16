@@ -60,9 +60,17 @@ class PostgresOperations(DbOperations):
         return dict(record) if record is not None else None
 
     @classmethod
+    async def exists_by_unique(cls, db: Database, table: str, unique_column: str, value) -> bool:
+        """ Ensure `unique_column` and `table` are never user-defined. """
+        query = f"SELECT EXISTS (SELECT * FROM {table} WHERE {unique_column} = :val) AS \"exists\""
+        record = await db.fetch_one(query, values={"val": value})
+        return dict(record).get('exists', False) if record is not None else False
+
+    @classmethod
     async def upsert_by_id(cls, db: Database, table: str, row: dict):
         """ Note that while the values are safe from injection, the column names are not. Ensure the row dict
-        is validated using the model and not just passed directly by the user. """
+        is validated using the model and not just passed directly by the user. This does not allow changing
+         any columns that have unique constraints, those must remain unaltered. """
 
         row_keys, row_keys_vars, row_keys_set = _row_keys_vars_set(row)
 

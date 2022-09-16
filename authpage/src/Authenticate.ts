@@ -1,42 +1,34 @@
 import init, {client_register_wasm, client_register_finish_wasm, client_login_wasm, client_login_finish_wasm} from "@tiptenbrink/opaquewasm";
 import config from "./config";
 import {RegisterState} from "./Register";
+import {back_post, ok_back_post} from "./api";
+import {z} from "zod";
+
+const OpaqueResponse = z.object({
+    server_message: z.string(),
+    auth_id: z.string()
+})
 
 export async function clientRegister(registerState: RegisterState) {
     try {
-        await init()
-        const { message: message1, state } = client_register_wasm(registerState.password)
+        await init("../node_modules/@tiptenbrink/opaquewasm/opaquewasm_bg.wasm");
+        //await init()
+        const { message: message1, state: register_state } = client_register_wasm(registerState.password)
 
-        console.log(message1)
-        console.log(state)
-
-        // get message to server and get message back
-        const reqst = {
+        const register_start = {
             "email": registerState.email,
             "client_request": message1,
             "register_id": registerState.register_id
         }
-        const res = await fetch(`${config.auth_location}/onboard/register/`, {
-            method: 'POST', body: JSON.stringify(reqst),
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-        const parsed = await res.json()
-        const server_message = parsed.server_message
-        const auth_id = parsed.auth_id
-        const register_state = state
-        console.log(auth_id)
-        console.log(server_message)
+        const res = await back_post("onboard/register/", register_start)
+        const {server_message, auth_id} = OpaqueResponse.parse(res)
 
         const message2 = client_register_finish_wasm(register_state, server_message)
 
-        console.log(message2)
+        const eduinstitution = registerState.eduinstitution === "Anders, namelijk:" ?
+            registerState.eduinstitution_other : registerState.eduinstitution
 
-        const eduinstitution = registerState.onderwijsinstelling === "Anders, namelijk:" ?
-            registerState.onderwijsinstelling_overig : registerState.onderwijsinstelling
-
-        const reqst2 = {
+        const register_finish = {
             "email": registerState.email,
             "client_request": message2,
             "auth_id": auth_id,
@@ -45,14 +37,8 @@ export async function clientRegister(registerState: RegisterState) {
             eduinstitution,
             birthdate: registerState.date_of_birth
         }
-        const res_finish = await fetch(`${config.auth_location}/onboard/finish/`, {
-            method: 'POST', body: JSON.stringify(reqst2),
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
 
-        return res_finish.ok
+        return await ok_back_post("onboard/finish/", register_finish)
 
     } catch (e) {
         console.log(e)
@@ -63,28 +49,15 @@ export async function clientRegister(registerState: RegisterState) {
 export async function clientLogin(username: string, password: string, flow_id: string) {
     try {
         await init()
-        const { message: message1, state } = client_login_wasm(password)
-
-        console.log(message1)
-        console.log(state)
+        const { message: message1, state: login_state } = client_login_wasm(password)
 
         // get message to server and get message back
-        const reqst = {
+        const login_start = {
             "email": username,
             "client_request": message1
         }
-        const res = await fetch(`${config.auth_location}/login/start/`, {
-            method: 'POST', body: JSON.stringify(reqst),
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-        const parsed = await res.json()
-        const server_message: string = parsed.server_message
-        const auth_id = parsed.auth_id
-        const login_state = state
-        console.log(auth_id)
-        console.log(server_message)
+        const res = await back_post("login/start/", login_start)
+        const {server_message, auth_id} = OpaqueResponse.parse(res)
 
         // pass 'abc'
         //const login_state = "Gg6GSd_2X9ccTkVZBatUyynmRM5CWBVh9j8Fsac2hQAAYoxXlNs3YTKM_4eq-Tr3hOM5TO1OZTaAgI7DYQIV4rhX-EomurCCwcw3cojfbBudPS6aF0YyxJZYbjgD8ABTigIAAMaJ77uRiMGm50uF6_VEFchFlKmwvKhhiUUsRhZhRl1fAEChX0fsJTWoEsS2bPTSt-1BKlRkL85rlA1yZkr56BWbCvhKJrqwgsHMN3KI32wbnT0umhdGMsSWWG44A_AAU4oCYWJj"
@@ -93,22 +66,14 @@ export async function clientLogin(username: string, password: string, flow_id: s
 
         const { message: message2, session } = client_login_finish_wasm(login_state, server_message)
 
-        console.log(message2)
-
-        const reqst2 = {
+        const login_finish = {
             "email": username,
             "client_request": message2,
             "auth_id": auth_id,
             "flow_id": flow_id
         }
-        const res2 = await fetch(`${config.auth_location}/login/finish/`, {
-            method: 'POST', body: JSON.stringify(reqst2),
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
 
-        if (res2.ok) {
+        if (await ok_back_post("login/finish/", login_finish)) {
             return session
         }
         return null
@@ -123,82 +88,4 @@ export async function clientLogin(username: string, password: string, flow_id: s
         }
         return null
     }
-}
-
-export function binToBase64Url(byte_array: Uint8Array) {
-    const random_chrpts = Array.from(byte_array).map((num) => {
-        return String.fromCharCode(num)
-    }).join('')
-    return btoa(random_chrpts)
-        .replaceAll("/", "_").replaceAll("+", "-")
-        .replaceAll("=", "")
-}
-
-export function base64ToBin(encoded_string: string) {
-    const base64 = encoded_string.replaceAll("_", "/").replaceAll("-", "+");
-    const decoded = atob(base64)
-    return new Uint8Array(Array.from(decoded).map((char) => {
-        return char.charCodeAt(0)
-    }))
-}
-
-export async function keys() {
-    const keyPair = await window.crypto.subtle.generateKey(
-        {
-            name: "RSA-OAEP",
-            modulusLength: 4096,
-            publicExponent: new Uint8Array([1, 0, 1]),
-            hash: "SHA-256"
-        },
-        true,
-        ["encrypt", "decrypt"]
-    );
-    if (!keyPair.privateKey) {
-        throw Error
-    }
-    const exported_private = await window.crypto.subtle.exportKey(
-        "pkcs8",
-        keyPair.privateKey
-    );
-
-    if (!keyPair.publicKey) {
-        throw Error
-    }
-    const exported_public = await window.crypto.subtle.exportKey(
-        "spki",
-        keyPair.publicKey
-    );
-
-    return {
-        "private_key": binToBase64Url(new Uint8Array(exported_private)),
-        "public_key": binToBase64Url(new Uint8Array(exported_public))
-    }
-}
-
-export async function decryptPass(private_key_str: string, encrypted_pass: string) {
-    const private_bytes = base64ToBin(private_key_str)
-
-    const private_key = await window.crypto.subtle.importKey(
-        "pkcs8",
-        private_bytes,
-        {
-            name: "RSA-OAEP",
-            hash: "SHA-256"
-        },
-        true,
-        ["decrypt"]
-    );
-
-    const encrypted_pass_bytes = base64ToBin(encrypted_pass)
-
-    const pass_bytes = await window.crypto.subtle.decrypt(
-        {
-            name: "RSA-OAEP"
-        },
-        private_key,
-        encrypted_pass_bytes
-    );
-
-    let enc = new TextDecoder();
-    return enc.decode(pass_bytes);
 }

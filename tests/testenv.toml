@@ -10,3 +10,5 @@ DB_NAME_ADMIN="postgres"
 KV_HOST="localhost"
 KV_PORT=6379
 KV_PASS="abcpasskv"
+
+MAIL_PASS="abcpass"

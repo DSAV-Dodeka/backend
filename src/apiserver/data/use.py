@@ -18,6 +18,10 @@ async def retrieve_by_unique(dsrc: Source, table: str, unique_column: str, value
     return await dsrc.gateway.ops.retrieve_by_unique(db_is_init(dsrc), table, unique_column, value)
 
 
+async def exists_by_unique(dsrc: Source, table: str, unique_column: str, value) -> bool:
+    return await dsrc.gateway.ops.exists_by_unique(db_is_init(dsrc), table, unique_column, value)
+
+
 async def upsert_by_id(dsrc: Source, table: str, row: dict):
     return await dsrc.gateway.ops.upsert_by_id(db_is_init(dsrc), table, row)
 

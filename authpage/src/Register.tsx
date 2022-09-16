@@ -1,23 +1,23 @@
-import React, {useReducer, Suspense, FormEvent, ChangeEvent, FocusEvent, useState} from "react";
+import React, {useReducer, Suspense, FormEvent, ChangeEvent, FocusEvent, useState, useEffect} from "react";
 import "./Register.scss";
 import config from "./config";
 import {clientRegister} from "./Authenticate";
+import {base64ToBin} from "./encode";
+
+import {z} from "zod";
 // Imported lazily due to large library size
 const PasswordStrength = React.lazy(() => import('./PasswordStrength'));
 
 const registerReducer = (state: RegisterState, action: RegisterAction): RegisterState => {
     switch (action.type) {
+        case 'reload':
+            return action.new_state
         case 'change': // Both 'change' and 'change_bool' have same effect
         case 'change_bool':
             return {
                 ...state,
                 [action.field]: action.value
             }
-        case 'register':
-            clientRegister(state).then(r => {
-
-            })
-            return state
         default:
             throw new Error()
     }
@@ -25,8 +25,8 @@ const registerReducer = (state: RegisterState, action: RegisterAction): Register
 }
 
 export type RegisterState = {
-    name: string,
-    surname: string,
+    firstname: string,
+    lastname: string,
     email: string,
     phone: string,
     callname: string,
@@ -35,20 +35,20 @@ export type RegisterState = {
     date_of_birth: string,
     birthday_check: boolean,
     student: boolean,
-    onderwijsinstelling: string,
-    onderwijsinstelling_overig: string,
+    eduinstitution: string,
+    eduinstitution_other: string,
     register_id: string
 }
 
 type RegisterAction =
-    | { type: 'register' }
-    | { type: 'reset'}
+    | { type: 'reload', new_state: RegisterState}
     | { type: 'change', field: string, value: string }
     | { type: 'change_bool', field: string, value: boolean }
 
 let initialState: RegisterState = {
-    name: "",
-    surname: "",
+    register_id: "",
+    firstname: "",
+    lastname: "",
     email: "",
     phone: "",
     callname: "",
@@ -57,9 +57,8 @@ let initialState: RegisterState = {
     date_of_birth: "",
     birthday_check: false,
     student: false,
-    onderwijsinstelling: "",
-    onderwijsinstelling_overig: "",
-    register_id: ""
+    eduinstitution: "",
+    eduinstitution_other: ""
 }
 
 const handleFocus = (event: FocusEvent<HTMLInputElement>) => {
@@ -70,31 +69,56 @@ const handleBlur = (event: FocusEvent<HTMLInputElement>) => {
     event.target.type = 'text';
 }
 
+const RegisterInfo = z.object({
+    register_id: z.string(),
+    firstname: z.string(),
+    lastname: z.string(),
+    email: z.string(),
+    phone: z.string(),
+})
+
 const Register = () => {
-    const readUrlS = (): RegisterState => {
+    const readUrlSearch = (): RegisterState => {
         const source_params = (new URLSearchParams(window.location.search))
-        const register_id = source_params.get("register_id") || "error"
-        const email = source_params.get("email") || "error"
-        const name = source_params.get("name") || "error"
-        const surname = source_params.get("surname") || "error"
-        const phone = source_params.get("phone") || "error"
+        const info_param = source_params.get("info")
+        if (info_param === null) {
+            throw new Error("No info given!")
+        }
+        const info_bytes = base64ToBin(info_param)
+        const decoder = new TextDecoder()
+        const info_str = decoder.decode(info_bytes)
+        const info = JSON.parse(info_str)
+        const reg_info = RegisterInfo.parse(info)
         return {
             ...initialState,
-            register_id,
-            email,
-            name,
-            surname,
-            phone
+            ...reg_info
         }
     }
 
+    const [handled, setHandled] = useState(false)
+    const [infoOk, setInfoOk] = useState(false)
     const [state, dispatch] = useReducer(
         registerReducer,
-        readUrlS(),
+        initialState,
     )
     const [submitted, setSubmitted] = useState("")
     const [passScore, setPassScore] = useState(0)
     const [status, setStatus] = useState("")
+
+
+    useEffect(() => {
+        if (!handled) {
+            try {
+                const reducerInitial = readUrlSearch()
+                setInfoOk(true)
+                dispatch({type: 'reload', new_state: reducerInitial})
+            } catch (e) {
+                setInfoOk(false)
+            }
+            setHandled(true)
+        }
+    }, [handled]);
+
 
     const formIsValid = () => {
         if (passScore < 2) {
@@ -111,18 +135,14 @@ const Register = () => {
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault()
-        const source_params = (new URLSearchParams(window.location.search))
-        let registerId = source_params.get("register_id");
-        registerId = registerId != null ? registerId : ""
-        dispatch({type: 'change', field: "register_id", value: registerId})
+        console.log("HI!")
         if (formIsValid()) {
-            dispatch({type: 'register'})
+            clientRegister(state).then()
         }
     }
 
     const handleSubmitClick = () => {
         setSubmitted("submitted")
-        console.log("hi")
     }
 
     const handleFormChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -143,11 +163,15 @@ const Register = () => {
     return (
         <div>
             <h1 className="title">Register</h1>
+            {!infoOk && handled &&
+            <p className="largeText">The link to this registration form is broken, please retry or ask for a new link!</p>
+            }
+            {infoOk &&
             <form className="registerForm" onSubmit={handleSubmit}>
                 <div className="formContents">
-                    <input disabled className={submitted} required id="name" type="text" placeholder="Voornaam" name="name" value={state.name}
+                    <input disabled className={submitted} required id="name" type="text" placeholder="Voornaam" name="name" value={state.firstname}
                            onChange={handleFormChange}/>
-                    <input disabled className={submitted} required id="surname" type="text" placeholder="Achternaam" name="surname" value={state.surname}
+                    <input disabled className={submitted} required id="surname" type="text" placeholder="Achternaam" name="surname" value={state.lastname}
                            onChange={handleFormChange}/>
                     <input disabled className={submitted} required id="email" type="text" placeholder="E-mail" name="email" value={state.email}
                            onChange={handleFormChange}/>
@@ -176,7 +200,7 @@ const Register = () => {
                     </div>
                     <div className={"dropdown" + (state.student ? "": " inputHidden")}>
                         <label >Onderwijsinstelling:</label>
-                        <select id="onderwijsinstelling" name="onderwijsinstelling" value={state.onderwijsinstelling}
+                        <select id="eduinstitution" name="eduinstitution" value={state.eduinstitution}
                                 onChange={handleSelectChange}>
                             <option value="TU Delft">TU Delft</option>
                             <option value="Haagse Hogeschool - Delft">Haagse Hogeschool - Delft</option>
@@ -185,7 +209,7 @@ const Register = () => {
                             <option value="Anders, namelijk:">Anders, namelijk:</option>
                         </select>
                     </div>
-                    <input className={"" + (state.onderwijsinstelling === "Anders, namelijk:" ? "" : " inputHidden")} id="onderwijsinstelling_overig" type="text" placeholder="Onderwijsinstelling" name="onderwijsinstelling_overig" value={state.onderwijsinstelling_overig}
+                    <input className={"" + (state.eduinstitution === "Anders, namelijk:" ? "" : " inputHidden")} id="eduinstitution_other" type="text" placeholder="Onderwijsinstelling" name="eduinstitution_other" value={state.eduinstitution_other}
                             onChange={handleFormChange} />
                     <div className="checkbox">
                         <label >Ik accepteer het privacybeleid</label>
@@ -196,7 +220,7 @@ const Register = () => {
                     
                 </div>
                 <button className="registerButton" id="submit_button" onClick={handleSubmitClick} type="submit">Registreer</button><br />
-            </form>
+            </form>}
         </div>
     )
 }

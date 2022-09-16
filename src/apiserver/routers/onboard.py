@@ -1,3 +1,4 @@
+import json
 import time as tm
 
 import logging
@@ -64,7 +65,7 @@ async def init_signup(signup: SignupRequest, request: Request, background_tasks:
 
     do_send_email = not u_ex and not su_ex
 
-    confirm_id = util.random_time_hash_hex(email_usph)
+    confirm_id = util.random_time_hash_hex()
 
     await data.kv.store_email_confirmation(dsrc, confirm_id, signup)
     config: Config = request.app.state.config
@@ -130,36 +131,25 @@ async def confirm_join(signup: SignupConfirm, request: Request, background_tasks
 
     # Success here means removing any existing records in signedup and also the KV relating to that email
 
-    email_usph = util.usp_hex(signup.email)
-    register_id = util.random_time_hash_hex(email_usph)
+    register_id = util.random_time_hash_hex(short=True)
     await data.user.new_user(dsrc, signed_up, register_id, av40id=signup.av40id, joined=signup.joined)
 
     config: Config = request.app.state.config
 
-    # params = {
-    #     "register": ""
-    # }
-    # confirmation_url = f"{credentials_url}email/?{urlencode(params)}"
-    #
-    # send_register_email(background_tasks, signup.email, config.MAIL_PASS, confirmation_url, signup_url)
-
-    return {
-        "ok": register_id
+    info = {
+        "register_id": register_id,
+        "firstname": signed_up.firstname,
+        "lastname": signed_up.lastname,
+        "email": signed_up.email,
+        "phone": signed_up.phone
     }
+    info_str = util.enc_b64url(json.dumps(info).encode('utf-8'))
+    params = {
+        "info": info_str
+    }
+    registration_url = f"{credentials_url}register/?{urlencode(params)}"
 
-
-@router.get("/onboard/userdata/{register_id}")
-async def register_id_userdata(register_id: str, request: Request):
-    dsrc: Source = request.app.state.dsrc
-
-    try:
-        ud = await data.user.get_userdata_by_register_id(dsrc, register_id)
-    except DataError as e:
-        logger.debug(e)
-        reason = "No registration for that register_id"
-        raise ErrorResponse(400, err_type="invalid_register", err_desc=reason, debug_key="no_register_for_id")
-
-    return UserDataRegisterResponse(email=ud.email, firstname=ud.firstname, lastname=ud.lastname, phone=ud.phone)
+    send_register_email(background_tasks, signup.email, config.MAIL_PASS, registration_url)
 
 
 @router.post("/onboard/register/", response_model=PasswordResponse)
@@ -254,7 +244,7 @@ async def finish_register(register_finish: FinishRequest, request: Request):
     new_userdata = UserData(id=ud.id, firstname=ud.firstname, lastname=ud.lastname, callname=register_finish.callname,
                             email=ud.email, phone=ud.phone, av40id=ud.av40id, joined=ud.joined,
                             eduinstitution=register_finish.eduinstitution, birthdate=register_finish.birthdate,
-                            active=True, registered=True)
+                            registerid=ud.registerid, active=True, registered=True)
 
     await data.user.upsert_userdata(dsrc, new_userdata)
 

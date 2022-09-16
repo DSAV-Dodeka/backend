@@ -35,7 +35,7 @@ async def local_client():
 
 
 @pytest.mark.asyncio
-async def test_onboard_confirm(local_client: AsyncClient):
+async def test_onboard_signup(local_client: AsyncClient):
     req = {
         "firstname": "mr",
         "lastname": "person",

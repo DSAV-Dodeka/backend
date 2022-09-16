@@ -9,15 +9,19 @@ import math
 from datetime import datetime, timezone
 
 
-def random_time_hash_hex(extra_seed: Optional[Union[bytes, str]] = None):
+def random_time_hash_hex(extra_seed: Optional[Union[bytes, str]] = None, short=False):
     """ Random string (bound to timestamp and optional extra seed) to represent events/objects that must be uniquely
-    identified. """
+    identified. These should not be used for security. """
     if isinstance(extra_seed, str):
         extra_seed = extra_seed.encode('utf-8')
 
-    timestamp = time.time_ns().to_bytes(64, byteorder='big')
-    random_bytes = (extra_seed if extra_seed is not None else b'') + timestamp + secrets.token_bytes(8)
-    return hashlib.sha256(random_bytes, usedforsecurity=False).digest().hex()
+    timestamp = time.time_ns().to_bytes(10, byteorder='big')
+    random_bytes = (extra_seed if extra_seed is not None else b'') + secrets.token_bytes(10) + timestamp
+    hashed = hashlib.shake_256(random_bytes)
+    if short:
+        return hashed.hexdigest(8)
+    else:
+        return hashed.hexdigest(16)
 
 
 urlsafe = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_"

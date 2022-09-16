@@ -45,7 +45,7 @@ const Email = () => {
     return (
         <div className="page">
             <h1 className="title">Email</h1>
-            <p className="email">{status}</p>
+            <p className="largeText">{status}</p>
             {confirmed && (<a className="regLink" href={register_link}>{register_link}</a>)}
         </div>
     )

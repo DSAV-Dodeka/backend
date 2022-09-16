@@ -81,7 +81,7 @@ async def admin_access(local_dsrc):
 @pytest.mark.asyncio
 async def test_onboard_confirm(local_client: AsyncClient, admin_access):
     req = {
-        "email": "hi@xs.nl",
+        "email": "comcom@dsavdodeka.nl",
         "av40id": "+31068243",
         "joined": "2022-04-03"
     }

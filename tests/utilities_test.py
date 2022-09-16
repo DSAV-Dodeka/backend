@@ -13,8 +13,8 @@ async def mock_random(mocker: MockerFixture):
 
 
 def test_hash_hex(mock_random):
-    assert util.random_time_hash_hex() == "4d5835070d310289643956564b10ec0a0b1dbe1c2daf1da3db1a70740fe9f891"
-    assert util.random_time_hash_hex(b"someone") == "260559a02a6903f68cf133d21ce502609884db79e4d8c7df16f4ae9ab8705dc6"
+    assert util.random_time_hash_hex() == "23d6bccd333b8912d52ba72c1f9621ae"
+    assert util.random_time_hash_hex(b"someone") == "d0e8ffed9e32495eef694b45d7789f1f"
     assert util.random_time_hash_hex("someother") == util.random_time_hash_hex(b"someother")
 
 

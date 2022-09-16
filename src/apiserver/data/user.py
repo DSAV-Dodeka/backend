@@ -75,7 +75,7 @@ async def new_user(dsrc: Source, signed_up: SignedUp, register_id: str, av40id: 
 
 
 async def upsert_userdata(dsrc: Source, userdata: UserData):
-    """ Requires known id. """
+    """ Requires known id. Note that this cannot change any unique constraints, those must remain unaltered."""
     try:
         result = await upsert_by_id(dsrc, USERDATA_TABLE, userdata.dict())
     except DbError as e:

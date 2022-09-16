@@ -13,7 +13,7 @@ from apiserver.define import template_env, onboard_email, smtp_server, smtp_port
 __all__ = ['send_email', 'send_email_vars']
 
 
-def send_email(template: str, receiver_email: str, mail_pass: str, add_vars: Optional[dict] = None):
+def send_email(template: str, receiver_email: str, mail_pass: str, subject: str, add_vars: Optional[dict] = None):
     """ Automatically loads the localization dictionary from the filesystem, with add_vars replacing any keys and adding
     any ones that are undefined by the localization. """
     if add_vars is None:
@@ -23,17 +23,17 @@ def send_email(template: str, receiver_email: str, mail_pass: str, add_vars: Opt
         **add_vars
     }
     send_email_vars(template, template_env, templ_vars, receiver_email, mail_pass, onboard_email, smtp_server,
-                    smtp_port)
+                    smtp_port, subject)
 
 
 def send_email_vars(template: str, loaded_env: Environment, templ_vars: dict, receiver_email: str, mail_pass: str,
-                    from_email, l_smtp_server, l_smtp_port):
+                    from_email, l_smtp_server, l_smtp_port, subject: str):
     template = loaded_env.get_template(template)
 
     html = template.render(templ_vars)
 
     msg = MIMEMultipart("alternative")
-    msg['Subject'] = 'Multipart'
+    msg['Subject'] = subject
     msg['From'] = from_email
     msg['To'] = receiver_email
     msg["Date"] = formatdate(localtime=True)

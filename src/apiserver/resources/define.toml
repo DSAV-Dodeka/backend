@@ -7,7 +7,7 @@ backend_client_id = "dodekabackend_client"
 
 valid_redirects = ["http://localhost:3000/auth/callback", "https://dsavdodeka.nl/auth/callback"]
 
-credentials_url = "http://localhost:4243/credentials/index.html"
+credentials_url = "http://localhost:4243/credentials/"
 
 signup_url = "https://www.av40.nl/index.php?page=Inschrijfformulier&sid=1"
 

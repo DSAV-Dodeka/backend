@@ -60,8 +60,8 @@ async def store_email_confirmation(dsrc: Source, confirm_id: str, signup: Signup
     await store_json(kv_is_init(dsrc), confirm_id, signup.dict(), expire=email_expiration)
 
 
-async def get_email_confirmation(dsrc: Source, confirm_id: str):
+async def get_email_confirmation(dsrc: Source, confirm_id: str) -> SignupRequest:
     signup_dict = await get_json(kv_is_init(dsrc), confirm_id)
     if signup_dict is None:
-        raise NoDataError("Confirmation does not exist or expired.", "saved_confirm_empty")
+        raise NoDataError("Confirmation ID does not exist or expired.", "saved_confirm_empty")
     return SignupRequest.parse_obj(signup_dict)

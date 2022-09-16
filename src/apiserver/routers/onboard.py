@@ -3,16 +3,16 @@ import time as tm
 import logging
 from urllib.parse import urlencode
 
-from anyio import create_task_group
+from anyio import sleep
 from fastapi import APIRouter, Security, status, BackgroundTasks, Request, Response
 
 import opaquepy as opq
 
 from apiserver.auth import authentication
-from apiserver.define import ErrorResponse, LOGGER_NAME, signup_url, api_root
+from apiserver.define import ErrorResponse, LOGGER_NAME, signup_url, credentials_url
 from apiserver.define.entities import SignedUp, UserData, User
 from apiserver.define.request import SignupRequest, SignupConfirm, UserDataRegisterResponse, PasswordResponse, \
-    RegisterRequest, FinishRequest
+    RegisterRequest, FinishRequest, EmailConfirm
 import apiserver.utilities as util
 from apiserver.auth.header import auth_header
 from apiserver.emailfn import send_email
@@ -26,13 +26,26 @@ router = APIRouter()
 logger = logging.getLogger(LOGGER_NAME)
 
 
-def send_signup_email(background_tasks: BackgroundTasks, receiver: str, mail_pass: str, redirect_link):
+def send_signup_email(background_tasks: BackgroundTasks, receiver: str, mail_pass: str, redirect_link: str,
+                      signup_link: str):
     add_vars = {
-        "redirect_link": redirect_link
+        "redirect_link": redirect_link,
+        "signup_link": signup_link
     }
 
     def send_lam():
-        send_email("confirm.html.jinja2", receiver, mail_pass, add_vars)
+        send_email("confirm.html.jinja2", receiver, mail_pass, "Please confirm your email", add_vars)
+
+    background_tasks.add_task(send_lam)
+
+
+def send_register_email(background_tasks: BackgroundTasks, receiver: str, mail_pass: str, register_link: str):
+    add_vars = {
+        "register_link": register_link
+    }
+
+    def send_lam():
+        send_email("register.html.jinja2", receiver, mail_pass, "Welcome to D.S.A.V. Dodeka!", add_vars)
 
     background_tasks.add_task(send_lam)
 
@@ -42,7 +55,6 @@ async def init_signup(signup: SignupRequest, request: Request, background_tasks:
     """ Signup is initiated by leaving basic information. User is redirected to AV'40 page, where they will actually
     sign up. Board can see who has signed up this way. There might not be full correspondence between exact signup and
     what is provided to AV'40. So there is a manual check."""
-    start = tm.perf_counter_ns()
     dsrc: Source = request.app.state.dsrc
 
     email_usph = util.usp_hex(signup.email)
@@ -60,54 +72,46 @@ async def init_signup(signup: SignupRequest, request: Request, background_tasks:
     params = {
         "confirm_id": confirm_id
     }
-    confirmation_url = f"{api_root}/onboard/redirect/?{urlencode(params)}"
+    confirmation_url = f"{credentials_url}email/?{urlencode(params)}"
 
-    end_p1 = tm.perf_counter_ns()
     if do_send_email:
-        send_signup_email(background_tasks, signup.email, config.MAIL_PASS, confirmation_url)
+        send_signup_email(background_tasks, signup.email, config.MAIL_PASS, confirmation_url, signup_url)
     else:
-        pass
-    end_p2 = tm.perf_counter_ns()
-    logger.debug(end_p1 - start)
-    logger.debug(end_p2 - end_p1)
+        # Prevent client enumeration
+        await sleep(0.00002)
 
-    return {
-        "ok": "ok"
-    }
+    return None
 
-# do_send_email = True
-# signed_up = SignedUp(firstname=signup.firstname, lastname=signup.lastname, email=signup.email, phone=signup.phone)
-#     try:
-#         await data.signedup.insert_su_row(dsrc, signed_up.dict())
-#     except DataError as e:
-#         logger.debug(e.message)
-#         if e.key == "unique_violation":
-#             do_send_email = False
-#         else:
-#             raise e
 
-# @router.get("/onboard/redirect/", status_code=303)
-# async def oauth_finish(flow_id: str, response: Response, request: Request):
-#     dsrc: Source = request.app.state.dsrc
-#     try:
-#         auth_request = await data.kv.get_auth_request(dsrc, flow_id)
-#     except NoDataError as e:
-#         logger.debug(e.message)
-#         reason = "Expired or missing auth request"
-#         raise ErrorResponse(400, err_type=f"invalid_oauth_callback", err_desc=reason)
-#
-#     params = {
-#         "code": code,
-#         "state": auth_request.state
-#     }
-#
-#     redirect = f"{auth_request.redirect_uri}?{urlencode(params)}"
-#
-#     return RedirectResponse(redirect, status_code=status.HTTP_303_SEE_OTHER)
+@router.post("/onboard/email/")
+async def email_confirm(confirm_req: EmailConfirm, request: Request):
+    dsrc: Source = request.app.state.dsrc
+
+    try:
+        signup = await data.kv.get_email_confirmation(dsrc, confirm_req.confirm_id)
+    except NoDataError as e:
+        logger.debug(e.message)
+        reason = "Incorrect confirm ID or expired."
+        raise ErrorResponse(400, err_type="invalid_signup", err_desc=reason, debug_key="bad_confirm_id")
+
+    signed_up = SignedUp(firstname=signup.firstname, lastname=signup.lastname, email=signup.email, phone=signup.phone)
+
+    try:
+        await data.signedup.insert_su_row(dsrc, signed_up.dict())
+    except DataError as e:
+        logger.debug(e.message)
+        if e.key == "unique_violation":
+            raise ErrorResponse(400, err_type="invalid_signup", err_desc="Email already exists!",
+                                debug_key="user_exists")
+        else:
+            raise e
+
+    return None
 
 
 @router.post("/onboard/confirm/")
-async def confirm_join(signup: SignupConfirm, request: Request, authorization: str = Security(auth_header)):
+async def confirm_join(signup: SignupConfirm, request: Request, background_tasks: BackgroundTasks,
+                       authorization: str = Security(auth_header)):
     """ Board confirms data from AV`40 signup through admin tool. """
     dsrc: Source = request.app.state.dsrc
     await require_admin(authorization, dsrc)
@@ -123,11 +127,21 @@ async def confirm_join(signup: SignupConfirm, request: Request, authorization: s
                                 debug_key="no_user_signup")
         else:
             raise e
+
+    # Success here means removing any existing records in signedup and also the KV relating to that email
+
     email_usph = util.usp_hex(signup.email)
     register_id = util.random_time_hash_hex(email_usph)
     await data.user.new_user(dsrc, signed_up, register_id, av40id=signup.av40id, joined=signup.joined)
 
-    # send register email
+    config: Config = request.app.state.config
+
+    # params = {
+    #     "register": ""
+    # }
+    # confirmation_url = f"{credentials_url}email/?{urlencode(params)}"
+    #
+    # send_register_email(background_tasks, signup.email, config.MAIL_PASS, confirmation_url, signup_url)
 
     return {
         "ok": register_id

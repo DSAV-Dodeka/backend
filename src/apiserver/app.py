@@ -6,6 +6,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.routing import Mount
 from fastapi.exceptions import RequestValidationError
 
 # We rely upon database parameters being set at import time, which is fragile, but the only way to easily re-use it
@@ -40,9 +41,11 @@ def create_app() -> tuple[FastAPI, Logger]:
     origins = [
         "*",
     ]
-
-    new_app = FastAPI()
-    new_app.mount("/credentials", StaticFiles(directory=res_path.joinpath("static/credentials"), html=True), name="credentials")
+    routes = [
+        Mount('/credentials', app=StaticFiles(directory=res_path.joinpath("static/credentials"), html=True),
+              name="credentials")
+    ]
+    new_app = FastAPI(routes=routes)
     new_app.include_router(basic.router)
     new_app.include_router(auth.router)
     new_app.include_router(profile.router)

@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import {defineConfig} from 'vite'
 import { resolve } from 'path'
 import react from '@vitejs/plugin-react'
 import wasm from "vite-plugin-wasm";
@@ -16,13 +16,14 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        register: resolve(__dirname, 'register/index.html')
+        register: resolve(__dirname, 'register/index.html'),
+        email: resolve(__dirname, 'email/index.html')
       }
     },
     outDir: '../src/apiserver/resources/static/credentials'
   },
   server: {
-    port: 4243
+    port: 4244
   }
 })
 

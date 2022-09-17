@@ -11,8 +11,8 @@ const OpaqueResponse = z.object({
 
 export async function clientRegister(registerState: RegisterState) {
     try {
-        await init("../node_modules/@tiptenbrink/opaquewasm/opaquewasm_bg.wasm");
-        //await init()
+        //await init("../node_modules/@tiptenbrink/opaquewasm/opaquewasm_bg.wasm");
+        await init()
         const { message: message1, state: register_state } = client_register_wasm(registerState.password)
 
         const register_start = {

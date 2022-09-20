@@ -180,7 +180,9 @@ async def mock_get_keys(mocker: MockerFixture):
 session_key = "somecomplexsessionkey"
 mock_redirect = "http://localhost:3000/auth/callback"
 mock_flow_id = "1d5c621ea3a2da319fe0d0a680046fd6369a60e450ff04f59c51b0bfb3d96eef"
-mock_flow_user = FlowUser(user_usph="mrmock", auth_time=utc_timestamp() - 20, flow_id=mock_flow_id)
+fake_token_scope = "test"
+mock_flow_user = FlowUser(user_usph="mrmock", auth_time=utc_timestamp() - 20, flow_id=mock_flow_id,
+                          scope=fake_token_scope)
 mock_auth_request = AuthRequest(response_type="code", client_id="dodekaweb_client",
                                 redirect_uri=mock_redirect,
                                 state="KV6A2hTOv6mOFYVpTAOmWw",
@@ -189,7 +191,7 @@ mock_auth_request = AuthRequest(response_type="code", client_id="dodekaweb_clien
                                 nonce="-eB2lpr1IqZdJzt9CfDZ5jrHGa6yE87UUTFd4CWweOI")
 nonce_original = "6SWk9T1sUfqgSYeq2XlawA"
 code_verifier = "NiiCPTK4e73kAVCfWZyZX6AvIXyPg396Q4063oGOI3w"
-fake_token_scope = "test"
+
 fake_token_id = 44
 
 
@@ -449,7 +451,7 @@ async def test_start_login(test_client, mocker: MockerFixture, state_store):
     opq_key = mocker.patch('apiserver.data.key.get_opaque_private')
     opq_key.return_value = mock_opq_key['private']
 
-    g_pw = mocker.patch('apiserver.data.user.get_user_password_file')
+    g_pw = mocker.patch('apiserver.data.user.get_user_scope_password')
 
     test_user_usph = usp_hex(test_user)
 
@@ -457,7 +459,9 @@ async def test_start_login(test_client, mocker: MockerFixture, state_store):
 
     def pw_side_effect(f_dsrc, user_usph):
         if user_usph == test_user_usph:
-            return fake_password_file
+            return fake_token_scope, fake_password_file
+        elif user_usph == "fakerecord":
+            return "none", fake_password_file
 
     g_pw.side_effect = pw_side_effect
 
@@ -490,7 +494,7 @@ async def test_finish_login(test_client, mocker: MockerFixture, flow_store):
 
     def state_side_effect(f_dsrc, auth_id):
         if auth_id == test_auth_id:
-            return SavedState(user_usph=test_user_usph, state=test_state)
+            return SavedState(user_usph=test_user_usph, state=test_state, scope=fake_token_scope)
 
     g_state.side_effect = state_side_effect
 

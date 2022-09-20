@@ -33,24 +33,18 @@ async def start_login(login_start: PasswordRequest, request: Request):
     user_usph = util.usp_hex(login_start.email)
     private_key = await data.key.get_opaque_private(dsrc)
 
-    password_file = await data.user.get_user_password_file(dsrc, "fakerecord")
-    data_password = ""
+    scope, password_file = await data.user.get_user_scope_password(dsrc, "fakerecord")
     try:
-        data_password = await data.user.get_user_password_file(dsrc, user_usph)
-
+        scope, password_file = await data.user.get_user_scope_password(dsrc, user_usph)
     except NoDataError:
         # If user does not exist, pass fake user record to prevent client enumeration
-        # TODO ensure this fake record exists
         pass
-    # If password is empty or was not set due to non-existent user, make login impossible
-    if data_password:
-        password_file = data_password
 
     auth_id = util.random_time_hash_hex(user_usph)
 
     response, state = opq.login(password_file, login_start.client_request, private_key)
 
-    saved_state = SavedState(user_usph=user_usph, state=state)
+    saved_state = SavedState(user_usph=user_usph, scope=scope, state=state)
 
     await data.kv.store_auth_state(dsrc, auth_id, saved_state)
 
@@ -73,7 +67,7 @@ async def finish_login(login_finish: FinishLogin, request: Request):
 
     session_key = opq.login_finish(login_finish.client_request, saved_state.state)
     utc_now = util.utc_timestamp()
-    flow_user = FlowUser(flow_id=login_finish.flow_id, user_usph=user_usph, auth_time=utc_now)
+    flow_user = FlowUser(flow_id=login_finish.flow_id, user_usph=user_usph, scope=saved_state.scope, auth_time=utc_now)
 
     await data.kv.store_flow_user(dsrc, session_key, flow_user)
 
@@ -172,7 +166,6 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
             logger.debug(e.message)
             reason = "Expired or missing auth request"
             raise ErrorResponse(400, err_type=f"invalid_grant", err_desc=reason)
-        # TODO get scope from request
 
         if token_request.client_id != auth_request.client_id:
             logger.debug(f'Request redirect {token_request.client_id} does not match {auth_request.client_id}')
@@ -198,7 +191,7 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
         id_nonce = auth_request.nonce
         token_user = flow_user.user_usph
 
-        token_scope = "test" if token_user != "admin" else "admin"
+        token_scope = flow_user.scope
         id_token, access, refresh, exp, returned_scope = \
             await new_token(dsrc, token_user, token_scope, auth_time, id_nonce)
 

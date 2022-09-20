@@ -108,6 +108,7 @@ class SavedRegisterState(BaseModel):
 
 class SavedState(BaseModel):
     user_usph: str
+    scope: str
     state: str
 
 
@@ -130,6 +131,7 @@ class FinishLogin(BaseModel):
 
 class FlowUser(BaseModel):
     user_usph: str
+    scope: str
     flow_id: str
     auth_time: int
 

@@ -7,6 +7,7 @@ class User(BaseModel):
     id: int = None
     usp_hex: str
     password_file: str
+    scope: str = "member"
 
 
 class Key(BaseModel):

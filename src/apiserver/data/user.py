@@ -83,8 +83,9 @@ async def upsert_userdata(dsrc: Source, userdata: UserData):
     return result
 
 
-async def get_user_password_file(dsrc: Source, user_usph):
-    return (await get_user_by_usph(dsrc, user_usph)).password_file
+async def get_user_scope_password(dsrc: Source, user_usph) -> (str, str):
+    user = await get_user_by_usph(dsrc, user_usph)
+    return user.scope, user.password_file
 
 
 def create_user(ups_hex, password_file) -> dict:

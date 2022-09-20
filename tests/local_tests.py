@@ -5,6 +5,7 @@ import pytest
 import pytest_asyncio
 
 from httpx import AsyncClient
+from opaquepy import register, register_finish, login, login_finish
 
 from apiserver.resources import project_path
 from apiserver.env import load_config
@@ -66,7 +67,7 @@ async def local_dsrc(api_config):
 @pytest_asyncio.fixture(scope="module")
 async def admin_access(local_dsrc):
     admin_id = "admin_test"
-    scope = "admin"
+    scope = "member admin"
     utc_now = util.utc_timestamp()
 
     access_token_data, id_token_data, access_scope, refresh_save = create_tokens(admin_id, scope, utc_now, "test_nonce",

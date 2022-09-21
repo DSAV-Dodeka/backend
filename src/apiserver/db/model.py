@@ -5,7 +5,7 @@ metadata = sqlalchemy.MetaData()
 USER_TABLE = "users"
 USERNAME = "usp_hex"
 PASSWORD = "password_file"
-SCOPES = "scopes"
+SCOPES = "scope"
 users = sqlalchemy.Table(
     USER_TABLE,
     metadata,

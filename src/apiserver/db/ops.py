@@ -21,6 +21,10 @@ class DbOperations(ABC):
         ...
 
     @classmethod
+    async def retrieve_table(cls, db: Database, table: str) -> list[dict]:
+        ...
+
+    @classmethod
     @abstractmethod
     async def exists_by_unique(cls, db: Database, table: str, unique_column: str, value) -> bool:
         ...

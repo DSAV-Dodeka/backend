@@ -10,6 +10,7 @@ from fastapi import APIRouter, Security, status, BackgroundTasks, Request, Respo
 import opaquepy as opq
 
 from apiserver.auth import authentication
+from apiserver.data.signedup import get_all_signedup
 from apiserver.define import ErrorResponse, LOGGER_NAME, signup_url, credentials_url
 from apiserver.define.entities import SignedUp, UserData, User
 from apiserver.define.request import SignupRequest, SignupConfirm, UserDataRegisterResponse, PasswordResponse, \
@@ -108,6 +109,14 @@ async def email_confirm(confirm_req: EmailConfirm, request: Request):
             raise e
 
     return None
+
+
+@router.get("/onboard/get/", response_model=list[SignedUp])
+async def get_signedup(request: Request, authorization: str = Security(auth_header)):
+    dsrc: Source = request.app.state.dsrc
+    await require_admin(authorization, dsrc)
+    signed_up = await get_all_signedup(dsrc)
+    return signed_up
 
 
 @router.post("/onboard/confirm/")

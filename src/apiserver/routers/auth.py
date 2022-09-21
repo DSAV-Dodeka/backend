@@ -9,13 +9,11 @@ from fastapi.responses import RedirectResponse
 import opaquepy as opq
 
 from apiserver.define import frontend_client_id, credentials_url, LOGGER_NAME
-from apiserver.define.entities import User
-from apiserver.define.request import ErrorResponse, PasswordResponse, PasswordRequest, SavedState, FinishRequest, \
-    FinishLogin, AuthRequest, TokenResponse, TokenRequest, FlowUser, RegisterRequest
+from apiserver.define.request import ErrorResponse, PasswordResponse, PasswordRequest, SavedState, FinishLogin, \
+    AuthRequest, TokenResponse, TokenRequest, FlowUser
 import apiserver.utilities as util
 import apiserver.data as data
-from apiserver.data import DataError, NoDataError, Source
-import apiserver.auth.authentication as authentication
+from apiserver.data import NoDataError, Source
 from apiserver.auth.tokens import InvalidRefresh
 from apiserver.auth.tokens_data import do_refresh, new_token
 

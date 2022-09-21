@@ -60,6 +60,13 @@ class PostgresOperations(DbOperations):
         return dict(record) if record is not None else None
 
     @classmethod
+    async def retrieve_table(cls, db: Database, table: str) -> list[dict]:
+        """ Ensure `table` is never user-defined. """
+        query = f"SELECT * FROM {table}"
+        records = await db.fetch_all(query)
+        return [dict(record) for record in records] if records is not None else []
+
+    @classmethod
     async def exists_by_unique(cls, db: Database, table: str, unique_column: str, value) -> bool:
         """ Ensure `unique_column` and `table` are never user-defined. """
         query = f"SELECT EXISTS (SELECT * FROM {table} WHERE {unique_column} = :val) AS \"exists\""

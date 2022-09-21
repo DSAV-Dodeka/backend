@@ -2,7 +2,7 @@ from typing import Optional
 
 from apiserver.define.entities import SignedUp
 from apiserver.data.source import Source, DataError
-from apiserver.data.use import retrieve_by_id, retrieve_by_unique, insert, exists_by_unique
+from apiserver.data.use import retrieve_by_unique, insert, exists_by_unique, retrieve_table
 from apiserver.db import SIGNEDUP_TABLE
 from apiserver.db.model import SU_FIRSTNAME, SU_LASTNAME, SU_EMAIL, SU_PHONE
 from apiserver.db.ops import DbError
@@ -20,6 +20,11 @@ def parse_signedup(signedup_dict: Optional[dict]) -> SignedUp:
 async def get_signedup_by_email(dsrc: Source, email: str) -> SignedUp:
     signedup_row = await retrieve_by_unique(dsrc, SIGNEDUP_TABLE, SU_EMAIL, email)
     return parse_signedup(signedup_row)
+
+
+async def get_all_signedup(dsrc: Source) -> list[SignedUp]:
+    all_signed_up = await retrieve_table(dsrc, SIGNEDUP_TABLE)
+    return [parse_signedup(su_dct) for su_dct in all_signed_up]
 
 
 async def signedup_exists(dsrc: Source, email: str) -> bool:

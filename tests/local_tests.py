@@ -5,12 +5,13 @@ import pytest
 import pytest_asyncio
 
 from httpx import AsyncClient
-from opaquepy import register, register_finish, login, login_finish
+import opaquepy as opq
 
 from apiserver.resources import project_path
 from apiserver.env import load_config
 import apiserver.utilities as util
 from apiserver.auth.tokens import create_tokens, finish_tokens
+import apiserver.data as data
 from apiserver.data import Source
 from apiserver.auth.tokens_data import get_keys
 
@@ -77,6 +78,19 @@ async def admin_access(local_dsrc):
     refresh_token, access_token, id_token = finish_tokens(refresh_id, refresh_save, aesgcm, access_token_data,
                                                           id_token_data, utc_now, signing_key, nonce="")
     yield access_token
+
+
+@pytest.mark.asyncio
+async def test_generate_admin(local_dsrc: Source):
+    admin_password = "passadmin"
+    public_key = await data.key.get_opaque_public(local_dsrc)
+
+    cl_req, cl_state = opq.register_client(admin_password)
+    serv_resp, serv_state = opq.register(cl_req, public_key)
+    cl_fin = opq.register_client_finish(cl_state, serv_resp)
+    pw_file = opq.register_finish(cl_fin, serv_state)
+
+    print(pw_file)
 
 
 @pytest.mark.asyncio

@@ -1,19 +1,17 @@
 import json
-import time as tm
 
 import logging
 from urllib.parse import urlencode
 
 from anyio import sleep
-from fastapi import APIRouter, Security, status, BackgroundTasks, Request, Response
+from fastapi import APIRouter, Security, BackgroundTasks, Request
 
 import opaquepy as opq
 
-from apiserver.auth import authentication
 from apiserver.data.signedup import get_all_signedup
-from apiserver.define import ErrorResponse, LOGGER_NAME, signup_url, credentials_url
+from apiserver.define import ErrorResponse, LOGGER_NAME, signup_url, credentials_url, loc_dict
 from apiserver.define.entities import SignedUp, UserData, User
-from apiserver.define.request import SignupRequest, SignupConfirm, UserDataRegisterResponse, PasswordResponse, \
+from apiserver.define.request import SignupRequest, SignupConfirm, PasswordResponse, \
     RegisterRequest, FinishRequest, EmailConfirm, SavedRegisterState
 import apiserver.utilities as util
 from apiserver.auth.header import auth_header
@@ -47,7 +45,8 @@ def send_register_email(background_tasks: BackgroundTasks, receiver: str, mail_p
     }
 
     def send_lam():
-        send_email("register.html.jinja2", receiver, mail_pass, "Welcome to D.S.A.V. Dodeka!", add_vars)
+        org_name = loc_dict['loc']['org_name']
+        send_email("register.html.jinja2", receiver, mail_pass, f"Welcome to {org_name}", add_vars)
 
     background_tasks.add_task(send_lam)
 
@@ -65,6 +64,7 @@ async def init_signup(signup: SignupRequest, request: Request, background_tasks:
     su_ex = await data.signedup.signedup_exists(dsrc, signup.email)
 
     do_send_email = not u_ex and not su_ex
+    logger.debug(f"{email_usph} /onboard/signup - do_send_email {do_send_email}")
 
     confirm_id = util.random_time_hash_hex()
 
@@ -115,7 +115,8 @@ async def email_confirm(confirm_req: EmailConfirm, request: Request):
 async def get_signedup(request: Request, authorization: str = Security(auth_header)):
     dsrc: Source = request.app.state.dsrc
     await require_admin(authorization, dsrc)
-    signed_up = await get_all_signedup(dsrc)
+    async with data.get_conn(dsrc) as conn:
+        signed_up = await get_all_signedup(dsrc, conn)
     return signed_up
 
 
@@ -142,6 +143,9 @@ async def confirm_join(signup: SignupConfirm, request: Request, background_tasks
 
     register_id = util.random_time_hash_hex(short=True)
     await data.user.new_user(dsrc, signed_up, register_id, av40id=signup.av40id, joined=signup.joined)
+
+    async with data.get_conn(dsrc) as conn:
+        await data.signedup.confirm_signup(dsrc, conn, signup.email)
 
     config: Config = request.app.state.config
 

@@ -1,3 +1,4 @@
+import logging
 from typing import Optional
 
 import smtplib
@@ -8,9 +9,11 @@ from email.utils import formatdate
 
 from jinja2 import Environment
 
-from apiserver.define import template_env, onboard_email, smtp_server, smtp_port, loc_dict
+from apiserver.define import template_env, onboard_email, smtp_server, smtp_port, loc_dict, LOGGER_NAME
 
 __all__ = ['send_email', 'send_email_vars']
+
+logger = logging.getLogger(LOGGER_NAME)
 
 
 def send_email(template: str, receiver_email: str, mail_pass: str, subject: str, add_vars: Optional[dict] = None):
@@ -44,6 +47,12 @@ def send_email_vars(template: str, loaded_env: Environment, templ_vars: dict, re
 
     context = ssl.create_default_context()
 
-    with smtplib.SMTP_SSL(l_smtp_server, l_smtp_port, context=context) as server:
-        server.login(from_email, mail_pass)
-        server.sendmail(from_email, receiver_email, msg.as_string())
+    try:
+        with smtplib.SMTP_SSL(l_smtp_server, l_smtp_port, context=context) as server:
+            server.login(from_email, mail_pass)
+            server.sendmail(from_email, receiver_email, msg.as_string())
+            logger.debug(f"Sent an email from {from_email} to {receiver_email} with subject '{subject}'")
+    except smtplib.SMTPException as e:
+        logger.debug(str(e))
+
+

@@ -31,6 +31,10 @@ async def retrieve_by_unique(dsrc: Source, table: str, unique_column: str, value
     return await dsrc.gateway.ops.retrieve_by_unique(db_is_init(dsrc), table, unique_column, value)
 
 
+async def select_where(dsrc: Source, conn: AsyncConnection, table: str, column: str, value) -> list[dict]:
+    return await dsrc.gateway.ops.select_where(conn, table, column, value)
+
+
 async def retrieve_table(dsrc: Source, table: str) -> list[dict]:
     return await dsrc.gateway.ops.retrieve_table(db_is_init(dsrc), table)
 
@@ -41,6 +45,11 @@ async def exists_by_unique(dsrc: Source, table: str, unique_column: str, value) 
 
 async def upsert_by_id(dsrc: Source, table: str, row: dict):
     return await dsrc.gateway.ops.upsert_by_id(db_is_init(dsrc), table, row)
+
+
+async def update_column_by_unique(dsrc: Source, conn: AsyncConnection, table: str, set_column: str, set_value,
+                                  unique_column: str, value):
+    return await dsrc.gateway.ops.update_column_by_unique(conn, table, set_column, set_value, unique_column, value)
 
 
 async def insert(dsrc: Source, table: str, row: dict):

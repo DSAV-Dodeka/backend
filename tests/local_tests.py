@@ -7,6 +7,7 @@ import pytest_asyncio
 from httpx import AsyncClient
 import opaquepy as opq
 
+from apiserver.define.entities import SignedUp
 from apiserver.resources import project_path
 from apiserver.env import load_config
 import apiserver.utilities as util
@@ -95,11 +96,11 @@ async def test_generate_admin(local_dsrc: Source):
 
 
 @pytest.mark.asyncio
-async def test_sqlalch_t(local_dsrc: Source):
-    async with test_sqlalch(local_dsrc) as conn:
-        u = await data.user.get_user_by_id_sqlalch(local_dsrc, conn, 0)
+async def test_fill_signedup(local_dsrc):
+    for i in range(5):
+        signed_up = SignedUp(firstname="abc", lastname="abclast", email=f"abc{i}@abc.nl", phone="06")
+        await data.signedup.insert_su_row(local_dsrc, signed_up.dict())
 
-    print(u)
 
 
 @pytest.mark.asyncio

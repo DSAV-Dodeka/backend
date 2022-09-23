@@ -25,7 +25,6 @@ export async function clientRegister(registerState: RegisterState) {
 
         const eduinstitution = registerState.eduinstitution === "Anders, namelijk:" ?
             registerState.eduinstitution_other : registerState.eduinstitution
-
         const register_finish = {
             "email": registerState.email,
             "client_request": message2,

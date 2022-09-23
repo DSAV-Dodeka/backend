@@ -110,6 +110,7 @@ class SignedUp(BaseModel):
     lastname: str
     email: str
     phone: str
+    confirmed: bool = False
 
 
 class UserData(BaseModel):

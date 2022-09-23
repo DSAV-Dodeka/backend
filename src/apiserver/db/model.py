@@ -71,6 +71,7 @@ SU_FIRSTNAME = "firstname"
 SU_LASTNAME = "lastname"
 SU_PHONE = "phone"
 SU_EMAIL = "email"
+SU_CONFIRMED = "confirmed"
 signedup = sqlalchemy.Table(
     SIGNEDUP_TABLE,
     metadata,
@@ -78,7 +79,7 @@ signedup = sqlalchemy.Table(
     sqlalchemy.Column(SU_LASTNAME, sqlalchemy.String(length=100)),
     sqlalchemy.Column(SU_PHONE, sqlalchemy.String(length=15)),
     sqlalchemy.Column(SU_EMAIL, sqlalchemy.String(length=100), primary_key=True),
-
+    sqlalchemy.Column(SU_CONFIRMED, sqlalchemy.Boolean, nullable=False),
 )
 
 USERDATA_TABLE = "userdata"

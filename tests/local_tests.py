@@ -16,7 +16,7 @@ from apiserver.data import Source
 from apiserver.auth.tokens_data import get_keys
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="module", autouse=True)
 def event_loop():
     """ Necessary for async tests with module-scoped fixtures """
     loop = asyncio.get_event_loop()
@@ -83,7 +83,8 @@ async def admin_access(local_dsrc):
 @pytest.mark.asyncio
 async def test_generate_admin(local_dsrc: Source):
     admin_password = "admin"
-    setup = await data.opaquesetup.get_setup(local_dsrc)
+    async with data.get_conn(local_dsrc) as conn:
+        setup = await data.opaquesetup.get_setup(local_dsrc, conn)
 
     cl_req, cl_state = opq.register_client(admin_password)
     serv_resp = opq.register(setup, cl_req, "admin")
@@ -91,6 +92,14 @@ async def test_generate_admin(local_dsrc: Source):
     pw_file = opq.register_finish(cl_fin)
 
     print(pw_file)
+
+
+@pytest.mark.asyncio
+async def test_sqlalch_t(local_dsrc: Source):
+    async with test_sqlalch(local_dsrc) as conn:
+        u = await data.user.get_user_by_id_sqlalch(local_dsrc, conn, 0)
+
+    print(u)
 
 
 @pytest.mark.asyncio

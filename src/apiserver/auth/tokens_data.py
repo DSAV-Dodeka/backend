@@ -1,4 +1,5 @@
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 from apiserver.define import id_exp
 from apiserver.utilities import utc_timestamp
@@ -8,35 +9,37 @@ import apiserver.data as data
 from apiserver.data import Source, DataError
 
 
-async def get_keys(dsrc: Source) -> tuple[AESGCM, str]:
+async def get_keys(dsrc: Source, conn: AsyncConnection) -> tuple[AESGCM, str]:
     # Symmetric key used to verify and encrypt/decrypt refresh tokens
-    symmetric_key = await data.key.get_refresh_symmetric(dsrc)
+    symmetric_key = await data.key.get_refresh_symmetric(dsrc, conn)
     aesgcm = aes_from_symmetric(symmetric_key)
     # Asymmetric private key used for signing access and ID tokens
     # A public key is then used to verify them
-    signing_key = await data.key.get_token_private(dsrc)
+    signing_key = await data.key.get_token_private(dsrc, conn)
 
     return aesgcm, signing_key
 
 
 async def do_refresh(dsrc: Source, old_refresh_token: str):
-    aesgcm, signing_key = await get_keys(dsrc)
-    utc_now = utc_timestamp()
+    async with data.get_conn(dsrc) as conn:
+        aesgcm, signing_key = await get_keys(dsrc, conn)
 
-    old_refresh = decrypt_old_refresh(aesgcm, old_refresh_token)
+        utc_now = utc_timestamp()
 
-    try:
-        # See if previous refresh exists
-        saved_refresh = await data.refreshtoken.get_refresh_by_id(dsrc, old_refresh.id)
-    except DataError as e:
-        if e.key != "refresh_empty":
-            # If not refresh_empty, it was some other internal error
-            raise e
-        # Only the most recent token should be valid and is always returned
-        # So if someone possesses some deleted token family member, it is most likely an attacker
-        # For this reason, all tokens in the family are invalidated to prevent further compromise
-        await data.refreshtoken.delete_family(dsrc, old_refresh.family_id)
-        raise InvalidRefresh("Not recent")
+        old_refresh = decrypt_old_refresh(aesgcm, old_refresh_token)
+
+        try:
+            # See if previous refresh exists
+            saved_refresh = await data.refreshtoken.get_refresh_by_id(dsrc, conn, old_refresh.id)
+        except DataError as e:
+            if e.key != "refresh_empty":
+                # If not refresh_empty, it was some other internal error
+                raise e
+            # Only the most recent token should be valid and is always returned
+            # So if someone possesses some deleted token family member, it is most likely an attacker
+            # For this reason, all tokens in the family are invalidated to prevent further compromise
+            await data.refreshtoken.delete_family(dsrc, old_refresh.family_id)
+            raise InvalidRefresh("Not recent")
 
     verify_refresh(saved_refresh, old_refresh, utc_now)
 
@@ -53,7 +56,8 @@ async def do_refresh(dsrc: Source, old_refresh_token: str):
 
 
 async def new_token(dsrc: Source, user_usph: str, scope: str, auth_time: int, id_nonce: str):
-    aesgcm, signing_key = await get_keys(dsrc)
+    async with data.get_conn(dsrc) as conn:
+        aesgcm, signing_key = await get_keys(dsrc, conn)
     utc_now = utc_timestamp()
 
     access_token_data, id_token_data, access_scope, refresh_save = create_tokens(user_usph, scope, auth_time, id_nonce,

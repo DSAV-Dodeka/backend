@@ -3,6 +3,9 @@ from typing import Optional
 
 from databases import Database
 from asyncpg.exceptions import UniqueViolationError
+from sqlalchemy import lambda_stmt, text
+from sqlalchemy.engine import CursorResult, Row
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncTransaction, AsyncConnection
 
 from apiserver.db.ops import DbOperations, DbError
 
@@ -39,18 +42,31 @@ async def execute_catch(db: Database, query, values):
     return result
 
 
+def row_as_dict(row: Row):
+    return row._asdict()
+
+
+def first_or_none(res: CursorResult) -> Optional[dict]:
+    row = res.first()
+    return row_as_dict(row) if row is not None else None
+
+
 class PostgresOperations(DbOperations):
     """
     The DatabaseOperations class provides an easily referencable object that can be mocked.
     This circumvents a problem where mocks are ignored as FastAPI changes the function
     references at startup.
     """
+
     @classmethod
-    async def retrieve_by_id(cls, db: Database, table: str, id_int: int) -> Optional[dict]:
-        """ Ensure `table` is never user-defined. """
-        query = f"SELECT * FROM {table} WHERE id = :id"
-        record = await db.fetch_one(query, values={"id": id_int})
-        return dict(record) if record is not None else None
+    def begin_conn(cls, engine: AsyncEngine) -> AsyncTransaction:
+        return engine.begin()
+
+    @classmethod
+    async def retrieve_by_id(cls, conn: AsyncConnection, table: str, id_int: int) -> Optional[dict]:
+        query = text(f"SELECT * FROM {table} WHERE id = :id")
+        res: CursorResult = await conn.execute(query, parameters={"id": id_int})
+        return first_or_none(res)
 
     @classmethod
     async def retrieve_by_unique(cls, db: Database, table: str, unique_column: str, value) -> Optional[dict]:
@@ -85,6 +101,15 @@ class PostgresOperations(DbOperations):
                 f"{row_keys_set};"
 
         return await execute_catch(db, query=query, values=row)
+
+    @classmethod
+    async def update_column_by_unique(cls, db: Database, table: str, set_column: str, set_value, unique_column: str,
+                                      value):
+        """ Note that while the values are safe from injection, the column names are not. """
+
+        query = f"UPDATE {table} SET {set_column} = :set WHERE {unique_column} = :val;"
+
+        return await execute_catch(db, query=query, values={"set", set_value, "val", value})
 
     @classmethod
     async def insert(cls, db: Database, table: str, row: dict):

@@ -1,5 +1,7 @@
 from typing import Optional
 
+from sqlalchemy.ext.asyncio import AsyncConnection
+
 from apiserver.data import Source, DataError
 
 
@@ -10,8 +12,19 @@ def db_is_init(dsrc: Source):
         return dsrc.gateway.db
 
 
-async def retrieve_by_id(dsrc: Source, table: str, id_int: int) -> Optional[dict]:
-    return await dsrc.gateway.ops.retrieve_by_id(db_is_init(dsrc), table, id_int)
+def eng_is_init(dsrc: Source):
+    if dsrc.gateway.engine is None:
+        raise DataError("Database not initialized!", "no_db_init")
+    else:
+        return dsrc.gateway.engine
+
+
+def get_conn(dsrc: Source):
+    return dsrc.gateway.ops.begin_conn(eng_is_init(dsrc))
+
+
+async def retrieve_by_id(dsrc: Source, conn: AsyncConnection, table: str, id_int: int) -> Optional[dict]:
+    return await dsrc.gateway.ops.retrieve_by_id(conn, table, id_int)
 
 
 async def retrieve_by_unique(dsrc: Source, table: str, unique_column: str, value) -> Optional[dict]:

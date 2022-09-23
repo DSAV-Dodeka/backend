@@ -8,7 +8,7 @@ from apiserver.db.model import SU_FIRSTNAME, SU_LASTNAME, SU_EMAIL, SU_PHONE
 from apiserver.db.ops import DbError
 
 
-__all__ = ['get_signedup_by_email', 'insert_su_row', 'signedup_exists']
+__all__ = ['get_signedup_by_email', 'insert_su_row', 'signedup_exists', 'get_all_signedup']
 
 
 def parse_signedup(signedup_dict: Optional[dict]) -> SignedUp:
@@ -18,6 +18,11 @@ def parse_signedup(signedup_dict: Optional[dict]) -> SignedUp:
 
 
 async def get_signedup_by_email(dsrc: Source, email: str) -> SignedUp:
+    signedup_row = await retrieve_by_unique(dsrc, SIGNEDUP_TABLE, SU_EMAIL, email)
+    return parse_signedup(signedup_row)
+
+
+async def confirm_signup(dsrc: Source, email: str) -> SignedUp:
     signedup_row = await retrieve_by_unique(dsrc, SIGNEDUP_TABLE, SU_EMAIL, email)
     return parse_signedup(signedup_row)
 

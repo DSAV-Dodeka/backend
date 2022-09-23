@@ -175,7 +175,8 @@ async def start_register(register_start: RegisterRequest, request: Request):
         raise ErrorResponse(400, err_type="invalid_register", err_desc=reason, debug_key="no_register_for_id")
 
     try:
-        u = await data.user.get_user_by_id(dsrc, ud.id)
+        async with data.get_conn(dsrc) as conn:
+            u = await data.user.get_user_by_id(dsrc, conn, ud.id)
     except DataError as e:
         logger.debug(e)
         reason = "No registration for that user"
@@ -191,7 +192,8 @@ async def start_register(register_start: RegisterRequest, request: Request):
         reason = "Bad registration."
         raise ErrorResponse(400, err_type="invalid_register", err_desc=reason, debug_key="bad_registration_start")
 
-    opaque_setup = await data.opaquesetup.get_setup(dsrc)
+    async with data.get_conn(dsrc) as conn:
+        opaque_setup = await data.opaquesetup.get_setup(dsrc, conn)
     auth_id = util.random_time_hash_hex(email_usph)
 
     response = opq.register(opaque_setup, register_start.client_request, email_usph)

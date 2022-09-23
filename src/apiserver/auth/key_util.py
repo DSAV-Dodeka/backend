@@ -1,10 +1,10 @@
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PrivateKey
 from cryptography.hazmat.primitives.serialization import PrivateFormat, PublicFormat, Encoding, NoEncryption
-from opaquepy.lib import generate_keys as opaque_generate_keys
+from opaquepy import create_setup as opaque_create_setup
 
 from apiserver.utilities import enc_b64url
-from apiserver.define.entities import OpaqueKey, TokenKey, SymmetricKey
+from apiserver.define.entities import OpaqueSetup, TokenKey, SymmetricKey
 
 
 def new_ed448_keypair(id_int: int) -> TokenKey:
@@ -21,13 +21,12 @@ def new_ed448_keypair(id_int: int) -> TokenKey:
     return new_key
 
 
-def new_curve25519_keypair(id_int: int) -> OpaqueKey:
-    private, public = opaque_generate_keys()
+def new_opaque_setup(id_int: int) -> OpaqueSetup:
+    value = opaque_create_setup()
 
-    new_key = OpaqueKey(public=public, private=private, algorithm="curve25519ristretto", private_format="none",
-                        public_format="none", private_encoding="base64url", public_encoding="base64url", id=id_int)
+    new_setup = OpaqueSetup(value=value, id=id_int)
 
-    return new_key
+    return new_setup
 
 
 def new_symmetric_key(id_int: int) -> SymmetricKey:

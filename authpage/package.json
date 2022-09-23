@@ -7,7 +7,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@tiptenbrink/opaquewasm": "^0.2.1",
+    "@tiptenbrink/opaquewasm": "^0.3.0",
     "@zxcvbn-ts/core": "^2.0.5",
     "@zxcvbn-ts/language-common": "^2.0.1",
     "ky": "^0.30.0",

@@ -14,7 +14,7 @@ from apiserver.data.signedup import get_all_signedup
 from apiserver.define import ErrorResponse, LOGGER_NAME, signup_url, credentials_url
 from apiserver.define.entities import SignedUp, UserData, User
 from apiserver.define.request import SignupRequest, SignupConfirm, UserDataRegisterResponse, PasswordResponse, \
-    RegisterRequest, FinishRequest, EmailConfirm
+    RegisterRequest, FinishRequest, EmailConfirm, SavedRegisterState
 import apiserver.utilities as util
 from apiserver.auth.header import auth_header
 from apiserver.emailfn import send_email
@@ -191,12 +191,11 @@ async def start_register(register_start: RegisterRequest, request: Request):
         reason = "Bad registration."
         raise ErrorResponse(400, err_type="invalid_register", err_desc=reason, debug_key="bad_registration_start")
 
-    # OPAQUE public key
-    public_key = await data.key.get_opaque_public(dsrc)
+    opaque_setup = await data.opaquesetup.get_setup(dsrc)
     auth_id = util.random_time_hash_hex(email_usph)
 
-    response, saved_state = authentication.opaque_register(register_start.client_request, public_key, email_usph, ud.id)
-
+    response = opq.register(opaque_setup, register_start.client_request, email_usph)
+    saved_state = SavedRegisterState(user_usph=email_usph, id=u.id)
     await data.kv.store_auth_register_state(dsrc, auth_id, saved_state)
 
     return PasswordResponse(server_message=response, auth_id=auth_id)
@@ -218,7 +217,7 @@ async def finish_register(register_finish: FinishRequest, request: Request):
         logger.debug(reason)
         raise ErrorResponse(400, err_type="invalid_registration", err_desc=reason, debug_key="unequal_user")
 
-    password_file = opq.register_finish(register_finish.client_request, saved_state.state)
+    password_file = opq.register_finish(register_finish.client_request)
 
     try:
         ud = await data.user.get_userdata_by_register_id(dsrc, register_finish.register_id)
@@ -238,10 +237,10 @@ async def finish_register(register_finish: FinishRequest, request: Request):
         reason = "Bad registration."
         raise ErrorResponse(400, err_type="invalid_register", err_desc=reason, debug_key="bad_registration")
 
-    new_user = User(id=saved_state.id, usp_hex=email_usph, password_file=password_file).dict()
+    new_user = User(id=saved_state.id, usp_hex=email_usph, password_file=password_file)
 
     try:
-        await data.user.upsert_user_row(dsrc, new_user)
+        await data.user.upsert_user(dsrc, new_user)
     except DataError as e:
         logger.debug(e.message)
         if e.key == "unique_violation":

@@ -11,7 +11,7 @@ from apiserver.db.model import USERNAME, PASSWORD, REGISTER_ID
 from apiserver.db.ops import DbError
 
 
-__all__ = ['get_user_by_id', 'upsert_user_row', 'create_user', 'user_exists']
+__all__ = ['get_user_by_id', 'upsert_user', 'create_user', 'user_exists']
 
 
 def parse_user(user_dict: Optional[dict]) -> User:
@@ -45,9 +45,9 @@ async def get_user_by_usph(dsrc: Source, user_usph: str) -> User:
     return parse_user(user_row)
 
 
-async def upsert_user_row(dsrc: Source, user_row: dict):
+async def upsert_user(dsrc: Source, user: User):
     try:
-        result = await upsert_by_id(dsrc, USER_TABLE, user_row)
+        result = await upsert_by_id(dsrc, USER_TABLE, user.dict())
     except DbError as e:
         raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
     return result

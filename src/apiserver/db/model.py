@@ -37,6 +37,16 @@ keys = sqlalchemy.Table(
     sqlalchemy.Column(PRIVATE_ENCODING, sqlalchemy.String(length=100))
 )
 
+OPAQUE_SETUP_TABLE = "opaque"
+OPAQUE_VALUE = "value"
+
+opaque_setup = sqlalchemy.Table(
+    OPAQUE_SETUP_TABLE,
+    metadata,
+    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
+    sqlalchemy.Column(OPAQUE_VALUE, sqlalchemy.String(length=300))
+)
+
 REFRESH_TOKEN_TABLE = "refreshtokens"
 FAMILY_ID = "family_id"
 ACCESS_VALUE = "access_value"

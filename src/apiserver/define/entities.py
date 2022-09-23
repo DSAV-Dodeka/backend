@@ -21,31 +21,9 @@ class Key(BaseModel):
     private_encoding: str
 
 
-class OpaqueKey(Key):
-    @validator('algorithm')
-    def validate_alg(cls, v):
-        assert v == "curve25519ristretto"
-        return v
-
-    @validator('public_format')
-    def validate_pub_fmt(cls, v):
-        assert v == "none"
-        return v
-
-    @validator('public_encoding')
-    def validate_pub_enc(cls, v):
-        assert v == "base64url"
-        return v
-
-    @validator('private_format')
-    def validate_priv_fmt(cls, v):
-        assert v == "none"
-        return v
-
-    @validator('private_encoding')
-    def validate_priv_enc(cls, v):
-        assert v == "base64url"
-        return v
+class OpaqueSetup(BaseModel):
+    id: int
+    value: str
 
 
 class TokenKey(Key):

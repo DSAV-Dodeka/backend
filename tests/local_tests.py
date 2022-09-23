@@ -82,13 +82,13 @@ async def admin_access(local_dsrc):
 
 @pytest.mark.asyncio
 async def test_generate_admin(local_dsrc: Source):
-    admin_password = "passadmin"
-    public_key = await data.key.get_opaque_public(local_dsrc)
+    admin_password = "admin"
+    setup = await data.opaquesetup.get_setup(local_dsrc)
 
     cl_req, cl_state = opq.register_client(admin_password)
-    serv_resp, serv_state = opq.register(cl_req, public_key)
-    cl_fin = opq.register_client_finish(cl_state, serv_resp)
-    pw_file = opq.register_finish(cl_fin, serv_state)
+    serv_resp = opq.register(setup, cl_req, "admin")
+    cl_fin = opq.register_client_finish(cl_state, admin_password, serv_resp)
+    pw_file = opq.register_finish(cl_fin)
 
     print(pw_file)
 

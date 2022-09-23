@@ -103,7 +103,6 @@ class PasswordResponse(BaseModel):
 class SavedRegisterState(BaseModel):
     user_usph: str
     id: int
-    state: str
 
 
 class SavedState(BaseModel):

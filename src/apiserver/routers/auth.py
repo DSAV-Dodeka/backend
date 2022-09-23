@@ -29,7 +29,7 @@ async def start_login(login_start: PasswordRequest, request: Request):
     dsrc: Source = request.app.state.dsrc
 
     user_usph = util.usp_hex(login_start.email)
-    private_key = await data.key.get_opaque_private(dsrc)
+    opaque_setup = await data.opaquesetup.get_setup(dsrc)
 
     scope, password_file = await data.user.get_user_scope_password(dsrc, "fakerecord")
     try:
@@ -40,7 +40,7 @@ async def start_login(login_start: PasswordRequest, request: Request):
 
     auth_id = util.random_time_hash_hex(user_usph)
 
-    response, state = opq.login(password_file, login_start.client_request, private_key)
+    response, state = opq.login(opaque_setup, password_file, login_start.client_request, user_usph)
 
     saved_state = SavedState(user_usph=user_usph, scope=scope, state=state)
 

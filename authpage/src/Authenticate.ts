@@ -43,6 +43,33 @@ export async function clientRegister(registerState: RegisterState) {
     }
 }
 
+export async function passUpdate(email: string, flow_id: string, password: string) {
+    try {
+        const { message: message1, state: register_state } = client_register_wasm(password)
+
+        const register_start = {
+            "email": email,
+            "client_request": message1,
+            "flow_id": flow_id
+        }
+        const res = await back_post("update/password/start/", register_start)
+        const {server_message, auth_id} = OpaqueResponse.parse(res)
+
+        const message2 = client_register_finish_wasm(register_state, password, server_message)
+
+        const register_finish = {
+            "client_request": message2,
+            "auth_id": auth_id,
+        }
+
+        return await ok_back_post("onboard/finish/", register_finish)
+
+    } catch (e) {
+        console.log(e)
+        return false
+    }
+}
+
 export async function clientLogin(username: string, password: string, flow_id: string) {
     try {
         const { message: message1, state: login_state } = client_login_wasm(password)

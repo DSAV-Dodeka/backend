@@ -181,7 +181,7 @@ const Register = () => {
             <p className="largeText">The link to this registration form is broken, please retry or ask for a new link!</p>
             }
             {infoOk &&
-            <form className="registerForm" onSubmit={handleSubmit}>
+            <form className="authForm" onSubmit={handleSubmit}>
                 <div className="formContents">
                     <input disabled className={submitted} required id="name" type="text" placeholder="Voornaam" name="name" value={state.firstname}
                            onChange={handleFormChange}/>
@@ -231,8 +231,8 @@ const Register = () => {
                                 onChange={handleCheckboxChange}/>
                     </div>
                 </div>
-                <button className="registerButton" id="submit_button" onClick={handleSubmitClick} type="submit">Registreer</button><br />
-                <p className="schrijfInStatus">{status}</p>
+                <button className="authButton" id="submit_button" onClick={handleSubmitClick} type="submit">Registreer</button><br />
+                <p className="formStatus">{status}</p>
             </form>}
         </>
     )

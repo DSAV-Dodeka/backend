@@ -13,7 +13,8 @@ from fastapi.exceptions import RequestValidationError
 # in the app state
 # In most cases this is where all environment variables and other configuration is loaded
 
-from apiserver.define import res_path, ErrorResponse, error_response_handler, LOGGER_NAME, allowed_envs
+from apiserver.define import res_path, ErrorResponse, error_response_handler, LOGGER_NAME, allowed_envs, \
+    error_response_return
 from apiserver.env import load_config, Config
 # Import types separately to make it clear in what line the module is first loaded and its top-level run
 from apiserver.data import Source
@@ -112,7 +113,8 @@ async def shutdown():
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request, exc):
+def validation_exception_handler(request, exc: RequestValidationError):
     # Also show debug if there is an error in the request
+    exc_str = str(exc)
     logger.debug(str(exc))
-    raise exc
+    return error_response_return(err_status_code=400, err_type="bad_request_validation", err_desc=exc_str)

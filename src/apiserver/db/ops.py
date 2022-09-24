@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Any
 
 from databases import Database
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncConnection
@@ -25,6 +25,12 @@ class DbOperations(ABC):
     @classmethod
     @abstractmethod
     async def retrieve_by_unique(cls, db: Database, table: str, unique_column: str, value) -> Optional[dict]:
+        ...
+
+    @classmethod
+    @abstractmethod
+    async def fetch_column_by_unique(cls, conn: AsyncConnection, table: str, fetch_column: str, unique_column: str,
+                                     value) -> Optional[Any]:
         ...
 
     @classmethod

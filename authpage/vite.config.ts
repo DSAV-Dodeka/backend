@@ -17,7 +17,8 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         register: resolve(__dirname, 'register/index.html'),
-        email: resolve(__dirname, 'email/index.html')
+        email: resolve(__dirname, 'email/index.html'),
+        reset: resolve(__dirname, 'reset/index.html')
       }
     },
     outDir: '../src/apiserver/resources/static/credentials'

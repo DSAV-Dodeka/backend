@@ -8,13 +8,13 @@ from apiserver.define.entities import User, SignedUp, UserData
 from apiserver.utilities import usp_hex
 from apiserver.data.source import Source, DataError
 from apiserver.data.use import retrieve_by_id, retrieve_by_unique, upsert_by_id, insert_return_id, \
-    double_insert_transaction, exists_by_unique
+    double_insert_transaction, exists_by_unique, fetch_column_by_unique
 from apiserver.db import USER_TABLE, USERDATA_TABLE
-from apiserver.db.model import USERNAME, PASSWORD, REGISTER_ID, SCOPES
+from apiserver.db.model import USERNAME, PASSWORD, REGISTER_ID, SCOPES, USER_REGISTERED, UD_EMAIL
 from apiserver.db.ops import DbError
 
 
-__all__ = ['get_user_by_id', 'upsert_user', 'create_user', 'user_exists']
+__all__ = ['get_user_by_id', 'upsert_user', 'create_user', 'user_exists', 'userdata_registered_by_email']
 
 
 def parse_user(user_dict: Optional[dict]) -> User:
@@ -41,6 +41,11 @@ async def get_user_by_id(dsrc: Source, conn: AsyncConnection, id_int: int) -> Us
 async def get_userdata_by_register_id(dsrc: Source, register_id: str) -> UserData:
     userdata_row = await retrieve_by_unique(dsrc, USERDATA_TABLE, REGISTER_ID, register_id)
     return parse_userdata(userdata_row)
+
+
+async def userdata_registered_by_email(dsrc: Source, conn: AsyncConnection, email: str) -> bool:
+    result = fetch_column_by_unique(dsrc, conn, USER_TABLE, USER_REGISTERED, UD_EMAIL, email)
+    return result if result is True else False
 
 
 async def get_user_by_usph(dsrc: Source, user_usph: str) -> User:

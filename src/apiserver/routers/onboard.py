@@ -19,6 +19,7 @@ from apiserver.emailfn import send_email
 import apiserver.data as data
 from apiserver.data import DataError, Source, NoDataError
 from apiserver.env import Config
+from apiserver.auth.authentication import send_register_start
 from apiserver.routers.helper import require_admin
 
 router = APIRouter()
@@ -127,8 +128,6 @@ async def confirm_join(signup: SignupConfirm, request: Request, background_tasks
     dsrc: Source = request.app.state.dsrc
     await require_admin(authorization, dsrc)
 
-    dsrc: Source = request.app.state.dsrc
-
     try:
         signed_up = await data.signedup.get_signedup_by_email(dsrc, signup.email)
     except DataError as e:
@@ -196,15 +195,7 @@ async def start_register(register_start: RegisterRequest, request: Request):
         reason = "Bad registration."
         raise ErrorResponse(400, err_type="invalid_register", err_desc=reason, debug_key="bad_registration_start")
 
-    async with data.get_conn(dsrc) as conn:
-        opaque_setup = await data.opaquesetup.get_setup(dsrc, conn)
-    auth_id = util.random_time_hash_hex(email_usph)
-
-    response = opq.register(opaque_setup, register_start.client_request, email_usph)
-    saved_state = SavedRegisterState(user_usph=email_usph, id=u.id)
-    await data.kv.store_auth_register_state(dsrc, auth_id, saved_state)
-
-    return PasswordResponse(server_message=response, auth_id=auth_id)
+    return await send_register_start(dsrc, email_usph, register_start.client_request, u.id)
 
 
 @router.post("/onboard/finish/")
@@ -216,7 +207,7 @@ async def finish_register(register_finish: FinishRequest, request: Request):
         saved_state = await data.kv.get_register_state(dsrc, register_finish.auth_id)
     except NoDataError as e:
         logger.debug(e.message)
-        reason = "Registration not initialized or expired"
+        reason = "Registration not initialized or expired."
         raise ErrorResponse(400, err_type="invalid_registration", err_desc=reason, debug_key="no_register_start")
 
     request_email_usph = util.usp_hex(register_finish.email)
@@ -225,13 +216,15 @@ async def finish_register(register_finish: FinishRequest, request: Request):
         logger.debug(reason)
         raise ErrorResponse(400, err_type="invalid_registration", err_desc=reason, debug_key="unequal_user")
 
+    # Generate password file
+    # Note that this is equal to the client request
     password_file = opq.register_finish(register_finish.client_request)
 
     try:
         ud = await data.user.get_userdata_by_register_id(dsrc, register_finish.register_id)
     except DataError as e:
         logger.debug(e)
-        reason = "No registration for that register_id"
+        reason = "No registration for that register_id."
         raise ErrorResponse(400, err_type="invalid_register", err_desc=reason, debug_key="no_register_for_id")
 
     if ud.registered:
@@ -241,7 +234,7 @@ async def finish_register(register_finish: FinishRequest, request: Request):
 
     ud_email_usph = util.usp_hex(ud.email)
     if ud_email_usph != request_email_usph:
-        logger.debug("Registration does not match e-mail")
+        logger.debug("Registration does not match e-mail.")
         reason = "Bad registration."
         raise ErrorResponse(400, err_type="invalid_register", err_desc=reason, debug_key="bad_registration")
 

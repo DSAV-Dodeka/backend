@@ -65,3 +65,14 @@ async def get_email_confirmation(dsrc: Source, confirm_id: str) -> SignupRequest
     if signup_dict is None:
         raise NoDataError("Confirmation ID does not exist or expired.", "saved_confirm_empty")
     return SignupRequest.parse_obj(signup_dict)
+
+
+async def store_string(dsrc: Source, key: str, value: str, expire: int):
+    await store_kv(kv_is_init(dsrc), key, value, expire)
+
+
+async def get_string(dsrc: Source, key: str) -> str:
+    value = await get_kv(kv_is_init(dsrc), key)
+    if value is None or not isinstance(value, str):
+        raise NoDataError("String for this key does not exist or expired.", "saved_str_empty")
+    return value

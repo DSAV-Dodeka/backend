@@ -26,6 +26,8 @@ logger = logging.getLogger(LOGGER_NAME)
 
 @router.post("/login/start/", response_model=PasswordResponse)
 async def start_login(login_start: PasswordRequest, request: Request):
+    """ Login can be initiated in 2 different flows: the first is the OAuth 2 flow, the second is a simple password
+    check flow. """
     dsrc: Source = request.app.state.dsrc
 
     user_usph = util.usp_hex(login_start.email)

@@ -175,3 +175,18 @@ class UserDataRegisterResponse(BaseModel):
     lastname: str
     email: str
     phone: str
+
+
+class ChangePasswordRequest(BaseModel):
+    email: str
+
+
+class UpdatePasswordRequest(BaseModel):
+    email: str
+    flow_id: str
+    client_request: str
+
+
+class UpdatePasswordFinish(BaseModel):
+    auth_id: str
+    client_request: str

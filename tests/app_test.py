@@ -11,10 +11,8 @@ from pytest_mock import MockerFixture
 from httpx import AsyncClient
 from fastapi import status
 
-import opaquepy as opq
-
 from apiserver.define import FlowUser, AuthRequest, SavedState, SavedRegisterState, frontend_client_id
-from apiserver.env import load_config, Config
+from apiserver.env import load_config
 from apiserver.utilities import utc_timestamp, usp_hex
 from apiserver.define.entities import SavedRefreshToken, UserData, User
 from apiserver.db.ops import DbOperations

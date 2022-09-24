@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional
+from typing import Optional, Any
 
 from databases import Database
 from asyncpg.exceptions import UniqueViolationError
@@ -89,6 +89,13 @@ class PostgresOperations(DbOperations):
         query = f"SELECT * FROM {table} WHERE {unique_column} = :val"
         record = await db.fetch_one(query, values={"val": value})
         return dict(record) if record is not None else None
+
+    @classmethod
+    async def fetch_column_by_unique(cls, conn: AsyncConnection, table: str, fetch_column: str, unique_column: str,
+                                     value) -> Optional[Any]:
+        """ Ensure `unique_column` and `table` are never user-defined. """
+        query = text(f"SELECT {fetch_column} FROM {table} WHERE {unique_column} = :val")
+        return await conn.scalar(query, parameters={"val": value})
 
     @classmethod
     async def select_where(cls, conn: AsyncConnection, table: str, column, value) -> list[dict]:

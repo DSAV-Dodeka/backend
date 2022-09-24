@@ -175,7 +175,7 @@ const Register = () => {
     }
 
     return (
-        <div>
+        <>
             <h1 className="title">Register</h1>
             {!infoOk && handled &&
             <p className="largeText">The link to this registration form is broken, please retry or ask for a new link!</p>
@@ -234,7 +234,7 @@ const Register = () => {
                 <button className="registerButton" id="submit_button" onClick={handleSubmitClick} type="submit">Registreer</button><br />
                 <p className="schrijfInStatus">{status}</p>
             </form>}
-        </div>
+        </>
     )
 }
 

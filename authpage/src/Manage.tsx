@@ -33,16 +33,7 @@ const Manage = () => {
         e.preventDefault()
 
         if (formIsValid()) {
-            clientLogin(password).then(
-                (result) => {
-                    if (result) {
-                        window.location.assign(redirectUrl)
-                    } else {
-                        somethingWrong()
-                    }
-                },
-                () => somethingWrong()
-            )
+
         }
     }
 

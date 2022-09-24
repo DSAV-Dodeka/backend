@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from "react";
 import {clientLogin} from "./Authenticate";
 import config from "./config";
+import Back from "./Back";
 
 const Auth = () => {
     const [username, setUsername] = useState("")
@@ -33,7 +34,7 @@ const Auth = () => {
     }
 
     return (
-        <div className="page">
+        <>
             <h1 className="title">Login</h1>
             <div className="auth-form">
                 <form onSubmit={handleSubmit}>
@@ -47,7 +48,7 @@ const Auth = () => {
                     
                 </form>
             </div>
-        </div>
+        </>
     )
 }
 

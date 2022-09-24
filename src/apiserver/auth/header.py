@@ -26,7 +26,9 @@ async def handle_header(authorization: str, dsrc: Source) -> AccessToken:
     if "Bearer " not in authorization:
         raise BadAuth(400, err_type="invalid_request", err_desc="Authorization must follow 'Bearer' scheme")
     token = authorization.removeprefix("Bearer ")
-    public_key = await data.key.get_token_public(dsrc)
+
+    async with data.get_conn(dsrc) as conn:
+        public_key = await data.key.get_token_public(dsrc, conn)
     try:
         return verify_access_token(public_key, token)
     except BadVerification as e:

@@ -1,7 +1,7 @@
 import React, {useReducer, Suspense, FormEvent, ChangeEvent, FocusEvent, useState, useEffect} from "react";
 import "./Register.scss";
 import config from "./config";
-import {clientRegister} from "./Authenticate";
+import {clientLogin, clientRegister} from "./Authenticate";
 import {base64ToBin} from "./encode";
 
 import {z} from "zod";
@@ -57,7 +57,7 @@ let initialState: RegisterState = {
     date_of_birth: "",
     birthday_check: false,
     student: false,
-    eduinstitution: "",
+    eduinstitution: "TU Delft",
     eduinstitution_other: ""
 }
 
@@ -76,6 +76,8 @@ const RegisterInfo = z.object({
     email: z.string(),
     phone: z.string(),
 })
+
+const redirectUrl = `${config.client_location}/registered`
 
 const Register = () => {
     const readUrlSearch = (): RegisterState => {
@@ -119,6 +121,9 @@ const Register = () => {
         }
     }, [handled]);
 
+    const somethingWrong = () => {
+        setStatus("Er is iets misgegaan!")
+    }
 
     const formIsValid = () => {
         if (passScore < 2) {
@@ -135,9 +140,18 @@ const Register = () => {
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault()
-        console.log("HI!")
+
         if (formIsValid()) {
-            clientRegister(state).then()
+            clientRegister(state).then(
+                (result) => {
+                    if (result) {
+                        window.location.assign(redirectUrl)
+                    } else {
+                        somethingWrong()
+                    }
+                },
+                () => somethingWrong()
+            )
         }
     }
 
@@ -202,11 +216,11 @@ const Register = () => {
                         <label >Onderwijsinstelling:</label>
                         <select id="eduinstitution" name="eduinstitution" value={state.eduinstitution}
                                 onChange={handleSelectChange}>
-                            <option value="TU Delft">TU Delft</option>
-                            <option value="Haagse Hogeschool - Delft">Haagse Hogeschool - Delft</option>
+                            <option>TU Delft</option>
+                            <option>Haagse Hogeschool - Delft</option>
                             <option>Haagse Hogeschool - Den Haag</option>
                             <option>Hogeschool Inholland - Delft</option>
-                            <option value="Anders, namelijk:">Anders, namelijk:</option>
+                            <option>Anders, namelijk:</option>
                         </select>
                     </div>
                     <input className={"" + (state.eduinstitution === "Anders, namelijk:" ? "" : " inputHidden")} id="eduinstitution_other" type="text" placeholder="Onderwijsinstelling" name="eduinstitution_other" value={state.eduinstitution_other}
@@ -216,10 +230,9 @@ const Register = () => {
                         <input className={submitted} required id="privacy" type="checkbox" name="privacy"
                                 onChange={handleCheckboxChange}/>
                     </div>
-                    <p className="schrijfInStatus">{status}</p>
-                    
                 </div>
                 <button className="registerButton" id="submit_button" onClick={handleSubmitClick} type="submit">Registreer</button><br />
+                <p className="schrijfInStatus">{status}</p>
             </form>}
         </div>
     )

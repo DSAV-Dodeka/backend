@@ -29,7 +29,8 @@ async def start_login(login_start: PasswordRequest, request: Request):
     dsrc: Source = request.app.state.dsrc
 
     user_usph = util.usp_hex(login_start.email)
-    opaque_setup = await data.opaquesetup.get_setup(dsrc)
+    async with data.get_conn(dsrc) as conn:
+        opaque_setup = await data.opaquesetup.get_setup(dsrc, conn)
 
     scope, password_file = await data.user.get_user_scope_password(dsrc, "fakerecord")
     try:

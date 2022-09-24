@@ -177,7 +177,7 @@ async def mock_get_keys(mocker: MockerFixture):
     get_k_p.return_value = mock_token_key['private']
 
 
-session_key = "somecomplexsessionkey"
+code_session_key = "somecomplexsessionkey"
 mock_redirect = "http://localhost:3000/auth/callback"
 mock_flow_id = "1d5c621ea3a2da319fe0d0a680046fd6369a60e450ff04f59c51b0bfb3d96eef"
 fake_token_scope = "test"
@@ -221,7 +221,7 @@ async def test_refresh(test_client, mocker: MockerFixture, mock_get_keys, fake_t
     get_r = mocker.patch('apiserver.data.refreshtoken.get_refresh_by_id')
     get_refr = mocker.patch('apiserver.data.refreshtoken.refresh_transaction')
 
-    def side_effect(f_dsrc, id_int):
+    def side_effect(f_dsrc, conn, id_int):
         if id_int == fake_token_id:
             return SavedRefreshToken(family_id=fake_tokens['family_id'], access_value=fake_tokens['acc_val'],
                                      id_token_value=fake_tokens['id_val'], iat=fake_tokens['iat'],
@@ -250,7 +250,7 @@ async def test_auth_code(test_client, mocker: MockerFixture, mock_get_keys):
     r_save = mocker.patch('apiserver.data.refreshtoken.refresh_save')
 
     def flow_side_effect(f_dsrc, code):
-        if code == session_key:
+        if code == code_session_key:
             return mock_flow_user
 
     get_flow.side_effect = flow_side_effect
@@ -266,7 +266,7 @@ async def test_auth_code(test_client, mocker: MockerFixture, mock_get_keys):
     req = {
         "client_id": frontend_client_id,
         "grant_type": "authorization_code",
-        "code": session_key,
+        "code": code_session_key,
         "redirect_uri": mock_redirect,
         "code_verifier": code_verifier
     }
@@ -277,15 +277,9 @@ async def test_auth_code(test_client, mocker: MockerFixture, mock_get_keys):
     assert response.status_code == 200
 
 
-mock_opq_key = {
+mock_opq_setup = {
     'id': 0,
-    'algorithm': 'curve25519ristretto',
-    'public': '8sVYGKrrRS1t6FAuW5gHMw5dgzMz0b5rpDHPnipkrGY',
-    'private': 'ueKnTS9wtXyPb44JER4CJBc6AzIN1Wi2kDXupR6TrQk',
-    'public_format': 'none',
-    'public_encoding': 'base64url',
-    'private_format': 'none',
-    'private_encoding': 'base64url'
+    'value': 'pd32VP-D21oNgNId22WdbEiUn5vUeFNhgNReuAv2FQvT8kyBZu9gW2kBn8E60HgbAEHDT6KCy575MVIzgLJQ2daSp_2XpESlXFbsxftf6Bw0_RYzAOZ1YL2Dnrtq1MwOF4jzOi3gs3bHnS_odl9VpaXz4GjQTT7aol5CYB0yYgE'
 }
 
 
@@ -333,18 +327,10 @@ async def flow_store(store_fix, mocker: MockerFixture):
 
 @pytest.mark.asyncio
 async def test_start_register(test_client, mocker: MockerFixture, register_state_store: dict):
+    t_hash = mocker.patch('apiserver.utilities.random_time_hash_hex')
     test_username = "start@register.nl"
-    test_id = 91
-    test_register_id = "8c01e95c6021f62f7fc7a0c6149df725129fa4ea846edc1cdc0b13905e880f0c"
     test_user_usph = usp_hex(test_username)
     test_auth_id = "9a051d2a4860b9d48624be0206f0743d6ce2f0686cc4cc842d97ea4e51c0b181"
-
-    opq_key = mocker.patch('apiserver.data.key.get_opaque_public')
-    opq_key.return_value = mock_opq_key['public']
-    t_hash = mocker.patch('apiserver.utilities.random_time_hash_hex')
-    r_opq = mocker.patch('apiserver.auth.authentication.opaque_register')
-    g_ud = mocker.patch('apiserver.data.user.get_userdata_by_register_id')
-    g_u = mocker.patch('apiserver.data.user.get_user_by_id')
 
     def hash_side_effect(user_usph):
         if user_usph == test_user_usph:
@@ -352,13 +338,9 @@ async def test_start_register(test_client, mocker: MockerFixture, register_state
 
     t_hash.side_effect = hash_side_effect
 
-    def opq_side_effect(request, key, user_usph, user_id):
-        opq_response, state = opq.register(request, key)
-        register_state_store['state'] = state
-        register_state_store['opq_response'] = opq_response
-        return opq_response, SavedRegisterState(user_usph=user_usph, state=state, id=user_id)
-
-    r_opq.side_effect = opq_side_effect
+    g_ud = mocker.patch('apiserver.data.user.get_userdata_by_register_id')
+    test_id = 91
+    test_register_id = "8c01e95c6021f62f7fc7a0c6149df725129fa4ea846edc1cdc0b13905e880f0c"
 
     def ud_side_effect(f_dsrc, register_id):
         if register_id == test_register_id:
@@ -368,16 +350,21 @@ async def test_start_register(test_client, mocker: MockerFixture, register_state
 
     g_ud.side_effect = ud_side_effect
 
-    def u_side_effect(f_dsrc, user_id):
+    g_u = mocker.patch('apiserver.data.user.get_user_by_id')
+
+    def u_side_effect(f_dsrc, conn, user_id):
         if user_id == test_id:
             return User(id=test_id, usp_hex=test_user_usph, password_file="")
 
     g_u.side_effect = u_side_effect
 
+    opq_setup = mocker.patch('apiserver.data.opaquesetup.get_setup')
+    opq_setup.return_value = mock_opq_setup['value']
+
     # password 'clientele'
     req = {
         "email": test_username,
-        "client_request": "1nE62MQOsSCan3raiuU8UKuPkmCv41rxb41QrVY6ZFk",
+        "client_request": "GM3pwtpnoj4e9JQJtectg6lZ7FYRZmD6fGo4cMttmSc",
         "register_id": test_register_id
     }
 
@@ -389,11 +376,10 @@ async def test_start_register(test_client, mocker: MockerFixture, register_state
     # example message
     # GGnMPMzUGlKDTd0O4Yjw2S3sNrte4a1ybatXCr_-cRvyxVgYqutFLW3oUC5bmAczDl2DMzPRvmukMc-eKmSsZg
     assert res_j['auth_id'] == test_auth_id
-    assert res_j['server_message'] == register_state_store['opq_response']
     assert response.status_code == 200
     saved_state = SavedRegisterState.parse_obj(register_state_store[test_auth_id])
     assert saved_state.user_usph == test_user_usph
-    assert saved_state.state == register_state_store['state']
+    assert saved_state.id == test_id
 
 
 @pytest.mark.asyncio
@@ -401,9 +387,9 @@ async def test_finish_register(test_client, mocker: MockerFixture):
     test_auth_id = "e5a289429121408d95d7e3cde62d0f06da22b86bd49c2a34233423ed4b5e877e"
     test_user = "atestperson@cool.nl"
     test_id = 95
-    test_r_id = "d4029b04fe88a81eb3f4e8680dc6b06fe9232b340ec2bbb3dc5ad3f726415c01"
+    test_r_id = "5488f0d6b6534a15"
 
-    # password 'clientele' with mock_opq_key
+    # password 'clientele'
     test_state = "n-aQ8YSkFMbIoTJPS46lBeO4X4v5KbQ52ztB9-xP8wg"
     test_user_usph = usp_hex(test_user)
 
@@ -412,7 +398,7 @@ async def test_finish_register(test_client, mocker: MockerFixture):
 
     def state_side_effect(f_dsrc, auth_id):
         if auth_id == test_auth_id:
-            return SavedRegisterState(user_usph=test_user_usph, state=test_state, id=test_id)
+            return SavedRegisterState(user_usph=test_user_usph, id=test_id)
 
     def ud_side_effect(f_dsrc, r_id):
         if r_id == test_r_id:
@@ -425,9 +411,9 @@ async def test_finish_register(test_client, mocker: MockerFixture):
     # password 'clientele'
     req = {
         "email": test_user,
-        "client_request": "HokzHOdiLQ2BULIauK38OflkqCKpIPh9gZqCBUGxgTcBP4WnKHuZZWI6BMXPd7hTnOznBrPIKsG4CZFlqeNK6QuCHku1lM4fi8Ep-n8dguVb8dpvU9vVP2w9L6A3RDETmYv6wCdX3PJw7y7WoRafdZ-v2DZGR9D_NvPcKVHcH03KQudID2lnpf00R_M4CtmXXajttWVdd3eh40Xp0YW41n8",
+        "client_request": "iGq1MWDlVlZo_LG4o28Si9xV-Qt0IxKZ4NcLhhR470W9Wn_-9F4gCjfFD1GsPGayGF1oJ2FzyZXLzUS-MmaHO2pTGoD_QyGBiIV9s7LBYxFM_fciaaI08ZahLfj4kmXJVnOleHfXPsTJ8aDkPdJJwVox_1GvDJ2owTGez1xdA-N5POX6W32CNPA15RASrcdZSt4bik_EyPLb8VmeDKG6_ofcxpLhDETau2nYujPKPoG29f8RY3E8yYVuHewVlYr0",
         "auth_id": test_auth_id,
-        "register_id": "d4029b04fe88a81eb3f4e8680dc6b06fe9232b340ec2bbb3dc5ad3f726415c01",
+        "register_id": test_r_id,
         "callname": "somecaller",
         "eduinstitution": "testinstitution",
         "birthdate": "2022-09-05"
@@ -445,52 +431,62 @@ async def test_finish_register(test_client, mocker: MockerFixture):
 
 
 @pytest.mark.asyncio
-async def test_start_login(test_client, mocker: MockerFixture, state_store):
-    test_user = "startloginer"
-
-    opq_key = mocker.patch('apiserver.data.key.get_opaque_private')
-    opq_key.return_value = mock_opq_key['private']
+async def test_start_login(test_client, mocker: MockerFixture, state_store: dict):
+    opq_setup = mocker.patch('apiserver.data.opaquesetup.get_setup')
+    opq_setup.return_value = mock_opq_setup['value']
 
     g_pw = mocker.patch('apiserver.data.user.get_user_scope_password')
-
+    test_user = "startloginer"
     test_user_usph = usp_hex(test_user)
-
-    fake_password_file = "n-aQ8YSkFMbIoTJPS46lBeO4X4v5KbQ52ztB9-xP8wgeiTMc52ItDYFQshq4rfw5-WSoIqkg-H2BmoIFQbGBNwE_hacoe5llYjoExc93uFOc7OcGs8gqwbgJkWWp40rpC4IeS7WUzh-LwSn6fx2C5Vvx2m9T29U_bD0voDdEMROZi_rAJ1fc8nDvLtahFp91n6_YNkZH0P8289wpUdwfTcpC50gPaWel_TRH8zgK2ZddqO21ZV13d6HjRenRhbjWfw"
+    fake_password_file = "GLgWMaiuTTs2NyK9gvrhbtUMTrHLy2erbEwPnzwFDQ6i5EuUyWEN9yqEarTqxprZ205gkQoY_yks3-1jr3XuTfKfh1byl9LZHFpDA-FWNyc5wV5CBYz_jzruanzI-yFCPt7fPglNFs7mnwPbZaraoKMJX5prMMrULtDF4KlZuv2szqISaM3d9kiVUEgXzNAPh6EMuN1GCySL8gimFyfZxfrk3QCeQJKudx2YZYz9ReBs7EkmAwTCHxeiCmYaDdlu"
+    correct_password_file = "6sr_nvpqPqB-GCjj091vbsIsKYdHX2BE_9ICHT-8o329Wn_-9F4gCjfFD1GsPGayGF1oJ2FzyZXLzUS-MmaHO2pTGoD_QyGBiIV9s7LBYxFM_fciaaI08ZahLfj4kmXJfzqcWVSecc7uqgzR5DVamDHlmQUOT6QjXcDmbuPm8eDu1hBdD65ZWmpUz16DK3-k6uBLjQ1fKYj8o3xBShhRQCKpm0PFCjk4uABkXgdzy5EWoKkTZ8cslYe450nAdOqv"
 
     def pw_side_effect(f_dsrc, user_usph):
         if user_usph == test_user_usph:
-            return fake_token_scope, fake_password_file
+            return fake_token_scope, correct_password_file
         elif user_usph == "fakerecord":
             return "none", fake_password_file
 
     g_pw.side_effect = pw_side_effect
 
+    t_hash = mocker.patch('apiserver.utilities.random_time_hash_hex')
+    test_auth_id = "d7a822c06ca8faa0e1df42fe3cbb0371"
+
+    def hash_side_effect(user_usph):
+        if user_usph == test_user_usph:
+            return test_auth_id
+
+    t_hash.side_effect = hash_side_effect
+
     # password 'clientele'
     req = {
         "email": test_user,
-        "client_request": "IBLgmoQ-rRjs9otxi8niNKXwEPnvqjfONz8IA6LzIjnwGqkLclrQy7fGi1doawiamM7ftIZaihkhNVKHeIx4IAAAxEhDt_NBTRwKsZNQ0noZfr5_tbI3ZzZfjf5L-yxv-38",
+        "client_request": "ht_LfPlozB5sa76eflmWeulgGU4dU4aeEutzyDMTkRoB3bO62RP95nc1PWt6IdJxpiuMW5OsoWEWNpa4EUZrxqAB8a5mLVLBQ81Y-30YlSgppQNdWAgeA-amu93cEisx",
     }
 
     response = await test_client.post("/login/start/", json=req)
     res_j = response.json()
     print(res_j)
-    # example state
-    # WwX2il7d7yrV5ni0dkXFgLC4FCzIVJnFdg2zTGRgW8XGTTmS-O7usDTweIenOSNZRfs2D4r0eN1bV977GDWCS6kfVhgEwslqlaUbExXvFBlvEN1JY1ICYo5u5qDIVYaMscQiuf8oNNRHANPZ_l6gtdkBN6eTQ7SWY6F4Iy0gE3LPJKPBrkKl10zNLJ2oo69dkdCu1Er5UPzdo48wAH_WARXFKxwHLCZLxfFnN7eV6033CFdSJF9IR8Z6X177lcaB
     # example message
-    # XE2e5baMjY3k342xZ5PgC9pyxOkFdSVlR_0EzzT-k2zyxVgYqutFLW3oUC5bmAczDl2DMzPRvmukMc-eKmSsZgE_hacoe5llYjoExc93uFOc7OcGs8gqwbgJkWWp40rpC4IeS7WUzh-LwSn6fx2C5Vvx2m9T29U_bD0voDdEMROZi_rAJ1fc8nDvLtahFp91n6_YNkZH0P8289wpUdwfTcpC50gPaWel_TRH8zgK2ZddqO21ZV13d6HjRenRhbjWf16FzOJAzS7mEtX0xyNJvjcA4r-MpHt7sA6PXHgZNZhzkHaurq_ZutvRWCWLzGHPjGs5t_nBf4oqIuL_hfQjT0wAAOZYJP4U2mUe3oT-3LXInys1LjAYGX1jvow53a-pJex6jcHOFPwEvOhn3CKXGrHL913o84s07IQNJ0TZ26zzC9M
+    # ALBAwXBHmhQd_ifiKP8NODRQ3mOWG6m8-zFmmJVdUn9Sot6VDE6Gv1G7nwmXDdZ35lyzYoKlqW2Z4czRkngvu53aA66H-Ir4r2qu_Im6qb9fQ0vYxFxq7Ecc1hi90RUztLu5OrI-BtWHzzsBSU5RvKl07JITisMv3o8ae87vxFl8z7nQEAXpy5-ZTqTh9EvKdIEHETSea0BBTHyUQ5mZA55c3mXsVKEKpk0zRcuzyr8CdX8a-1pwdDkG40ZTwE_AxAXORiNsicTq-ZspiDwSkag9Exp-_2H-g2sY3s_8k_YUBIXo7B2i9YOZe5ygA3eU8EQKusWjqJ0lJ1tObZdgPFOTTsryGFcRFLvLE-QH83tV91S5n3Rc9nChlSlAghwVjW5vH1hE9OrtzViSSFSd_oQxpl3t8JXXI6v15qWdYTA
+    # example state
+    # NxOxeb4oKwirncPlH1SlCbE_md8lH767HsgGv57G1l3aMinOwsi9BDWQW054L-iqZh9le2YqQ4LI10kCbfh4ijIV36HPrGDZg1ObZKx4U1Mgg-5wnLKZx-qtUukSWgON8a0fkN7_C_Jazl8oZxKC4fXBbJj1NKKn2xZM0yrezur9PbOOAi8m9g4WTgKcEwyHGXz41dey2QetWH2GnK-w540e3mdi5vP9q7NPGXOJ-I6TIqvU9tp5B3539LnwwTE1
     assert response.status_code == 200
+    assert test_auth_id in state_store.keys()
+    assert res_j['auth_id'] == test_auth_id
+    print(state_store[test_auth_id])
 
 
 @pytest.mark.asyncio
-async def test_finish_login(test_client, mocker: MockerFixture, flow_store):
+async def test_finish_login(test_client, mocker: MockerFixture, flow_store: dict):
     test_auth_id = "15dae3786b6d0f20629cf3a35187a8a9a3d038f2c31b7c55e658b35906f86e41"
     test_user = "finishloginer"
 
     # password 'clientele' with mock_opq_key
-    test_state = "WwX2il7d7yrV5ni0dkXFgLC4FCzIVJnFdg2zTGRgW8XGTTmS-O7usDTweIenOSNZRfs2D4r0eN1bV977GDWCS6kfVhgEwslqlaUbExXvFBlvEN1JY1ICYo5u5qDIVYaMscQiuf8oNNRHANPZ_l6gtdkBN6eTQ7SWY6F4Iy0gE3LPJKPBrkKl10zNLJ2oo69dkdCu1Er5UPzdo48wAH_WARXFKxwHLCZLxfFnN7eV6033CFdSJF9IR8Z6X177lcaB"
     test_user_usph = usp_hex(test_user)
 
     g_state = mocker.patch('apiserver.data.kv.get_state')
+    test_state = "NxOxeb4oKwirncPlH1SlCbE_md8lH767HsgGv57G1l3aMinOwsi9BDWQW054L-iqZh9le2YqQ4LI10kCbfh4ijIV36HPrGDZg1ObZKx4U1Mgg-5wnLKZx-qtUukSWgON8a0fkN7_C_Jazl8oZxKC4fXBbJj1NKKn2xZM0yrezur9PbOOAi8m9g4WTgKcEwyHGXz41dey2QetWH2GnK-w540e3mdi5vP9q7NPGXOJ-I6TIqvU9tp5B3539LnwwTE1"
 
     def state_side_effect(f_dsrc, auth_id):
         if auth_id == test_auth_id:
@@ -498,19 +494,21 @@ async def test_finish_login(test_client, mocker: MockerFixture, flow_store):
 
     g_state.side_effect = state_side_effect
 
+    flow_id = "df60854e55352c9ff02f768a888710c3"
     # password 'clientele'
     req = {
         "email": test_user,
-        "client_request": "YATUKRGRBXjup27rb8TeoHFw8AlyZ1Kx5FB2oa4HLohCyU-BDaPLWm9CiRRCGHvp-PV9PThsLtjDLJXDEtnoXA",
+        "client_request": "28gMIH7k8inGBdiMrpKidOtwtbcUlgMkmRNGVBy6CrXF_XPtVbzCwmtVCeUEuTSeRkyKFqDnD-v9AXcEfPUZ1w",
         "auth_id": test_auth_id,
-        "flow_id": "434586aeb15dcca4279446a0e386b863694d7bb75b6d48c63e408eae62eb297d"
+        "flow_id": flow_id
     }
+    session_key = "_T2zjgIvJvYOFk4CnBMMhxl8-NXXstkHrVh9hpyvsOeNHt5nYubz_auzTxlzifiOkyKr1PbaeQd-d_S58MExNQ"
 
     response = await test_client.post("/login/finish/", json=req)
-    res_j = response.json()
-    print(res_j)
-    # example session key
-    # zySjwa5CpddMzSydqKOvXZHQrtRK-VD83aOPMAB_1gEVxSscBywmS8XxZze3letN9whXUiRfSEfGel9e-5XGgQ
+    assert session_key in flow_store.keys()
+    flow_user = FlowUser.parse_obj(flow_store[session_key])
+    assert flow_user.flow_id == flow_id
+    assert flow_user.scope == fake_token_scope
     assert response.status_code == 200
 
 

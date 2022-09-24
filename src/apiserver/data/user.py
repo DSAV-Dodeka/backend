@@ -1,13 +1,16 @@
 from typing import Optional
 from datetime import date
 
+from sqlalchemy.engine import CursorResult, Row
+from sqlalchemy.ext.asyncio import AsyncConnection
+
 from apiserver.define.entities import User, SignedUp, UserData
 from apiserver.utilities import usp_hex
 from apiserver.data.source import Source, DataError
 from apiserver.data.use import retrieve_by_id, retrieve_by_unique, upsert_by_id, insert_return_id, \
     double_insert_transaction, exists_by_unique
 from apiserver.db import USER_TABLE, USERDATA_TABLE
-from apiserver.db.model import USERNAME, PASSWORD, REGISTER_ID
+from apiserver.db.model import USERNAME, PASSWORD, REGISTER_ID, SCOPES
 from apiserver.db.ops import DbError
 
 
@@ -30,8 +33,8 @@ async def user_exists(dsrc: Source, user_usph: str) -> bool:
     return await exists_by_unique(dsrc, USER_TABLE, USERNAME, user_usph)
 
 
-async def get_user_by_id(dsrc: Source, id_int: int) -> User:
-    user_row = await retrieve_by_id(dsrc, USER_TABLE, id_int)
+async def get_user_by_id(dsrc: Source, conn: AsyncConnection, id_int: int) -> User:
+    user_row = await retrieve_by_id(dsrc, conn, USER_TABLE, id_int)
     return parse_user(user_row)
 
 
@@ -91,5 +94,6 @@ async def get_user_scope_password(dsrc: Source, user_usph) -> (str, str):
 def create_user(ups_hex, password_file) -> dict:
     return {
         USERNAME: ups_hex,
-        PASSWORD: password_file
+        PASSWORD: password_file,
+        SCOPES: "none"
     }

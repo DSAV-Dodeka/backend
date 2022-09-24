@@ -7,6 +7,7 @@ import pytest_asyncio
 from httpx import AsyncClient
 import opaquepy as opq
 
+from apiserver.define.entities import SignedUp
 from apiserver.resources import project_path
 from apiserver.env import load_config
 import apiserver.utilities as util
@@ -16,7 +17,7 @@ from apiserver.data import Source
 from apiserver.auth.tokens_data import get_keys
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="module", autouse=True)
 def event_loop():
     """ Necessary for async tests with module-scoped fixtures """
     loop = asyncio.get_event_loop()
@@ -83,7 +84,8 @@ async def admin_access(local_dsrc):
 @pytest.mark.asyncio
 async def test_generate_admin(local_dsrc: Source):
     admin_password = "admin"
-    setup = await data.opaquesetup.get_setup(local_dsrc)
+    async with data.get_conn(local_dsrc) as conn:
+        setup = await data.opaquesetup.get_setup(local_dsrc, conn)
 
     cl_req, cl_state = opq.register_client(admin_password)
     serv_resp = opq.register(setup, cl_req, "admin")
@@ -91,6 +93,14 @@ async def test_generate_admin(local_dsrc: Source):
     pw_file = opq.register_finish(cl_fin)
 
     print(pw_file)
+
+
+@pytest.mark.asyncio
+async def test_fill_signedup(local_dsrc):
+    for i in range(5):
+        signed_up = SignedUp(firstname="abc", lastname="abclast", email=f"abc{i}@abc.nl", phone="06")
+        await data.signedup.insert_su_row(local_dsrc, signed_up.dict())
+
 
 
 @pytest.mark.asyncio

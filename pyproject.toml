@@ -20,6 +20,7 @@ pydantic = "^1.10.1"
 jinja2 = "^3.1.2"
 anyio = "^3.6.1"
 opaquepy = "^0.3.0"
+sqlalchemy = "^1.4.41"
 
 
 [tool.pytest.ini_options]

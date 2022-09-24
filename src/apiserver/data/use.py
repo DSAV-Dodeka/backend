@@ -1,5 +1,7 @@
 from typing import Optional
 
+from sqlalchemy.ext.asyncio import AsyncConnection
+
 from apiserver.data import Source, DataError
 
 
@@ -10,12 +12,27 @@ def db_is_init(dsrc: Source):
         return dsrc.gateway.db
 
 
-async def retrieve_by_id(dsrc: Source, table: str, id_int: int) -> Optional[dict]:
-    return await dsrc.gateway.ops.retrieve_by_id(db_is_init(dsrc), table, id_int)
+def eng_is_init(dsrc: Source):
+    if dsrc.gateway.engine is None:
+        raise DataError("Database not initialized!", "no_db_init")
+    else:
+        return dsrc.gateway.engine
+
+
+def get_conn(dsrc: Source):
+    return dsrc.gateway.ops.begin_conn(eng_is_init(dsrc))
+
+
+async def retrieve_by_id(dsrc: Source, conn: AsyncConnection, table: str, id_int: int) -> Optional[dict]:
+    return await dsrc.gateway.ops.retrieve_by_id(conn, table, id_int)
 
 
 async def retrieve_by_unique(dsrc: Source, table: str, unique_column: str, value) -> Optional[dict]:
     return await dsrc.gateway.ops.retrieve_by_unique(db_is_init(dsrc), table, unique_column, value)
+
+
+async def select_where(dsrc: Source, conn: AsyncConnection, table: str, column: str, value) -> list[dict]:
+    return await dsrc.gateway.ops.select_where(conn, table, column, value)
 
 
 async def retrieve_table(dsrc: Source, table: str) -> list[dict]:
@@ -28,6 +45,11 @@ async def exists_by_unique(dsrc: Source, table: str, unique_column: str, value) 
 
 async def upsert_by_id(dsrc: Source, table: str, row: dict):
     return await dsrc.gateway.ops.upsert_by_id(db_is_init(dsrc), table, row)
+
+
+async def update_column_by_unique(dsrc: Source, conn: AsyncConnection, table: str, set_column: str, set_value,
+                                  unique_column: str, value):
+    return await dsrc.gateway.ops.update_column_by_unique(conn, table, set_column, set_value, unique_column, value)
 
 
 async def insert(dsrc: Source, table: str, row: dict):

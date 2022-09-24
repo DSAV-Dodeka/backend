@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 from databases import Database
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncConnection
 
 
 class DbOperations(ABC):
@@ -10,9 +11,15 @@ class DbOperations(ABC):
     This circumvents a problem where mocks are ignored as FastAPI changes the function
     references at startup.
     """
+
     @classmethod
     @abstractmethod
-    async def retrieve_by_id(cls, db: Database, table: str, id_int: int) -> Optional[dict]:
+    def begin_conn(cls, engine: AsyncEngine) -> AsyncConnection:
+        ...
+
+    @classmethod
+    @abstractmethod
+    async def retrieve_by_id(cls, conn: AsyncConnection, table: str, id_int: int) -> Optional[dict]:
         ...
 
     @classmethod
@@ -21,6 +28,12 @@ class DbOperations(ABC):
         ...
 
     @classmethod
+    @abstractmethod
+    async def select_where(cls, conn: AsyncConnection, table: str, column, value) -> list[dict]:
+        ...
+
+    @classmethod
+    @abstractmethod
     async def retrieve_table(cls, db: Database, table: str) -> list[dict]:
         ...
 
@@ -32,6 +45,11 @@ class DbOperations(ABC):
     @classmethod
     @abstractmethod
     async def upsert_by_id(cls, db: Database, table: str, row: dict):
+        ...
+
+    @classmethod
+    async def update_column_by_unique(cls, conn: AsyncConnection, table: str, set_column: str, set_value,
+                                      unique_column: str, value):
         ...
 
     @classmethod

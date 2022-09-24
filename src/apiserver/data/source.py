@@ -3,6 +3,8 @@ from typing import Type, Optional
 import redis
 from databases import Database
 from redis.asyncio import Redis
+from sqlalchemy.exc import DBAPIError
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine
 
 from apiserver.env import Config
 from apiserver.db.ops import DbOperations
@@ -28,6 +30,7 @@ class NoDataError(DataError):
 
 
 class Gateway:
+    engine: Optional[AsyncEngine] = None
     db: Optional[Database] = None
     kv: Optional[Redis] = None
     # Just store the class/type since we only use static methods
@@ -37,12 +40,15 @@ class Gateway:
         self.ops = PostgresOperations
 
     def init_objects(self, config: Config):
-        db_cluster = f"postgresql://{config.DB_USER}:{config.DB_PASS}@{config.DB_HOST}:{config.DB_PORT}"
+        db_cluster = f"{config.DB_USER}:{config.DB_PASS}@{config.DB_HOST}:{config.DB_PORT}"
         db_url = f"{db_cluster}/{config.DB_NAME}"
         # Connections are not actually established, it simply initializes the connection parameters
-        self.db = Database(db_url)
+        self.db = Database(f"postgresql://{db_url}")
         self.kv = Redis(host=config.KV_HOST, port=config.KV_PORT, db=0,
                         password=config.KV_PASS)
+        self.engine: AsyncEngine = create_async_engine(
+            f"postgresql+asyncpg://{db_url}"
+        )
 
     async def connect(self):
         try:
@@ -55,6 +61,11 @@ class Gateway:
             await self.kv.ping()
         except redis.ConnectionError:
             raise SourceError(f"Unable to ping Redis server! Please check if it is running.")
+        try:
+            async with self.engine.connect() as conn:
+                pass
+        except DBAPIError:
+            raise SourceError(f"Unable to connect to DB with SQLAlchemy! Please check if it is running.")
 
     async def disconnect(self):
         await self.db.disconnect()

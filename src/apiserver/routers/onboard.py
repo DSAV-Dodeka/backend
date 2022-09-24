@@ -209,6 +209,8 @@ async def start_register(register_start: RegisterRequest, request: Request):
 
 @router.post("/onboard/finish/")
 async def finish_register(register_finish: FinishRequest, request: Request):
+    """ At this point, we have info saved under 'userdata', 'users' and short-term storage as SavedRegisterState. All
+    this data must match up for there to be a succesful registration. """
     dsrc: Source = request.app.state.dsrc
     try:
         saved_state = await data.kv.get_register_state(dsrc, register_finish.auth_id)
@@ -217,8 +219,8 @@ async def finish_register(register_finish: FinishRequest, request: Request):
         reason = "Registration not initialized or expired"
         raise ErrorResponse(400, err_type="invalid_registration", err_desc=reason, debug_key="no_register_start")
 
-    email_usph = util.usp_hex(register_finish.email)
-    if saved_state.user_usph != email_usph:
+    request_email_usph = util.usp_hex(register_finish.email)
+    if saved_state.user_usph != request_email_usph:
         reason = "User does not match state!"
         logger.debug(reason)
         raise ErrorResponse(400, err_type="invalid_registration", err_desc=reason, debug_key="unequal_user")
@@ -238,12 +240,12 @@ async def finish_register(register_finish: FinishRequest, request: Request):
         raise ErrorResponse(400, err_type="invalid_register", err_desc=reason, debug_key="bad_registration")
 
     ud_email_usph = util.usp_hex(ud.email)
-    if ud_email_usph != email_usph:
+    if ud_email_usph != request_email_usph:
         logger.debug("Registration does not match e-mail")
         reason = "Bad registration."
         raise ErrorResponse(400, err_type="invalid_register", err_desc=reason, debug_key="bad_registration")
 
-    new_user = User(id=saved_state.id, usp_hex=email_usph, password_file=password_file)
+    new_user = User(id=saved_state.id, usp_hex=request_email_usph, password_file=password_file)
 
     try:
         await data.user.upsert_user(dsrc, new_user)
@@ -263,7 +265,3 @@ async def finish_register(register_finish: FinishRequest, request: Request):
     await data.user.upsert_userdata(dsrc, new_userdata)
 
     # send welcome email
-
-    return {
-        "ok": "ok"
-    }

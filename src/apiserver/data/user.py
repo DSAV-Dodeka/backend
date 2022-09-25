@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 
 from apiserver.define.entities import User, SignedUp, UserData
 from apiserver.utilities import usp_hex
-from apiserver.data.source import Source, DataError
+from apiserver.data.source import Source, DataError, NoDataError
 from apiserver.data.use import retrieve_by_id, retrieve_by_unique, upsert_by_id, insert_return_id, \
     double_insert_transaction, exists_by_unique, fetch_column_by_unique
 from apiserver.db import USER_TABLE, USERDATA_TABLE
@@ -19,13 +19,13 @@ __all__ = ['get_user_by_id', 'upsert_user', 'create_user', 'user_exists', 'userd
 
 def parse_user(user_dict: Optional[dict]) -> User:
     if user_dict is None:
-        raise DataError("User does not exist.", "user_empty")
+        raise NoDataError("User does not exist.", "user_empty")
     return User.parse_obj(user_dict)
 
 
 def parse_userdata(user_dict: Optional[dict]) -> UserData:
     if user_dict is None:
-        raise DataError("UserData does not exist.", "userdata_empty")
+        raise NoDataError("UserData does not exist.", "userdata_empty")
     return UserData.parse_obj(user_dict)
 
 
@@ -44,7 +44,7 @@ async def get_userdata_by_register_id(dsrc: Source, register_id: str) -> UserDat
 
 
 async def userdata_registered_by_email(dsrc: Source, conn: AsyncConnection, email: str) -> bool:
-    result = fetch_column_by_unique(dsrc, conn, USER_TABLE, USER_REGISTERED, UD_EMAIL, email)
+    result = await fetch_column_by_unique(dsrc, conn, USERDATA_TABLE, USER_REGISTERED, UD_EMAIL, email)
     return result if result is True else False
 
 
@@ -89,11 +89,6 @@ async def upsert_userdata(dsrc: Source, userdata: UserData):
     except DbError as e:
         raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
     return result
-
-
-async def get_user_scope_password(dsrc: Source, user_usph) -> (str, str):
-    user = await get_user_by_usph(dsrc, user_usph)
-    return user.scope, user.password_file
 
 
 def create_user(ups_hex, password_file) -> dict:

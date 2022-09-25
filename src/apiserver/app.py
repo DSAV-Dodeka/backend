@@ -24,6 +24,7 @@ import apiserver.routers.basic as basic
 import apiserver.routers.auth as auth
 import apiserver.routers.profile as profile
 import apiserver.routers.onboard as onboard
+import apiserver.routers.update as update
 
 
 def init_logging(logger_name: str, log_level: int):
@@ -51,6 +52,7 @@ def create_app() -> tuple[FastAPI, Logger]:
     new_app.include_router(auth.router)
     new_app.include_router(profile.router)
     new_app.include_router(onboard.router)
+    new_app.include_router(update.router)
     new_app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=['*'],
                            allow_headers=['Authorization'])
     new_app.add_exception_handler(ErrorResponse, handler=error_response_handler)

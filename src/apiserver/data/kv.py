@@ -1,8 +1,10 @@
+from typing import Optional
+
 from apiserver.define import email_expiration
 from apiserver.define.request import FlowUser, AuthRequest, SavedState, SavedRegisterState, SignupRequest
 from apiserver.data.source import NoDataError
 from apiserver.data import Source, DataError
-from apiserver.kv import store_json, get_json, get_kv, store_kv
+from apiserver.kv import store_json, get_json, get_kv, store_kv, pop_json
 
 
 def kv_is_init(dsrc: Source):
@@ -12,8 +14,8 @@ def kv_is_init(dsrc: Source):
         return dsrc.gateway.kv
 
 
-async def get_flow_user(dsrc: Source, authorization_code: str):
-    flow_user_dict = await get_json(kv_is_init(dsrc), authorization_code)
+async def pop_flow_user(dsrc: Source, authorization_code: str):
+    flow_user_dict = await pop_json(kv_is_init(dsrc), authorization_code)
     if flow_user_dict is None:
         raise NoDataError("Flow user does not exist or expired.", "flow_user_empty")
     return FlowUser.parse_obj(flow_user_dict)
@@ -73,6 +75,9 @@ async def store_string(dsrc: Source, key: str, value: str, expire: int):
 
 async def get_string(dsrc: Source, key: str) -> str:
     value = await get_kv(kv_is_init(dsrc), key)
-    if value is None or not isinstance(value, str):
+    if value is None:
         raise NoDataError("String for this key does not exist or expired.", "saved_str_empty")
-    return value
+    try:
+        return value.decode()
+    except UnicodeEncodeError:
+        raise DataError("Data is not of unicode string type.", "bad_str_encode")

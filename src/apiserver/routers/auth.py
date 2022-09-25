@@ -13,7 +13,7 @@ from apiserver.define.request import ErrorResponse, PasswordResponse, PasswordRe
     AuthRequest, TokenResponse, TokenRequest, FlowUser
 import apiserver.utilities as util
 import apiserver.data as data
-from apiserver.data import NoDataError, Source
+from apiserver.data import NoDataError, Source, DataError
 from apiserver.auth.tokens import InvalidRefresh
 from apiserver.auth.tokens_data import do_refresh, new_token
 
@@ -34,18 +34,23 @@ async def start_login(login_start: PasswordRequest, request: Request):
     async with data.get_conn(dsrc) as conn:
         opaque_setup = await data.opaquesetup.get_setup(dsrc, conn)
 
-    scope, password_file = await data.user.get_user_scope_password(dsrc, "fakerecord")
+    scope = "none"
+    u = await data.user.get_user_by_usph(dsrc, "fakerecord")
+    password_file = u.password_file
     try:
-        scope, password_file = await data.user.get_user_scope_password(dsrc, user_usph)
-    except NoDataError:
-        # If user does not exist, pass fake user record to prevent client enumeration
+        u = await data.user.get_user_by_usph(dsrc, user_usph)
+        if u.password_file:
+            password_file = u.password_file
+            scope = u.scope
+    except NoDataError as e:
+        # If user does not exist, fake user record is passed to prevent client enumeration
         pass
 
     auth_id = util.random_time_hash_hex(user_usph)
 
     response, state = opq.login(opaque_setup, password_file, login_start.client_request, user_usph)
 
-    saved_state = SavedState(user_usph=user_usph, scope=scope, state=state)
+    saved_state = SavedState(user_usph=user_usph, scope=scope, state=state, user_id=u.id)
 
     await data.kv.store_auth_state(dsrc, auth_id, saved_state)
 
@@ -68,7 +73,8 @@ async def finish_login(login_finish: FinishLogin, request: Request):
 
     session_key = opq.login_finish(login_finish.client_request, saved_state.state)
     utc_now = util.utc_timestamp()
-    flow_user = FlowUser(flow_id=login_finish.flow_id, user_usph=user_usph, scope=saved_state.scope, auth_time=utc_now)
+    flow_user = FlowUser(flow_id=login_finish.flow_id, user_usph=user_usph, scope=saved_state.scope, auth_time=utc_now,
+                         user_id=saved_state.user_id)
 
     await data.kv.store_flow_user(dsrc, session_key, flow_user)
 
@@ -154,7 +160,7 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
             logger.debug(reason)
             raise ErrorResponse(400, err_type="invalid_request", err_desc=reason, debug_key="incomplete_code")
         try:
-            flow_user = await data.kv.get_flow_user(dsrc, token_request.code)
+            flow_user = await data.kv.pop_flow_user(dsrc, token_request.code)
         except NoDataError as e:
             logger.debug(e.message)
             reason = "Expired or missing auth code"
@@ -191,10 +197,11 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
         auth_time = flow_user.auth_time
         id_nonce = auth_request.nonce
         token_user = flow_user.user_usph
+        token_user_id = flow_user.user_id
 
         token_scope = flow_user.scope
         id_token, access, refresh, exp, returned_scope = \
-            await new_token(dsrc, token_user, token_scope, auth_time, id_nonce)
+            await new_token(dsrc, token_user, token_user_id, token_scope, auth_time, id_nonce)
 
     elif token_request.grant_type == "refresh_token":
         try:

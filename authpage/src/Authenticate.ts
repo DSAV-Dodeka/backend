@@ -1,7 +1,7 @@
 import {client_register_wasm, client_register_finish_wasm, client_login_wasm, client_login_finish_wasm} from "@tiptenbrink/opaquewasm";
 import config from "./config";
 import {RegisterState} from "./Register";
-import {back_post, ok_back_post} from "./api";
+import {back_post, catch_api} from "./api";
 import {z} from "zod";
 
 const OpaqueResponse = z.object({
@@ -34,8 +34,8 @@ export async function clientRegister(registerState: RegisterState) {
             eduinstitution,
             birthdate: registerState.date_of_birth
         }
-
-        return await ok_back_post("onboard/finish/", register_finish)
+        await back_post("onboard/finish/", register_finish)
+        return
 
     } catch (e) {
         console.log(e)
@@ -62,7 +62,8 @@ export async function passUpdate(email: string, flow_id: string, password: strin
             "auth_id": auth_id,
         }
 
-        return await ok_back_post("onboard/finish/", register_finish)
+        await back_post("update/password/finish/", register_finish)
+        return true
 
     } catch (e) {
         console.log(e)
@@ -96,10 +97,8 @@ export async function clientLogin(username: string, password: string, flow_id: s
             "flow_id": flow_id
         }
 
-        if (await ok_back_post("login/finish/", login_finish)) {
-            return session
-        }
-        return null
+        await back_post("login/finish/", login_finish)
+        return session
 
     } catch (e) {
         if (e instanceof Error && e.name === "InvalidLogin") {
@@ -107,7 +106,8 @@ export async function clientLogin(username: string, password: string, flow_id: s
             console.log(e.message)
         }
         else {
-            console.log(e)
+            const err = catch_api(e)
+            console.log(err)
         }
         return null
     }

@@ -10,7 +10,7 @@ const Manage = () => {
     const [submitted, setSubmitted] = useState("")
     const [passScore, setPassScore] = useState(0)
     const [preStatus, setPreStatus] = useState("")
-    const [status, setStatus] = useState("")
+    const [status, setStatus] = useState("\u00A0")
     const [handled, setHandled] = useState(false)
     const [urlOk, setUrlOk] = useState(false)
     const [password, setPassword] = useState("")
@@ -56,22 +56,13 @@ const Manage = () => {
         setSubmitted("submitted")
     }
 
-    const handleFormChange = (event: ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = event.target
-        if (name === "password") {
-            setPassword(value)
-        } else if (name === "passwordConfirm") {
-            setPasswordConfirm(value)
-        }
-    }
-
     const badConfirm = () => {
         setPreStatus("The reset link is incorrect or has expired. Please try again.")
     }
 
     const handleLoad = async () => {
         const source_params = (new URLSearchParams(window.location.search))
-        const flow_id = source_params.get("flow_id")
+        const flow_id = source_params.get("reset_id")
         const email = source_params.get("email")
         if (flow_id === null || email === null) {
             badConfirm()
@@ -98,11 +89,11 @@ const Manage = () => {
                 <form className="authForm" onSubmit={handleSubmit}>
                     <div className="formContents">
                         <input required className={submitted}  id="password" type="password" placeholder="Nieuw wachtwoord" name="password" value={password}
-                               onChange={handleFormChange}/>
+                               onChange={e => setPassword(e.target.value)}/>
                         {/** The Suspense is used because the library used for loading is quite big, so it is loaded in the background after page load **/}
                         <Suspense fallback={<div className="passBar1">""</div>}><PasswordStrength password={password} passScore={passScore} setPass={setPassScore}/></Suspense>
                         <input className={submitted} required id="passwordConfirm" type="password" placeholder="Herhaal wachtwoord" name="passwordConfirm" value={passwordConfirm}
-                               onChange={handleFormChange}/>
+                               onChange={e => setPasswordConfirm(e.target.value)}/>
                     </div>
                     <button className="authButton" id="submit_button" onClick={handleSubmitClick} type="submit">Opnieuw instellen</button><br />
                     <p className="formStatus">{status}</p>

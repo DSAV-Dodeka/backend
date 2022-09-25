@@ -39,7 +39,7 @@ async def request_password_change(change_pass: ChangePasswordRequest, request: R
     dsrc: Source = request.app.state.dsrc
     async with data.get_conn(dsrc) as conn:
         is_registered = await data.user.userdata_registered_by_email(dsrc, conn, change_pass.email)
-
+    logger.debug(f"Reset requested - is_registered={is_registered}")
     flow_id = util.random_time_hash_hex()
     params = {
         "reset_id": flow_id,

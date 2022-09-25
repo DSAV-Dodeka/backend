@@ -106,7 +106,7 @@ def build_refresh_save(saved_refresh: SavedRefreshToken, utc_now: int):
     new_refresh_save = SavedRefreshToken(family_id=saved_refresh.family_id,
                                          access_value=saved_refresh.access_value,
                                          id_token_value=saved_refresh.id_token_value, exp=saved_refresh.exp,
-                                         iat=utc_now, nonce=new_nonce)
+                                         iat=utc_now, nonce=new_nonce, user_id=saved_refresh.user_id)
 
     return saved_access, saved_id_token, user_usph, access_scope, new_nonce, new_refresh_save
 
@@ -118,7 +118,7 @@ def build_refresh_token(new_refresh_id: int, saved_refresh: SavedRefreshToken, n
     return refresh_token
 
 
-def create_tokens(user_usph: str, scope: str, auth_time: int, id_nonce: str, utc_now: int):
+def create_tokens(user_usph: str, user_id: int, scope: str, auth_time: int, id_nonce: str, utc_now: int):
     # Build new tokens
     access_token_data, id_token_data = id_access_tokens(sub=user_usph,
                                                         iss=issuer,
@@ -138,7 +138,7 @@ def create_tokens(user_usph: str, scope: str, auth_time: int, id_nonce: str, utc
     family_id = secrets.token_urlsafe(16)
     refresh_save = SavedRefreshToken(family_id=family_id, access_value=access_val_encoded,
                                      id_token_value=id_token_val_encoded, exp=utc_now + refresh_exp, iat=utc_now,
-                                     nonce="")
+                                     nonce="", user_id=user_id)
     return access_token_data, id_token_data, access_scope, refresh_save
 
 

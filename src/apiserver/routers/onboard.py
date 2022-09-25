@@ -172,7 +172,7 @@ async def start_register(register_start: RegisterRequest, request: Request):
     email_usph = util.usp_hex(register_start.email)
     try:
         ud = await data.user.get_userdata_by_register_id(dsrc, register_start.register_id)
-    except DataError as e:
+    except NoDataError as e:
         logger.debug(e)
         reason = "No registration for that register_id"
         raise ErrorResponse(400, err_type="invalid_register", err_desc=reason, debug_key="no_register_for_id")
@@ -222,7 +222,7 @@ async def finish_register(register_finish: FinishRequest, request: Request):
 
     try:
         ud = await data.user.get_userdata_by_register_id(dsrc, register_finish.register_id)
-    except DataError as e:
+    except NoDataError as e:
         logger.debug(e)
         reason = "No registration for that register_id."
         raise ErrorResponse(400, err_type="invalid_register", err_desc=reason, debug_key="no_register_for_id")

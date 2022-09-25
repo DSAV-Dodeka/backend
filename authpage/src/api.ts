@@ -8,21 +8,22 @@ export const back_post = async (endpoint: string, json: Object) => {
     return await api.post(endpoint, {json: json}).json()
 }
 
-export const ok_back_post = async (endpoint: string, json: Object) => {
-    return (await api.post(endpoint, {json: json})).ok
-}
-
-const ApiError = z.object({
+const ReturnedError = z.object({
     error: z.string(),
     error_description: z.string(),
-    debug_key: z.string()
+    debug_key: z.string().optional()
 })
-type ApiError = z.infer<typeof ApiError>;
+type ApiError = {
+    code: number,
+    error: string
+    error_description: string
+    debug_key?: string
+}
 
 export const catch_api = async (e: unknown): Promise<ApiError> => {
     if (e instanceof HTTPError) {
         const err_json = await e.response.json()
-        return ApiError.parse(err_json)
+        return { ...ReturnedError.parse(err_json), code: e.response.status }
     } else {
         throw e
     }

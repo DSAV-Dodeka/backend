@@ -8,7 +8,7 @@ from apiserver.define.entities import User, SignedUp, UserData
 from apiserver.utilities import usp_hex
 from apiserver.data.source import Source, DataError, NoDataError
 from apiserver.data.use import retrieve_by_id, retrieve_by_unique, upsert_by_id, insert_return_id, \
-    double_insert_transaction, exists_by_unique, fetch_column_by_unique
+    double_insert_transaction, exists_by_unique, fetch_column_by_unique, update_column_by_unique
 from apiserver.db import USER_TABLE, USERDATA_TABLE
 from apiserver.db.model import USERNAME, PASSWORD, REGISTER_ID, SCOPES, USER_REGISTERED, UD_EMAIL
 from apiserver.db.ops import DbError
@@ -89,6 +89,22 @@ async def upsert_userdata(dsrc: Source, userdata: UserData):
     except DbError as e:
         raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
     return result
+
+
+async def update_ud_email(dsrc: Source, conn: AsyncConnection, old_email: str, new_email: str) -> bool:
+    try:
+        count = await update_column_by_unique(dsrc, conn, USERDATA_TABLE, UD_EMAIL, new_email, UD_EMAIL, old_email)
+    except DbError as e:
+        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
+    return bool(count)
+
+
+async def update_user_email(dsrc: Source, conn: AsyncConnection, old_usph: str, new_usph: str) -> bool:
+    try:
+        count = await update_column_by_unique(dsrc, conn, USER_TABLE, USERNAME, new_usph, USERNAME, old_usph)
+    except DbError as e:
+        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
+    return bool(count)
 
 
 def create_user(ups_hex, password_file) -> dict:

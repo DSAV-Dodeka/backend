@@ -133,12 +133,13 @@ class PostgresOperations(DbOperations):
 
     @classmethod
     async def update_column_by_unique(cls, conn: AsyncConnection, table: str, set_column: str, set_value,
-                                      unique_column: str, value):
+                                      unique_column: str, value) -> int:
         """ Note that while the values are safe from injection, the column names are not. """
 
         query = text(f"UPDATE {table} SET {set_column} = :set WHERE {unique_column} = :val;")
 
-        await execute_catch_conn(conn, query, params={"set": set_value, "val": value})
+        res = await execute_catch_conn(conn, query, params={"set": set_value, "val": value})
+        return res.rowcount
 
     @classmethod
     async def insert(cls, db: Database, table: str, row: dict):

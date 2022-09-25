@@ -196,3 +196,13 @@ class UpdatePasswordRequest(BaseModel):
 class UpdatePasswordFinish(BaseModel):
     auth_id: str
     client_request: str
+
+
+class UpdateEmail(BaseModel):
+    old_usph: str
+    new_email: str
+
+
+class UpdateEmailCheck(BaseModel):
+    flow_id: str
+    code: str

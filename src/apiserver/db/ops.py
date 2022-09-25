@@ -55,7 +55,7 @@ class DbOperations(ABC):
 
     @classmethod
     async def update_column_by_unique(cls, conn: AsyncConnection, table: str, set_column: str, set_value,
-                                      unique_column: str, value):
+                                      unique_column: str, value) -> int:
         ...
 
     @classmethod

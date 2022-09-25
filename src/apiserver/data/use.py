@@ -53,7 +53,8 @@ async def upsert_by_id(dsrc: Source, table: str, row: dict):
 
 
 async def update_column_by_unique(dsrc: Source, conn: AsyncConnection, table: str, set_column: str, set_value,
-                                  unique_column: str, value):
+                                  unique_column: str, value) -> int:
+    """ Note that while the values are safe from injection, the column names are not. """
     return await dsrc.gateway.ops.update_column_by_unique(conn, table, set_column, set_value, unique_column, value)
 
 

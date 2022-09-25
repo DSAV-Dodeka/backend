@@ -17,18 +17,22 @@ class ErrorResponse(Exception):
         self.debug_key = debug_key
 
 
-async def error_response_handler(request: Request, e: ErrorResponse):
+def error_response_return(err_status_code: int, err_type: str, err_desc: str, err_debug_key: str = None):
     content = {
-        "error": e.err_type,
-        "error_description": e.err_desc
+        "error": err_type,
+        "error_description": err_desc
     }
-    if e.debug_key is not None:
-        content["debug_key"] = e.debug_key
+    if err_debug_key is not None:
+        content["debug_key"] = err_debug_key
 
     return JSONResponse(
-        status_code=e.status_code,
+        status_code=err_status_code,
         content=content
     )
+
+
+def error_response_handler(request: Request, e: ErrorResponse):
+    return error_response_return(e.status_code, e.err_type, e.err_desc, e.debug_key)
 
 
 class AuthRequest(BaseModel):
@@ -107,6 +111,7 @@ class SavedRegisterState(BaseModel):
 
 class SavedState(BaseModel):
     user_usph: str
+    user_id: int
     scope: str
     state: str
 
@@ -130,6 +135,7 @@ class FinishLogin(BaseModel):
 
 class FlowUser(BaseModel):
     user_usph: str
+    user_id: int
     scope: str
     flow_id: str
     auth_time: int
@@ -175,3 +181,18 @@ class UserDataRegisterResponse(BaseModel):
     lastname: str
     email: str
     phone: str
+
+
+class ChangePasswordRequest(BaseModel):
+    email: str
+
+
+class UpdatePasswordRequest(BaseModel):
+    email: str
+    flow_id: str
+    client_request: str
+
+
+class UpdatePasswordFinish(BaseModel):
+    auth_id: str
+    client_request: str

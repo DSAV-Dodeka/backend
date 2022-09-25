@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
@@ -29,6 +29,11 @@ async def retrieve_by_id(dsrc: Source, conn: AsyncConnection, table: str, id_int
 
 async def retrieve_by_unique(dsrc: Source, table: str, unique_column: str, value) -> Optional[dict]:
     return await dsrc.gateway.ops.retrieve_by_unique(db_is_init(dsrc), table, unique_column, value)
+
+
+async def fetch_column_by_unique(dsrc: Source, conn: AsyncConnection, table: str, fetch_column: str, unique_column: str,
+                                 value) -> Optional[Any]:
+    return await dsrc.gateway.ops.fetch_column_by_unique(conn, table, fetch_column, unique_column, value)
 
 
 async def select_where(dsrc: Source, conn: AsyncConnection, table: str, column: str, value) -> list[dict]:

@@ -13,7 +13,8 @@ from fastapi.exceptions import RequestValidationError
 # in the app state
 # In most cases this is where all environment variables and other configuration is loaded
 
-from apiserver.define import res_path, ErrorResponse, error_response_handler, LOGGER_NAME, allowed_envs
+from apiserver.define import res_path, ErrorResponse, error_response_handler, LOGGER_NAME, allowed_envs, \
+    error_response_return
 from apiserver.env import load_config, Config
 # Import types separately to make it clear in what line the module is first loaded and its top-level run
 from apiserver.data import Source
@@ -23,6 +24,7 @@ import apiserver.routers.basic as basic
 import apiserver.routers.auth as auth
 import apiserver.routers.profile as profile
 import apiserver.routers.onboard as onboard
+import apiserver.routers.update as update
 
 
 def init_logging(logger_name: str, log_level: int):
@@ -50,6 +52,7 @@ def create_app() -> tuple[FastAPI, Logger]:
     new_app.include_router(auth.router)
     new_app.include_router(profile.router)
     new_app.include_router(onboard.router)
+    new_app.include_router(update.router)
     new_app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=['*'],
                            allow_headers=['Authorization'])
     new_app.add_exception_handler(ErrorResponse, handler=error_response_handler)
@@ -112,7 +115,8 @@ async def shutdown():
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request, exc):
+def validation_exception_handler(request, exc: RequestValidationError):
     # Also show debug if there is an error in the request
+    exc_str = str(exc)
     logger.debug(str(exc))
-    raise exc
+    return error_response_return(err_status_code=400, err_type="bad_request_validation", err_desc=exc_str)

@@ -76,6 +76,7 @@ class SymmetricKey(Key):
 
 class SavedRefreshToken(BaseModel):
     id: int = None
+    user_id: int
     family_id: str
     access_value: str
     id_token_value: str

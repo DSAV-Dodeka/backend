@@ -1,11 +1,11 @@
 import './index.scss'
 import React from 'react'
 import {createRoot} from "react-dom/client";
-import Email from "./Email";
+import Manage from "./Manage";
 import ContainBack from "./ContainBack";
 
 const container = document.getElementById('root')
 const root = createRoot(container!)
 root.render(<React.StrictMode>
-    <ContainBack component={<Email />} />
+    <ContainBack component={<Manage />} />
 </React.StrictMode>)

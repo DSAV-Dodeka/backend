@@ -1,7 +1,7 @@
 from apiserver.define import ErrorResponse
 from apiserver.define.entities import AccessToken
-from apiserver.data import Source
 from apiserver.auth.header import handle_header, BadAuth
+from apiserver.data import Source
 
 
 async def handle_auth(authorization: str, dsrc: Source) -> AccessToken:
@@ -17,3 +17,10 @@ async def require_admin(authorization: str, dsrc: Source):
     if 'admin' not in scope_set:
         raise ErrorResponse(403, err_type="insufficient_perms", err_desc="Insufficient permissions to access this "
                                                                          "resource.", debug_key="low_perms")
+
+
+async def require_user(authorization: str, dsrc: Source, username: str):
+    acc = await handle_auth(authorization, dsrc)
+    if acc.sub != username:
+        raise ErrorResponse(403, err_type="wrong_subject", err_desc="Resource not available to this subject.",
+                            debug_key="bad_sub")

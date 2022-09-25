@@ -11,10 +11,8 @@ from pytest_mock import MockerFixture
 from httpx import AsyncClient
 from fastapi import status
 
-import opaquepy as opq
-
 from apiserver.define import FlowUser, AuthRequest, SavedState, SavedRegisterState, frontend_client_id
-from apiserver.env import load_config, Config
+from apiserver.env import load_config
 from apiserver.utilities import utc_timestamp, usp_hex
 from apiserver.define.entities import SavedRefreshToken, UserData, User
 from apiserver.db.ops import DbOperations
@@ -181,8 +179,9 @@ code_session_key = "somecomplexsessionkey"
 mock_redirect = "http://localhost:3000/auth/callback"
 mock_flow_id = "1d5c621ea3a2da319fe0d0a680046fd6369a60e450ff04f59c51b0bfb3d96eef"
 fake_token_scope = "test"
+mock_user_id = 20
 mock_flow_user = FlowUser(user_usph="mrmock", auth_time=utc_timestamp() - 20, flow_id=mock_flow_id,
-                          scope=fake_token_scope)
+                          scope=fake_token_scope, user_id=mock_user_id)
 mock_auth_request = AuthRequest(response_type="code", client_id="dodekaweb_client",
                                 redirect_uri=mock_redirect,
                                 state="KV6A2hTOv6mOFYVpTAOmWw",
@@ -200,8 +199,8 @@ async def fake_tokens():
     from apiserver.auth.tokens import create_tokens, aes_from_symmetric, finish_tokens, encode_token_dict
     utc_now = utc_timestamp()
     access_token_data, id_token_data, access_scope, refresh_save = \
-        create_tokens(mock_flow_user.user_usph, fake_token_scope, mock_flow_user.auth_time, mock_auth_request.nonce,
-                      utc_now)
+        create_tokens(mock_flow_user.user_usph, mock_flow_user.user_id, fake_token_scope, mock_flow_user.auth_time,
+                      mock_auth_request.nonce, utc_now)
 
     acc_val = encode_token_dict(access_token_data.dict())
     id_val = encode_token_dict(id_token_data.dict())
@@ -213,7 +212,7 @@ async def fake_tokens():
                                                           id_token_data, utc_now, signing_key, nonce="")
     yield {'refresh': refresh_token, 'access': access_token, 'id': id_token, 'family_id': refresh_save.family_id,
            'iat': refresh_save.iat, 'exp': refresh_save.exp, 'nonce': refresh_save.nonce, 'acc_val': acc_val,
-           'id_val': id_val}
+           'id_val': id_val, 'user_id': refresh_save.user_id}
 
 
 @pytest.mark.asyncio
@@ -226,7 +225,7 @@ async def test_refresh(test_client, mocker: MockerFixture, mock_get_keys, fake_t
             return SavedRefreshToken(family_id=fake_tokens['family_id'], access_value=fake_tokens['acc_val'],
                                      id_token_value=fake_tokens['id_val'], iat=fake_tokens['iat'],
                                      exp=fake_tokens['exp'],
-                                     nonce=fake_tokens['nonce'])
+                                     nonce=fake_tokens['nonce'], user_id=fake_tokens['user_id'])
 
     get_r.side_effect = side_effect
     get_refr.return_value = 45
@@ -245,7 +244,7 @@ async def test_refresh(test_client, mocker: MockerFixture, mock_get_keys, fake_t
 
 @pytest.mark.asyncio
 async def test_auth_code(test_client, mocker: MockerFixture, mock_get_keys):
-    get_flow = mocker.patch('apiserver.data.kv.get_flow_user')
+    get_flow = mocker.patch('apiserver.data.kv.pop_flow_user')
     get_auth = mocker.patch('apiserver.data.kv.get_auth_request')
     r_save = mocker.patch('apiserver.data.refreshtoken.refresh_save')
 
@@ -435,17 +434,18 @@ async def test_start_login(test_client, mocker: MockerFixture, state_store: dict
     opq_setup = mocker.patch('apiserver.data.opaquesetup.get_setup')
     opq_setup.return_value = mock_opq_setup['value']
 
-    g_pw = mocker.patch('apiserver.data.user.get_user_scope_password')
+    g_pw = mocker.patch('apiserver.data.user.get_user_by_usph')
     test_user = "startloginer"
+    test_user_id = 99
     test_user_usph = usp_hex(test_user)
     fake_password_file = "GLgWMaiuTTs2NyK9gvrhbtUMTrHLy2erbEwPnzwFDQ6i5EuUyWEN9yqEarTqxprZ205gkQoY_yks3-1jr3XuTfKfh1byl9LZHFpDA-FWNyc5wV5CBYz_jzruanzI-yFCPt7fPglNFs7mnwPbZaraoKMJX5prMMrULtDF4KlZuv2szqISaM3d9kiVUEgXzNAPh6EMuN1GCySL8gimFyfZxfrk3QCeQJKudx2YZYz9ReBs7EkmAwTCHxeiCmYaDdlu"
     correct_password_file = "6sr_nvpqPqB-GCjj091vbsIsKYdHX2BE_9ICHT-8o329Wn_-9F4gCjfFD1GsPGayGF1oJ2FzyZXLzUS-MmaHO2pTGoD_QyGBiIV9s7LBYxFM_fciaaI08ZahLfj4kmXJfzqcWVSecc7uqgzR5DVamDHlmQUOT6QjXcDmbuPm8eDu1hBdD65ZWmpUz16DK3-k6uBLjQ1fKYj8o3xBShhRQCKpm0PFCjk4uABkXgdzy5EWoKkTZ8cslYe450nAdOqv"
 
     def pw_side_effect(f_dsrc, user_usph):
         if user_usph == test_user_usph:
-            return fake_token_scope, correct_password_file
+            return User(id=test_user_id, password_file=correct_password_file, scope="test", usp_hex=test_user_usph)
         elif user_usph == "fakerecord":
-            return "none", fake_password_file
+            return User(id=0, password_file=fake_password_file, scope="none", usp_hex="fakerecord")
 
     g_pw.side_effect = pw_side_effect
 
@@ -490,7 +490,7 @@ async def test_finish_login(test_client, mocker: MockerFixture, flow_store: dict
 
     def state_side_effect(f_dsrc, auth_id):
         if auth_id == test_auth_id:
-            return SavedState(user_usph=test_user_usph, state=test_state, scope=fake_token_scope)
+            return SavedState(user_usph=test_user_usph, state=test_state, scope=fake_token_scope, user_id=40)
 
     g_state.side_effect = state_side_effect
 

@@ -55,13 +55,13 @@ async def do_refresh(dsrc: Source, old_refresh_token: str):
     return id_token, access_token, refresh_token, id_exp, access_scope, user_usph
 
 
-async def new_token(dsrc: Source, user_usph: str, scope: str, auth_time: int, id_nonce: str):
+async def new_token(dsrc: Source, user_usph: str, user_id: int, scope: str, auth_time: int, id_nonce: str):
     async with data.get_conn(dsrc) as conn:
         aesgcm, signing_key = await get_keys(dsrc, conn)
     utc_now = utc_timestamp()
 
-    access_token_data, id_token_data, access_scope, refresh_save = create_tokens(user_usph, scope, auth_time, id_nonce,
-                                                                                 utc_now)
+    access_token_data, id_token_data, access_scope, refresh_save = create_tokens(user_usph, user_id, scope, auth_time,
+                                                                                 id_nonce, utc_now)
 
     refresh_id = await data.refreshtoken.refresh_save(dsrc, refresh_save)
 

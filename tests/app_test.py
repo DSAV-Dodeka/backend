@@ -244,7 +244,7 @@ async def test_refresh(test_client, mocker: MockerFixture, mock_get_keys, fake_t
 
 @pytest.mark.asyncio
 async def test_auth_code(test_client, mocker: MockerFixture, mock_get_keys):
-    get_flow = mocker.patch('apiserver.data.kv.get_flow_user')
+    get_flow = mocker.patch('apiserver.data.kv.pop_flow_user')
     get_auth = mocker.patch('apiserver.data.kv.get_auth_request')
     r_save = mocker.patch('apiserver.data.refreshtoken.refresh_save')
 

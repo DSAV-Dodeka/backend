@@ -48,7 +48,7 @@ opaque_setup = sqlalchemy.Table(
 )
 
 REFRESH_TOKEN_TABLE = "refreshtokens"
-REFR_USER_ID = "user_id"
+REFRESH_USER_ID = "user_id"
 FAMILY_ID = "family_id"
 ACCESS_VALUE = "access_value"
 ID_TOKEN_VALUE = "id_token_value"
@@ -59,7 +59,7 @@ refreshtokens = sqlalchemy.Table(
     REFRESH_TOKEN_TABLE,
     metadata,
     sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
-    sqlalchemy.Column(REFR_USER_ID, sqlalchemy.Integer, sqlalchemy.ForeignKey("users.id", ondelete="CASCADE"),
+    sqlalchemy.Column(REFRESH_USER_ID, sqlalchemy.Integer, sqlalchemy.ForeignKey("users.id", ondelete="CASCADE"),
                       nullable=False),
     sqlalchemy.Column(FAMILY_ID, sqlalchemy.String(length=200), nullable=False),
     sqlalchemy.Column(ACCESS_VALUE, sqlalchemy.String(length=1000), nullable=False),

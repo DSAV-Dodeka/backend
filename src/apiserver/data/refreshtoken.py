@@ -6,7 +6,7 @@ from apiserver.data.source import DataError, Source
 from apiserver.data.use import retrieve_by_id, insert_return_id, delete_insert_return_id_transaction, \
     delete_by_column
 from apiserver.define.entities import SavedRefreshToken
-from apiserver.db.model import REFRESH_TOKEN_TABLE, FAMILY_ID
+from apiserver.db.model import REFRESH_TOKEN_TABLE, FAMILY_ID, REFRESH_USER_ID
 
 
 async def refresh_save(dsrc: Source, refresh: SavedRefreshToken) -> int:
@@ -40,3 +40,7 @@ async def refresh_transaction(dsrc: Source, id_int_delete: int, new_refresh: Sav
 
 async def delete_family(dsrc: Source, family_id: str):
     return await delete_by_column(dsrc, REFRESH_TOKEN_TABLE, FAMILY_ID, family_id)
+
+
+async def delete_by_user_id(dsrc: Source, user_id: int):
+    return await delete_by_column(dsrc, REFRESH_TOKEN_TABLE, REFRESH_USER_ID, user_id)

@@ -94,5 +94,7 @@ async def update_password_finish(update_finish: UpdatePasswordFinish, request: R
 
     await data.user.upsert_user(dsrc, new_user)
 
+    await data.refreshtoken.delete_by_user_id(dsrc, saved_state.id)
+
 
 

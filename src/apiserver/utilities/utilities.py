@@ -1,3 +1,4 @@
+import json
 from typing import Optional, Union
 
 from base64 import urlsafe_b64encode, urlsafe_b64decode
@@ -140,3 +141,13 @@ def dec_b64url(s: str) -> bytes:
 
 def utc_timestamp():
     return int(datetime.now(timezone.utc).timestamp())
+
+
+def enc_dict(dct: dict) -> bytes:
+    """ Convert dict to UTF-8-encoded bytes in JSON format. """
+    return json.dumps(dct).encode('utf-8')
+
+
+def dec_dict(encoded: bytes) -> dict:
+    """ Convert UTF-8 bytes containing JSON to a dict. """
+    return json.loads(encoded.decode('utf-8'))

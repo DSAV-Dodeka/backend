@@ -9,7 +9,7 @@ from fastapi.responses import RedirectResponse
 import opaquepy as opq
 
 from apiserver.define import frontend_client_id, credentials_url, LOGGER_NAME
-from apiserver.define.request import ErrorResponse, PasswordResponse, PasswordRequest, SavedState, FinishLogin, \
+from apiserver.define.reqres import ErrorResponse, PasswordResponse, PasswordRequest, SavedState, FinishLogin, \
     AuthRequest, TokenResponse, TokenRequest, FlowUser
 import apiserver.utilities as util
 import apiserver.data as data
@@ -227,3 +227,6 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
     logger.info(f"Token request granted for {token_user_id}")
     return TokenResponse(id_token=id_token, access_token=access, refresh_token=refresh, token_type=token_type,
                          expires_in=exp, scope=returned_scope)
+
+
+

@@ -1,7 +1,7 @@
 from typing import Optional
 
 from apiserver.define import email_expiration
-from apiserver.define.request import FlowUser, AuthRequest, SavedState, SavedRegisterState, SignupRequest, \
+from apiserver.define.reqres import FlowUser, AuthRequest, SavedState, SavedRegisterState, SignupRequest, \
     UpdateEmailState
 from apiserver.data.source import NoDataError
 from apiserver.data import Source, DataError

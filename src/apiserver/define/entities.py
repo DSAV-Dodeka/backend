@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Optional
 
 from pydantic import BaseModel, validator, conint
 
@@ -140,3 +141,18 @@ class UserData(BaseModel):
     birthdate: date = date.min
     registerid: str = ""
     registered: bool
+
+
+class JWK(BaseModel):
+    kty: str
+    use: str
+    alg: str
+    kid: str
+    crv: Optional[str]
+    k: Optional[str]
+    x: Optional[str]
+    d: Optional[str]
+
+
+class JWKSet(BaseModel):
+    keys: list[JWK]

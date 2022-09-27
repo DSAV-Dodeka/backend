@@ -1,9 +1,10 @@
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from sqlalchemy.ext.asyncio import AsyncConnection
 
+from apiserver.auth.crypto_util import aes_from_symmetric
 from apiserver.define import id_exp
 from apiserver.utilities import utc_timestamp
-from apiserver.auth.tokens import aes_from_symmetric, decrypt_old_refresh, InvalidRefresh, verify_refresh, \
+from apiserver.auth.tokens import decrypt_old_refresh, InvalidRefresh, verify_refresh, \
     build_refresh_save, finish_tokens, create_tokens, id_info_from_ud
 import apiserver.data as data
 from apiserver.data import Source, DataError

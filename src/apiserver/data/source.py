@@ -6,6 +6,7 @@ from redis.asyncio import Redis
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine
 
+from apiserver.auth.crypto_util import aes_from_symmetric
 from apiserver.env import Config
 from apiserver.db.ops import DbOperations
 from apiserver.db.use import PostgresOperations
@@ -87,8 +88,15 @@ class Source:
     def init_gateway(self, config: Config):
         self.gateway.init_objects(config)
 
-    async def startup(self):
+    async def startup(self, config: Config):
         await self.gateway.startup()
+        await load_keys(self, config)
 
     async def shutdown(self):
         await self.gateway.shutdown()
+
+
+async def load_keys(dsrc: Source, config: Config):
+    aesgcm = aes_from_symmetric(config.KEY_PASS)
+
+    # load from data the json, decrypt it, put it in the KV in the correct format, etc.

@@ -9,26 +9,17 @@ from pydantic import ValidationError
 import jwt
 from jwt import PyJWTError, DecodeError, InvalidSignatureError, ExpiredSignatureError, InvalidTokenError
 
+from apiserver.auth.crypto_util import encrypt_dict, decrypt_dict
 from apiserver.define import LOGGER_NAME, id_exp, access_exp, refresh_exp, grace_period, frontend_client_id, \
     backend_client_id, issuer
-from apiserver.utilities import enc_b64url, dec_b64url
+from apiserver.utilities import enc_b64url, dec_b64url, dec_dict, enc_dict
 from apiserver.define.entities import SavedRefreshToken, RefreshToken, AccessToken, IdToken, IdInfo, UserData
 
-__all__ = ['verify_access_token', 'InvalidRefresh', 'BadVerification', 'create_tokens', 'aes_from_symmetric',
+__all__ = ['verify_access_token', 'InvalidRefresh', 'BadVerification', 'create_tokens',
            'finish_tokens', 'encode_token_dict', 'decrypt_old_refresh', 'verify_refresh', 'build_refresh_save',
            'id_info_from_ud']
 
 logger = logging.getLogger(LOGGER_NAME)
-
-
-def enc_dict(dct: dict) -> bytes:
-    """ Convert dict to UTF-8-encoded bytes in JSON format. """
-    return json.dumps(dct).encode('utf-8')
-
-
-def dec_dict(encoded: bytes) -> dict:
-    """ Convert UTF-8 bytes containing JSON to a dict. """
-    return json.loads(encoded.decode('utf-8'))
 
 
 class InvalidRefresh(Exception):
@@ -37,27 +28,12 @@ class InvalidRefresh(Exception):
 
 
 def encrypt_refresh(aesgcm: AESGCM, refresh: RefreshToken) -> str:
-    refresh_data = enc_dict(refresh.dict())
-    refresh_nonce = secrets.token_bytes(12)
-    encrypted = aesgcm.encrypt(refresh_nonce, refresh_data, None)
-    refresh_bytes = refresh_nonce + encrypted
-    return enc_b64url(refresh_bytes)
+    return encrypt_dict(aesgcm, refresh.dict())
 
 
 def decrypt_refresh(aesgcm: AESGCM, refresh_token) -> RefreshToken:
-    refresh_bytes = dec_b64url(refresh_token)
-    refresh_nonce = refresh_bytes[:12]
-    refresh_data = refresh_bytes[12:]
-    decrypted = aesgcm.decrypt(refresh_nonce, refresh_data, None)
-    refresh_dict = dec_dict(decrypted)
+    refresh_dict = decrypt_dict(aesgcm, refresh_token)
     return RefreshToken.parse_obj(refresh_dict)
-
-
-def aes_from_symmetric(symmetric_key) -> AESGCM:
-    # We store it unpadded (to match convention of not storing padding throughout the DB)
-    symmetric_key_bytes = dec_b64url(symmetric_key)
-    # We initialize an AES-GCM key class that will be used for encryption/decryption
-    return AESGCM(symmetric_key_bytes)
 
 
 def decrypt_old_refresh(aesgcm: AESGCM, old_refresh_token: str):

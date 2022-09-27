@@ -11,7 +11,7 @@ import opaquepy as opq
 from apiserver.data.signedup import get_all_signedup
 from apiserver.define import ErrorResponse, LOGGER_NAME, signup_url, credentials_url, loc_dict
 from apiserver.define.entities import SignedUp, UserData, User
-from apiserver.define.request import SignupRequest, SignupConfirm, PasswordResponse, \
+from apiserver.define.reqres import SignupRequest, SignupConfirm, PasswordResponse, \
     RegisterRequest, FinishRequest, EmailConfirm, SavedRegisterState
 import apiserver.utilities as util
 from apiserver.auth.header import auth_header

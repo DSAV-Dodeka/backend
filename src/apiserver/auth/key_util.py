@@ -2,6 +2,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PrivateKey
 from cryptography.hazmat.primitives.serialization import PrivateFormat, PublicFormat, Encoding, NoEncryption
 from opaquepy import create_setup as opaque_create_setup
+from pydantic import BaseModel
 
 from apiserver.utilities import enc_b64url
 from apiserver.define.entities import OpaqueSetup, TokenKey, SymmetricKey
@@ -37,3 +38,14 @@ def new_symmetric_key(id_int: int) -> SymmetricKey:
                            private_encoding="base64url", id=id_int)
 
     return new_key
+
+
+class JWK(BaseModel):
+    kty: str
+    use: str
+    alg: str
+    kid: str
+
+
+class JWKSet(BaseModel):
+    keys: list[JWK]

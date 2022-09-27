@@ -206,3 +206,8 @@ class UpdateEmail(BaseModel):
 class UpdateEmailCheck(BaseModel):
     flow_id: str
     code: str
+
+
+class ChangedEmailResponse(BaseModel):
+    old_email: str
+    new_email: str

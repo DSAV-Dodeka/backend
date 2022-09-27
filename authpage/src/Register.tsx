@@ -5,6 +5,7 @@ import {clientLogin, clientRegister} from "./Authenticate";
 import {base64ToBin} from "./encode";
 
 import {z} from "zod";
+import {new_err} from "./error";
 // Imported lazily due to large library size
 const PasswordStrength = React.lazy(() => import('./PasswordStrength'));
 
@@ -147,10 +148,14 @@ const Register = () => {
                     if (result) {
                         window.location.assign(redirectUrl)
                     } else {
+                        new_err("bad_register", "Bad register result!", "register_false").p()
                         somethingWrong()
                     }
                 },
-                () => somethingWrong()
+                (e) => {
+                    console.log(e)
+                    somethingWrong()
+                }
             )
         }
     }

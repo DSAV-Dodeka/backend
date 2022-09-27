@@ -70,6 +70,9 @@ async def insert_return_user_id(dsrc: Source, user_row: dict):
 
 
 async def new_user(dsrc: Source, signed_up: SignedUp, register_id: str, av40id: int, joined: date):
+    # subject_combination = f"{signed_up.firstname}_{signed_up.lastname}"
+    # user_usph = usp_hex(f"{signed_up.firstname.lower()}")
+
     email_usph = usp_hex(signed_up.email)
     user_row = create_user(email_usph, "")
     user_data_row = UserData(id=0, active=True, registerid=register_id, firstname=signed_up.firstname,

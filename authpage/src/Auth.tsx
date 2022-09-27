@@ -3,6 +3,7 @@ import {clientLogin} from "./Authenticate";
 import config from "./config";
 import "./Auth.scss"
 import {back_post, catch_api} from "./api";
+import {new_err} from "./error";
 
 const login_url = `${config.client_location}/lg`
 
@@ -19,7 +20,6 @@ const Auth = () => {
     const [definedUser, setDefinedUser] = useState(false)
     const [redirect, setRedirect] = useState(`${config.auth_location}/oauth/callback`)
     const [load, setLoad] = useState(false)
-    const [regenerate, doRegenerate] = useState(false)
 
     const handleSubmit = async (evt: React.FormEvent<HTMLFormElement>) => {
         evt.preventDefault()
@@ -27,7 +27,7 @@ const Auth = () => {
         // login
         let flow_id = (new URLSearchParams(window.location.search)).get("flow_id");
         if (flow_id == null) {
-            console.log("No flow_id set!")
+            new_err("bad_auth", "Flow ID not set!", "auth_flow_missing").p()
             setStatus("Er is iets mis met de link, probeer het nogmaals via deze: ")
             setShowLink(true)
             return
@@ -39,10 +39,6 @@ const Auth = () => {
             setStatus("Er is iets misgegaan! Is je wachtwoord correct?")
             setShowLink(false)
             return
-        }
-
-        if (regenerate) {
-
         }
 
 

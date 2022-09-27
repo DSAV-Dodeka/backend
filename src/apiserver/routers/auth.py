@@ -48,7 +48,7 @@ async def start_login(login_start: PasswordRequest, request: Request):
 
     auth_id = util.random_time_hash_hex(user_usph)
 
-    response, state = opq.login(opaque_setup, password_file, login_start.client_request, user_usph)
+    response, state = opq.login(opaque_setup, password_file, login_start.client_request, str(u.id))
 
     saved_state = SavedState(user_usph=user_usph, scope=scope, state=state, user_id=u.id)
 

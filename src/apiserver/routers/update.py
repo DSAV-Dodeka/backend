@@ -7,7 +7,7 @@ from fastapi import APIRouter, Request, Security, BackgroundTasks
 
 from apiserver.auth import authentication
 from apiserver.define import LOGGER_NAME, FinishRequest, UpdatePasswordRequest, ChangePasswordRequest, credentials_url, \
-    ErrorResponse, SavedRegisterState, UpdatePasswordFinish, UpdateEmail, UpdateEmailCheck
+    ErrorResponse, SavedRegisterState, UpdatePasswordFinish, UpdateEmail, UpdateEmailCheck, ChangedEmailResponse
 import apiserver.utilities as util
 from apiserver.define.entities import User
 from apiserver.emailfn import send_email
@@ -42,7 +42,7 @@ def send_change_email_email(background_tasks: BackgroundTasks, receiver: str, ma
     }
 
     def send_lam():
-        send_email("emailchange.html.jinja2", receiver, mail_pass, "Request for password reset", add_vars)
+        send_email("emailchange.html.jinja2", receiver, mail_pass, "Please confirm your new email", add_vars)
 
     background_tasks.add_task(send_lam)
 
@@ -157,3 +157,5 @@ async def update_email_check(update_check: UpdateEmailCheck, request: Request,
         count_ud = await data.user.update_ud_email(dsrc, conn, old_email, stored_email.new_email)
         if count_u != 1 or count_ud != 1:
             raise DataError("Internal data error.", "user_data_error")
+
+    return ChangedEmailResponse(old_email=old_email, new_email=stored_email.new_email)

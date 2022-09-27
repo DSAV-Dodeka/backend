@@ -71,7 +71,7 @@ async def finish_login(login_finish: FinishLogin, request: Request):
         raise ErrorResponse(status_code=400, err_type="invalid_login", err_desc="Incorrect username for this login!")
 
     session_key = opq.login_finish(login_finish.client_request, saved_state.state)
-    print(session_key)
+
     utc_now = util.utc_timestamp()
     flow_user = FlowUser(flow_id=login_finish.flow_id, scope=saved_state.scope, auth_time=utc_now,
                          user_id=saved_state.user_id)

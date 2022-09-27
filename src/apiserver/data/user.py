@@ -74,11 +74,15 @@ async def insert_return_user_id(dsrc: Source, conn: AsyncConnection, user: User)
 whitespace_pattern = re.compile(r'\s+')
 
 
+def gen_id_name(first_name: str, last_name: str):
+    id_name_str = f"{first_name}_{last_name}".lower()
+    id_name_str = re.sub(whitespace_pattern, '_', id_name_str)
+    return usp_hex(id_name_str)
+
+
 async def new_user(dsrc: Source, conn: AsyncConnection, signed_up: SignedUp, register_id: str, av40id: int,
                    joined: date):
-    id_name_str = f"{signed_up.firstname}_{signed_up.lastname}".lower()
-    id_name_str = re.sub(whitespace_pattern, '_', id_name_str)
-    id_name = usp_hex(id_name_str)
+    id_name = gen_id_name(signed_up.firstname, signed_up.lastname)
 
     user = User(id_name=id_name, email=signed_up.email, password_file="")
     user_id = await insert_return_user_id(dsrc, conn, user)

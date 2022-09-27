@@ -1,19 +1,26 @@
-import sqlalchemy
+import sqlalchemy as sqla
 
-metadata = sqlalchemy.MetaData()
+metadata = sqla.MetaData()
 
 USER_TABLE = "users"
-USERNAME = "usp_hex"
+USER_INT_ID = "id"
+USER_NAME_ID = "id_name"
+USER_ID = "user_id"
+USER_EMAIL = "email"
 PASSWORD = "password_file"
 SCOPES = "scope"
-users = sqlalchemy.Table(
+compute_text = sqla.text(f"{USER_INT_ID}::varchar(32) || '_' || {USER_NAME_ID}")
+users = sqla.Table(
     USER_TABLE,
     metadata,
     # binary int of usp_hex
-    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
-    sqlalchemy.Column(USERNAME, sqlalchemy.String(length=255), unique=True, nullable=False),
-    sqlalchemy.Column(PASSWORD, sqlalchemy.String(length=500)),
-    sqlalchemy.Column(SCOPES, sqlalchemy.String(length=200), nullable=False)
+    sqla.Column("id", sqla.Integer, primary_key=True),
+    sqla.Column("id_name", sqla.String, nullable=False),
+    sqla.Column(USER_ID, sqla.String(length=150), sqla.Computed(compute_text), unique=True, nullable=False,
+                index=True),
+    sqla.Column(USER_EMAIL, sqla.String(length=255), unique=True, nullable=False, index=True),
+    sqla.Column(PASSWORD, sqla.String(length=500)),
+    sqla.Column(SCOPES, sqla.String(length=200), nullable=False)
 )
 
 KEY_TABLE = "keys"
@@ -24,49 +31,49 @@ PUBLIC_FMT_COLUMN = "public_format"
 PUBLIC_ENCODING = "public_encoding"
 PRIVATE_ENCODING = "private_encoding"
 ALGORITHM_COLUMN = "algorithm"
-keys = sqlalchemy.Table(
+keys = sqla.Table(
     KEY_TABLE,
     metadata,
-    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
-    sqlalchemy.Column(ALGORITHM_COLUMN, sqlalchemy.String(length=100), nullable=False),
-    sqlalchemy.Column(PUBLIC_KEY_COLUMN, sqlalchemy.String(length=200), nullable=False),
-    sqlalchemy.Column(PRIVATE_KEY_COLUMN, sqlalchemy.String(length=200), nullable=False),
-    sqlalchemy.Column(PUBLIC_FMT_COLUMN, sqlalchemy.String(length=100), nullable=False),
-    sqlalchemy.Column(PRIVATE_FMT_COLUMN, sqlalchemy.String(length=100), nullable=False),
-    sqlalchemy.Column(PUBLIC_ENCODING, sqlalchemy.String(length=100), nullable=False),
-    sqlalchemy.Column(PRIVATE_ENCODING, sqlalchemy.String(length=100), nullable=False)
+    sqla.Column("id", sqla.Integer, primary_key=True),
+    sqla.Column(ALGORITHM_COLUMN, sqla.String(length=100), nullable=False),
+    sqla.Column(PUBLIC_KEY_COLUMN, sqla.String(length=200), nullable=False),
+    sqla.Column(PRIVATE_KEY_COLUMN, sqla.String(length=200), nullable=False),
+    sqla.Column(PUBLIC_FMT_COLUMN, sqla.String(length=100), nullable=False),
+    sqla.Column(PRIVATE_FMT_COLUMN, sqla.String(length=100), nullable=False),
+    sqla.Column(PUBLIC_ENCODING, sqla.String(length=100), nullable=False),
+    sqla.Column(PRIVATE_ENCODING, sqla.String(length=100), nullable=False)
 )
 
 OPAQUE_SETUP_TABLE = "opaque"
 OPAQUE_VALUE = "value"
 
-opaque_setup = sqlalchemy.Table(
+opaque_setup = sqla.Table(
     OPAQUE_SETUP_TABLE,
     metadata,
-    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
-    sqlalchemy.Column(OPAQUE_VALUE, sqlalchemy.String(length=300), nullable=False)
+    sqla.Column("id", sqla.Integer, primary_key=True),
+    sqla.Column(OPAQUE_VALUE, sqla.String(length=300), nullable=False)
 )
 
 REFRESH_TOKEN_TABLE = "refreshtokens"
-REFRESH_USER_ID = "user_id"
 FAMILY_ID = "family_id"
 ACCESS_VALUE = "access_value"
 ID_TOKEN_VALUE = "id_token_value"
 EXPIRATION = "exp"
 NONCE = "nonce"
 ISSUED_AT = "iat"
-refreshtokens = sqlalchemy.Table(
+refreshtokens = sqla.Table(
     REFRESH_TOKEN_TABLE,
     metadata,
-    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
-    sqlalchemy.Column(REFRESH_USER_ID, sqlalchemy.Integer, sqlalchemy.ForeignKey("users.id", ondelete="CASCADE"),
-                      nullable=False),
-    sqlalchemy.Column(FAMILY_ID, sqlalchemy.String(length=200), nullable=False),
-    sqlalchemy.Column(ACCESS_VALUE, sqlalchemy.String(length=1000), nullable=False),
-    sqlalchemy.Column(ID_TOKEN_VALUE, sqlalchemy.String(length=1000), nullable=False),
-    sqlalchemy.Column(EXPIRATION, sqlalchemy.Integer, nullable=False),
-    sqlalchemy.Column(ISSUED_AT, sqlalchemy.Integer, nullable=False),
-    sqlalchemy.Column(NONCE, sqlalchemy.String(length=200))
+    sqla.Column("id", sqla.Integer, primary_key=True),
+    sqla.Column(USER_ID, sqla.String(length=150), sqla.ForeignKey(f"{USER_TABLE}.{USER_ID}",
+                                                                  ondelete="CASCADE"),
+                nullable=False),
+    sqla.Column(FAMILY_ID, sqla.String(length=200), nullable=False),
+    sqla.Column(ACCESS_VALUE, sqla.String(length=1000), nullable=False),
+    sqla.Column(ID_TOKEN_VALUE, sqla.String(length=1000), nullable=False),
+    sqla.Column(EXPIRATION, sqla.Integer, nullable=False),
+    sqla.Column(ISSUED_AT, sqla.Integer, nullable=False),
+    sqla.Column(NONCE, sqla.String(length=200))
 )
 
 SIGNEDUP_TABLE = "signedup"
@@ -75,14 +82,14 @@ SU_LASTNAME = "lastname"
 SU_PHONE = "phone"
 SU_EMAIL = "email"
 SU_CONFIRMED = "confirmed"
-signedup = sqlalchemy.Table(
+signedup = sqla.Table(
     SIGNEDUP_TABLE,
     metadata,
-    sqlalchemy.Column(SU_FIRSTNAME, sqlalchemy.String(length=100), nullable=False),
-    sqlalchemy.Column(SU_LASTNAME, sqlalchemy.String(length=100), nullable=False),
-    sqlalchemy.Column(SU_PHONE, sqlalchemy.String(length=15), nullable=False),
-    sqlalchemy.Column(SU_EMAIL, sqlalchemy.String(length=100), primary_key=True),
-    sqlalchemy.Column(SU_CONFIRMED, sqlalchemy.Boolean, nullable=False),
+    sqla.Column(SU_FIRSTNAME, sqla.String(length=100), nullable=False),
+    sqla.Column(SU_LASTNAME, sqla.String(length=100), nullable=False),
+    sqla.Column(SU_PHONE, sqla.String(length=15), nullable=False),
+    sqla.Column(SU_EMAIL, sqla.String(length=100), primary_key=True),
+    sqla.Column(SU_CONFIRMED, sqla.Boolean, nullable=False),
 )
 
 USERDATA_TABLE = "userdata"
@@ -98,20 +105,24 @@ BIRTHDATE = "birthdate"
 REGISTER_ID = "registerid"
 EDUCATION_INSTITUTION = "eduinstitution"
 USER_REGISTERED = "registered"
-userdata = sqlalchemy.Table(
+userdata = sqla.Table(
     USERDATA_TABLE,
     metadata,
-    sqlalchemy.Column("id", sqlalchemy.Integer, sqlalchemy.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
-    sqlalchemy.Column(UD_ACTIVE, sqlalchemy.Boolean, nullable=False),
-    sqlalchemy.Column(UD_FIRSTNAME, sqlalchemy.String(length=100), nullable=False),
-    sqlalchemy.Column(UD_LASTNAME, sqlalchemy.String(length=100), nullable=False),
-    sqlalchemy.Column(UD_CALLNAME, sqlalchemy.String(length=100)),
-    sqlalchemy.Column(UD_PHONE, sqlalchemy.String(length=15)),
-    sqlalchemy.Column(UD_EMAIL, sqlalchemy.String(length=100), unique=True),
-    sqlalchemy.Column(AV40_ID, sqlalchemy.Integer),
-    sqlalchemy.Column(JOINED, sqlalchemy.Date),
-    sqlalchemy.Column(BIRTHDATE, sqlalchemy.Date, nullable=False),
-    sqlalchemy.Column(REGISTER_ID, sqlalchemy.String(length=100), unique=True),
-    sqlalchemy.Column(EDUCATION_INSTITUTION, sqlalchemy.String(length=100)),
-    sqlalchemy.Column(USER_REGISTERED, sqlalchemy.Boolean, nullable=False)
+    sqla.Column(USER_ID, sqla.String(length=150),
+                sqla.ForeignKey(f"{USER_TABLE}.{USER_ID}", ondelete="CASCADE"),
+                primary_key=True),
+    sqla.Column(UD_ACTIVE, sqla.Boolean, nullable=False),
+    sqla.Column(UD_FIRSTNAME, sqla.String(length=100), nullable=False),
+    sqla.Column(UD_LASTNAME, sqla.String(length=100), nullable=False),
+    sqla.Column(UD_CALLNAME, sqla.String(length=100)),
+    sqla.Column(UD_PHONE, sqla.String(length=15)),
+    sqla.Column(UD_EMAIL, sqla.String(length=255), sqla.ForeignKey(f"{USER_TABLE}.{USER_EMAIL}",
+                                                                   ondelete="CASCADE", onupdate="CASCADE"),
+                unique=True, nullable=False),
+    sqla.Column(AV40_ID, sqla.Integer),
+    sqla.Column(JOINED, sqla.Date),
+    sqla.Column(BIRTHDATE, sqla.Date, nullable=False),
+    sqla.Column(REGISTER_ID, sqla.String(length=100), unique=True),
+    sqla.Column(EDUCATION_INSTITUTION, sqla.String(length=100)),
+    sqla.Column(USER_REGISTERED, sqla.Boolean, nullable=False)
 )

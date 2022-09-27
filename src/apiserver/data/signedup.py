@@ -20,8 +20,8 @@ def parse_signedup(signedup_dict: Optional[dict]) -> SignedUp:
     return SignedUp.parse_obj(signedup_dict)
 
 
-async def get_signedup_by_email(dsrc: Source, email: str) -> SignedUp:
-    signedup_row = await retrieve_by_unique(dsrc, SIGNEDUP_TABLE, SU_EMAIL, email)
+async def get_signedup_by_email(dsrc: Source, conn: AsyncConnection, email: str) -> SignedUp:
+    signedup_row = await retrieve_by_unique(dsrc, conn, SIGNEDUP_TABLE, SU_EMAIL, email)
     return parse_signedup(signedup_row)
 
 

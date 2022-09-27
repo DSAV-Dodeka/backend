@@ -5,7 +5,9 @@ from pydantic import BaseModel, validator, conint
 
 class User(BaseModel):
     id: int = None
-    usp_hex: str
+    id_name: str
+    user_id: str = None
+    email: str
     password_file: str
     scope: str = "member"
 
@@ -76,7 +78,7 @@ class SymmetricKey(Key):
 
 class SavedRefreshToken(BaseModel):
     id: int = None
-    user_id: int
+    user_id: str
     family_id: str
     access_value: str
     id_token_value: str
@@ -98,7 +100,17 @@ class AccessToken(BaseModel):
     scope: str
 
 
-class IdToken(BaseModel):
+class IdInfo(BaseModel):
+    email: str
+    name: str
+    given_name: str
+    family_name: str
+    nickname: str
+    preferred_username: str
+    birthdate: str
+
+
+class IdToken(IdInfo):
     sub: str
     iss: str
     aud: list[str]
@@ -115,7 +127,7 @@ class SignedUp(BaseModel):
 
 
 class UserData(BaseModel):
-    id: int
+    user_id: str
     active: bool
     firstname: str
     lastname: str

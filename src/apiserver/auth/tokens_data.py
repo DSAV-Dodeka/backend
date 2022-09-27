@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 from apiserver.define import id_exp
 from apiserver.utilities import utc_timestamp
 from apiserver.auth.tokens import aes_from_symmetric, decrypt_old_refresh, InvalidRefresh, verify_refresh, \
-    build_refresh_save, finish_tokens, create_tokens
+    build_refresh_save, finish_tokens, create_tokens, id_info_from_ud
 import apiserver.data as data
 from apiserver.data import Source, DataError
 
@@ -43,27 +43,33 @@ async def do_refresh(dsrc: Source, old_refresh_token: str):
 
     verify_refresh(saved_refresh, old_refresh, utc_now)
 
-    access_token_data, id_token_data, user_usph, access_scope, \
+    access_token_data, id_token_data, user_id, access_scope, \
         new_nonce, new_refresh_save = build_refresh_save(saved_refresh, utc_now)
 
     # Deletes previous token, saves new one, only succeeds if all components of the transaction succeed
-    new_refresh_id = await data.refreshtoken.refresh_transaction(dsrc, saved_refresh.id, new_refresh_save)
+    async with data.get_conn(dsrc) as conn:
+        await data.refreshtoken.delete_refresh_by_id(dsrc, conn, saved_refresh.id)
+        new_refresh_id = await data.refreshtoken.insert_refresh_row(dsrc, conn, new_refresh_save)
 
     refresh_token, access_token, id_token = finish_tokens(new_refresh_id, new_refresh_save, aesgcm, access_token_data,
                                                           id_token_data, utc_now, signing_key, nonce=new_nonce)
 
-    return id_token, access_token, refresh_token, id_exp, access_scope, user_usph
+    return id_token, access_token, refresh_token, id_exp, access_scope, user_id
 
 
-async def new_token(dsrc: Source, user_usph: str, user_id: int, scope: str, auth_time: int, id_nonce: str):
+async def new_token(dsrc: Source, user_id: str, scope: str, auth_time: int, id_nonce: str):
     async with data.get_conn(dsrc) as conn:
         aesgcm, signing_key = await get_keys(dsrc, conn)
     utc_now = utc_timestamp()
 
-    access_token_data, id_token_data, access_scope, refresh_save = create_tokens(user_usph, user_id, scope, auth_time,
-                                                                                 id_nonce, utc_now)
+    async with data.get_conn(dsrc) as conn:
+        ud = await data.user.get_userdata_by_id(dsrc, conn, user_id)
+        id_info = id_info_from_ud(ud)
 
-    refresh_id = await data.refreshtoken.refresh_save(dsrc, refresh_save)
+        access_token_data, id_token_data, access_scope, refresh_save = create_tokens(user_id, scope, auth_time,
+                                                                                     id_nonce, utc_now, id_info)
+
+        refresh_id = await data.refreshtoken.insert_refresh_row(dsrc, conn, refresh_save)
 
     refresh_token, access_token, id_token = finish_tokens(refresh_id, refresh_save, aesgcm, access_token_data,
                                                           id_token_data, utc_now, signing_key, nonce="")

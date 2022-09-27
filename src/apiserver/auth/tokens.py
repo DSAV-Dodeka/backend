@@ -12,10 +12,11 @@ from jwt import PyJWTError, DecodeError, InvalidSignatureError, ExpiredSignature
 from apiserver.define import LOGGER_NAME, id_exp, access_exp, refresh_exp, grace_period, frontend_client_id, \
     backend_client_id, issuer
 from apiserver.utilities import enc_b64url, dec_b64url
-from apiserver.define.entities import SavedRefreshToken, RefreshToken, AccessToken, IdToken
+from apiserver.define.entities import SavedRefreshToken, RefreshToken, AccessToken, IdToken, IdInfo, UserData
 
 __all__ = ['verify_access_token', 'InvalidRefresh', 'BadVerification', 'create_tokens', 'aes_from_symmetric',
-           'finish_tokens', 'encode_token_dict', 'decrypt_old_refresh', 'verify_refresh', 'build_refresh_save']
+           'finish_tokens', 'encode_token_dict', 'decrypt_old_refresh', 'verify_refresh', 'build_refresh_save',
+           'id_info_from_ud']
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -92,7 +93,7 @@ def build_refresh_save(saved_refresh: SavedRefreshToken, utc_now: int):
     # Rebuild access and ID tokens from value in refresh token
     # We need the core static info to rebuild with new iat, etc.
     saved_access, saved_id_token = decode_refresh(saved_refresh)
-    user_usph = saved_id_token.sub
+    user_id = saved_id_token.sub
 
     # Scope to be returned in response
     access_scope = saved_access.scope
@@ -108,7 +109,7 @@ def build_refresh_save(saved_refresh: SavedRefreshToken, utc_now: int):
                                          id_token_value=saved_refresh.id_token_value, exp=saved_refresh.exp,
                                          iat=utc_now, nonce=new_nonce, user_id=saved_refresh.user_id)
 
-    return saved_access, saved_id_token, user_usph, access_scope, new_nonce, new_refresh_save
+    return saved_access, saved_id_token, user_id, access_scope, new_nonce, new_refresh_save
 
 
 def build_refresh_token(new_refresh_id: int, saved_refresh: SavedRefreshToken, new_nonce: str, aesgcm: AESGCM):
@@ -118,15 +119,28 @@ def build_refresh_token(new_refresh_id: int, saved_refresh: SavedRefreshToken, n
     return refresh_token
 
 
-def create_tokens(user_usph: str, user_id: int, scope: str, auth_time: int, id_nonce: str, utc_now: int):
+def id_info_from_ud(ud: UserData):
+    return IdInfo(
+        email=ud.email,
+        name=f"{ud.firstname} {ud.lastname}",
+        given_name=ud.firstname,
+        family_name=ud.lastname,
+        nickname=ud.callname,
+        preferred_username=ud.callname,
+        birthdate=ud.birthdate.isoformat()
+    )
+
+
+def create_tokens(user_id: str, scope: str, auth_time: int, id_nonce: str, utc_now: int, id_info: IdInfo):
     # Build new tokens
-    access_token_data, id_token_data = id_access_tokens(sub=user_usph,
+    access_token_data, id_token_data = id_access_tokens(sub=user_id,
                                                         iss=issuer,
                                                         aud_access=[frontend_client_id, backend_client_id],
                                                         aud_id=[frontend_client_id],
                                                         scope=scope,
                                                         auth_time=auth_time,
-                                                        id_nonce=id_nonce)
+                                                        id_nonce=id_nonce,
+                                                        id_info=id_info)
 
     # Scope to be returned in response
     access_scope = access_token_data.scope
@@ -153,13 +167,14 @@ def finish_tokens(refresh_id: int, refresh_save: SavedRefreshToken, aesgcm: AESG
     return refresh_token, access_token, id_token
 
 
-def id_access_tokens(sub, iss, aud_access, aud_id, scope, auth_time, id_nonce):
+def id_access_tokens(sub, iss, aud_access, aud_id, scope, auth_time, id_nonce, id_info: IdInfo):
     """ Create ID and access token objects. """
     access_core = AccessToken(sub=sub,
                               iss=iss,
                               aud=aud_access,
                               scope=scope)
-    id_core = IdToken(sub=sub,
+    id_core = IdToken(**id_info.dict(),
+                      sub=sub,
                       iss=iss,
                       aud=aud_id,
                       auth_time=auth_time,

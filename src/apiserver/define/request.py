@@ -105,13 +105,12 @@ class PasswordResponse(BaseModel):
 
 
 class SavedRegisterState(BaseModel):
-    user_usph: str
-    id: int
+    user_id: str
 
 
 class SavedState(BaseModel):
-    user_usph: str
-    user_id: int
+    user_id: str
+    user_email: str
     scope: str
     state: str
 
@@ -134,8 +133,7 @@ class FinishLogin(BaseModel):
 
 
 class FlowUser(BaseModel):
-    user_usph: str
-    user_id: int
+    user_id: str
     scope: str
     flow_id: str
     auth_time: int
@@ -199,7 +197,13 @@ class UpdatePasswordFinish(BaseModel):
 
 
 class UpdateEmail(BaseModel):
-    old_usph: str
+    user_id: str
+    new_email: str
+
+
+class UpdateEmailState(BaseModel):
+    user_id: str
+    old_email: str
     new_email: str
 
 

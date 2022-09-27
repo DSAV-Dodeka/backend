@@ -1,7 +1,8 @@
 from typing import Optional
 
 from apiserver.define import email_expiration
-from apiserver.define.request import FlowUser, AuthRequest, SavedState, SavedRegisterState, SignupRequest, UpdateEmail
+from apiserver.define.request import FlowUser, AuthRequest, SavedState, SavedRegisterState, SignupRequest, \
+    UpdateEmailState
 from apiserver.data.source import NoDataError
 from apiserver.data import Source, DataError
 from apiserver.kv import store_json, get_json, get_kv, store_kv, pop_json
@@ -69,15 +70,15 @@ async def get_email_confirmation(dsrc: Source, confirm_id: str) -> SignupRequest
     return SignupRequest.parse_obj(signup_dict)
 
 
-async def store_update_email(dsrc: Source, flow_id: str, update_email: UpdateEmail):
+async def store_update_email(dsrc: Source, flow_id: str, update_email: UpdateEmailState):
     await store_json(kv_is_init(dsrc), flow_id, update_email.dict(), expire=1000)
 
 
-async def get_update_email(dsrc: Source, flow_id: str) -> UpdateEmail:
+async def get_update_email(dsrc: Source, flow_id: str) -> UpdateEmailState:
     email_dict = await pop_json(kv_is_init(dsrc), flow_id)
     if email_dict is None:
         raise NoDataError("Flow ID does not exist or expired.", "saved_email_update_empty")
-    return UpdateEmail.parse_obj(email_dict)
+    return UpdateEmailState.parse_obj(email_dict)
 
 
 async def store_string(dsrc: Source, key: str, value: str, expire: int):

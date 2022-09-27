@@ -27,8 +27,9 @@ async def retrieve_by_id(dsrc: Source, conn: AsyncConnection, table: str, id_int
     return await dsrc.gateway.ops.retrieve_by_id(conn, table, id_int)
 
 
-async def retrieve_by_unique(dsrc: Source, table: str, unique_column: str, value) -> Optional[dict]:
-    return await dsrc.gateway.ops.retrieve_by_unique(db_is_init(dsrc), table, unique_column, value)
+async def retrieve_by_unique(dsrc: Source, conn: AsyncConnection, table: str, unique_column: str, value) -> \
+        Optional[dict]:
+    return await dsrc.gateway.ops.retrieve_by_unique(conn, table, unique_column, value)
 
 
 async def fetch_column_by_unique(dsrc: Source, conn: AsyncConnection, table: str, fetch_column: str, unique_column: str,
@@ -48,6 +49,10 @@ async def exists_by_unique(dsrc: Source, table: str, unique_column: str, value) 
     return await dsrc.gateway.ops.exists_by_unique(db_is_init(dsrc), table, unique_column, value)
 
 
+async def upsert_by_unique(dsrc: Source, conn: AsyncConnection, table: str, row: dict, unique_column: str):
+    return await dsrc.gateway.ops.upsert_by_unique(conn, table, row, unique_column)
+
+
 async def upsert_by_id(dsrc: Source, table: str, row: dict):
     return await dsrc.gateway.ops.upsert_by_id(db_is_init(dsrc), table, row)
 
@@ -62,23 +67,14 @@ async def insert(dsrc: Source, table: str, row: dict):
     return await dsrc.gateway.ops.insert(db_is_init(dsrc), table, row)
 
 
-async def insert_return_id(dsrc: Source, table: str, row: dict) -> int:
-    return await dsrc.gateway.ops.insert_return_id(db_is_init(dsrc), table, row)
+async def insert_return_col(dsrc: Source, conn: AsyncConnection, table: str, row: dict, return_col: str) -> Any:
+    return await dsrc.gateway.ops.insert_return_col(conn, table, row, return_col)
 
 
-async def delete_by_id(dsrc: Source, table: str, id_int: int):
-    return await dsrc.gateway.ops.delete_by_id(db_is_init(dsrc), table, id_int)
+async def delete_by_id(dsrc: Source, conn: AsyncConnection, table: str, id_int: int):
+    return await dsrc.gateway.ops.delete_by_id(conn, table, id_int)
 
 
 async def delete_by_column(dsrc: Source, table: str, column: str, column_val):
     return await dsrc.gateway.ops.delete_by_column(db_is_init(dsrc), table, column, column_val)
 
-
-async def delete_insert_return_id_transaction(dsrc: Source, table: str, id_int_delete: int, new_row: dict) -> int:
-    return await dsrc.gateway.ops.delete_insert_return_id_transaction(db_is_init(dsrc), table, id_int_delete, new_row)
-
-
-async def double_insert_transaction(dsrc: Source, first_table: str, first_row: dict, second_table: str,
-                                    second_row: dict):
-    return await dsrc.gateway.ops.double_insert_transaction(db_is_init(dsrc), first_table, first_row, second_table,
-                                                            second_row)

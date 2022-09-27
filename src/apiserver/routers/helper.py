@@ -1,7 +1,11 @@
-from apiserver.define import ErrorResponse
+import logging
+
+from apiserver.define import ErrorResponse, LOGGER_NAME
 from apiserver.define.entities import AccessToken
 from apiserver.auth.header import handle_header, BadAuth
 from apiserver.data import Source
+
+logger = logging.getLogger(LOGGER_NAME)
 
 
 async def handle_auth(authorization: str, dsrc: Source) -> AccessToken:
@@ -22,5 +26,7 @@ async def require_admin(authorization: str, dsrc: Source):
 async def require_user(authorization: str, dsrc: Source, username: str):
     acc = await handle_auth(authorization, dsrc)
     if acc.sub != username:
-        raise ErrorResponse(403, err_type="wrong_subject", err_desc="Resource not available to this subject.",
+        reason = "Resource not available to this subject."
+        logger.debug(reason + f"- {username}")
+        raise ErrorResponse(403, err_type="wrong_subject", err_desc=reason,
                             debug_key="bad_sub")

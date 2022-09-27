@@ -88,7 +88,7 @@ async def test_generate_admin(local_dsrc: Source):
         setup = await data.opaquesetup.get_setup(local_dsrc, conn)
 
     cl_req, cl_state = opq.register_client(admin_password)
-    serv_resp = opq.register(setup, cl_req, "admin")
+    serv_resp = opq.register(setup, cl_req, util.usp_hex('1_fakerecord'))
     cl_fin = opq.register_client_finish(cl_state, admin_password, serv_resp)
     pw_file = opq.register_finish(cl_fin)
 

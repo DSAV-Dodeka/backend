@@ -35,7 +35,7 @@ export async function clientRegister(registerState: RegisterState) {
             birthdate: registerState.date_of_birth
         }
         await back_post("onboard/finish/", register_finish)
-        return
+        return true
 
     } catch (e) {
         console.log(e)

@@ -17,6 +17,7 @@ const Email = () => {
         const source_params = (new URLSearchParams(window.location.search))
         const confirm_id = source_params.get("confirm_id")
         if (confirm_id === null) {
+            console.log()
             badConfirm()
         } else {
             try {

@@ -23,3 +23,7 @@ def test_usp_hex():
     assert util.usp_hex(test_str) == "some~f0~9f~98~81~f0~9f~98~81emojis"
     assert util.usp_hex("ka25kja5kasdf;lkja@@@!!!😂s") == "ka25kja5kasdf~3blkja~40~40~40~21~21~21~f0~9f~98~82s"
     assert util.de_usp_hex(util.usp_hex(test_str)) == test_str
+    # The bottom looks weird due to RLO character
+    test_str_2 = "~858!.̷̨͇̙͇̜̦̤̗̟̫͖͙͚̗̤͇̹̟̦͕͓̱̤̻̠̯͇̯͓̩͈͕̣̙̙͕̻̣̟̲̘͕͇‮̙͇̘͔̜͓̳̳̙̠̖͚̘̙̆̐͂̉́͋̆̃͒̑̉͒̑̽͗́́̾̊̌̊͑̒̾*$*~~f081"
+    assert util.de_usp_hex(util.usp_hex(test_str_2)) == test_str_2
+

@@ -2,6 +2,7 @@ import React, {ChangeEvent, FormEvent, Suspense, useEffect, useState} from "reac
 import "./Register.scss";
 import {passUpdate} from "./Authenticate";
 import config from "./config";
+import {new_err} from "./error";
 const PasswordStrength = React.lazy(() => import('./PasswordStrength'));
 
 const redirectUrl = `${config.client_location}/registered`
@@ -44,10 +45,14 @@ const Manage = () => {
                     if (result) {
                         window.location.assign(redirectUrl)
                     } else {
+                        new_err("bad_pass_update", "Bad pass update result!", "pass_update_false").p()
                         somethingWrong()
                     }
                 },
-                () => somethingWrong()
+                (e) => {
+                    console.log(e)
+                    somethingWrong()
+                }
             )
         }
     }
@@ -65,6 +70,7 @@ const Manage = () => {
         const flow_id = source_params.get("reset_id")
         const email = source_params.get("email")
         if (flow_id === null || email === null) {
+            new_err("bad_manage_load", "Flow ID or email not set!", "manage_load_missing").p()
             badConfirm()
         } else {
             setUrlOk(true)

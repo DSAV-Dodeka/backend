@@ -24,7 +24,7 @@ class DbOperations(ABC):
 
     @classmethod
     @abstractmethod
-    async def retrieve_by_unique(cls, db: Database, table: str, unique_column: str, value) -> Optional[dict]:
+    async def retrieve_by_unique(cls, conn: AsyncConnection, table: str, unique_column: str, value) -> Optional[dict]:
         ...
 
     @classmethod
@@ -50,12 +50,17 @@ class DbOperations(ABC):
 
     @classmethod
     @abstractmethod
+    async def upsert_by_unique(cls, conn: AsyncConnection, table: str, row: dict, unique_column: str) -> int:
+        ...
+
+    @classmethod
+    @abstractmethod
     async def upsert_by_id(cls, db: Database, table: str, row: dict):
         ...
 
     @classmethod
     async def update_column_by_unique(cls, conn: AsyncConnection, table: str, set_column: str, set_value,
-                                      unique_column: str, value):
+                                      unique_column: str, value) -> int:
         ...
 
     @classmethod
@@ -65,29 +70,17 @@ class DbOperations(ABC):
 
     @classmethod
     @abstractmethod
-    async def insert_return_id(cls, db: Database, table: str, row: dict) -> int:
+    async def insert_return_col(cls, db: AsyncConnection, table: str, row: dict, return_col: str) -> Any:
         ...
 
     @classmethod
     @abstractmethod
-    async def delete_by_id(cls, db: Database, table: str, id_int: int):
+    async def delete_by_id(cls, conn: AsyncConnection, table: str, id_int: int) -> int:
         ...
 
     @classmethod
     @abstractmethod
     async def delete_by_column(cls, db: Database, table: str, column: str, column_val):
-        ...
-
-    @classmethod
-    @abstractmethod
-    async def delete_insert_return_id_transaction(cls, db: Database, table: str, id_int_delete: int, new_row: dict) -> \
-            int:
-        ...
-
-    @classmethod
-    @abstractmethod
-    async def double_insert_transaction(cls, db: Database, first_table: str, first_row: dict, second_table: str,
-                                        second_row: dict):
         ...
 
 

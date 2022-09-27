@@ -30,27 +30,27 @@ async def start_login(login_start: PasswordRequest, request: Request):
     check flow. """
     dsrc: Source = request.app.state.dsrc
 
-    user_usph = util.usp_hex(login_start.email)
     async with data.get_conn(dsrc) as conn:
         opaque_setup = await data.opaquesetup.get_setup(dsrc, conn)
 
     scope = "none"
-    u = await data.user.get_user_by_usph(dsrc, "fakerecord")
-    password_file = u.password_file
-    try:
-        u = await data.user.get_user_by_usph(dsrc, user_usph)
-        if u.password_file:
-            password_file = u.password_file
-            scope = u.scope
-    except NoDataError as e:
-        # If user does not exist, fake user record is passed to prevent client enumeration
-        pass
+    async with data.get_conn(dsrc) as conn:
+        u = await data.user.get_user_by_id(dsrc, conn, "1_fakerecord")
+        password_file = u.password_file
+        try:
+            u = await data.user.get_user_by_email(dsrc, conn, login_start.email)
+            if u.password_file:
+                password_file = u.password_file
+                scope = u.scope
+        except NoDataError as e:
+            # If user does not exist, fake user record is passed to prevent client enumeration
+            pass
 
-    auth_id = util.random_time_hash_hex(user_usph)
+    auth_id = util.random_time_hash_hex(u.user_id)
 
-    response, state = opq.login(opaque_setup, password_file, login_start.client_request, user_usph)
+    response, state = opq.login(opaque_setup, password_file, login_start.client_request, u.user_id)
 
-    saved_state = SavedState(user_usph=user_usph, scope=scope, state=state, user_id=u.id)
+    saved_state = SavedState(user_id=u.user_id, user_email=login_start.email, scope=scope, state=state)
 
     await data.kv.store_auth_state(dsrc, auth_id, saved_state)
 
@@ -67,13 +67,13 @@ async def finish_login(login_finish: FinishLogin, request: Request):
         reason = "Login not initialized or expired"
         raise ErrorResponse(400, err_type="invalid_login", err_desc=reason, debug_key="no_login_start")
 
-    user_usph = util.usp_hex(login_finish.email)
-    if saved_state.user_usph != user_usph:
+    if saved_state.user_email != login_finish.email:
         raise ErrorResponse(status_code=400, err_type="invalid_login", err_desc="Incorrect username for this login!")
 
     session_key = opq.login_finish(login_finish.client_request, saved_state.state)
+
     utc_now = util.utc_timestamp()
-    flow_user = FlowUser(flow_id=login_finish.flow_id, user_usph=user_usph, scope=saved_state.scope, auth_time=utc_now,
+    flow_user = FlowUser(flow_id=login_finish.flow_id, scope=saved_state.scope, auth_time=utc_now,
                          user_id=saved_state.user_id)
 
     await data.kv.store_flow_user(dsrc, session_key, flow_user)
@@ -150,7 +150,6 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
     # The first requires a code provided by the OPAQUE login flow
     if token_request.grant_type == "authorization_code":
         # This grant type requires other body parameters than the refresh token grant type
-
         try:
             assert token_request.redirect_uri
             assert token_request.code_verifier
@@ -196,12 +195,11 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
 
         auth_time = flow_user.auth_time
         id_nonce = auth_request.nonce
-        token_user = flow_user.user_usph
         token_user_id = flow_user.user_id
 
         token_scope = flow_user.scope
         id_token, access, refresh, exp, returned_scope = \
-            await new_token(dsrc, token_user, token_user_id, token_scope, auth_time, id_nonce)
+            await new_token(dsrc, token_user_id, token_scope, auth_time, id_nonce)
 
     elif token_request.grant_type == "refresh_token":
         try:
@@ -214,7 +212,7 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
         old_refresh = token_request.refresh_token
 
         try:
-            id_token, access, refresh, exp, returned_scope, token_user = await do_refresh(dsrc, old_refresh)
+            id_token, access, refresh, exp, returned_scope, token_user_id = await do_refresh(dsrc, old_refresh)
         except InvalidRefresh as e:
             error_desc = "Invalid refresh_token!"
             logger.debug(f"{str(e)}: {error_desc}")
@@ -226,6 +224,6 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
         raise ErrorResponse(400, err_type=f"unsupported_grant_type", err_desc=reason)
 
     # TODO login options
-    logger.info(f"Token request granted for {token_user}")
+    logger.info(f"Token request granted for {token_user_id}")
     return TokenResponse(id_token=id_token, access_token=access, refresh_token=refresh, token_type=token_type,
                          expires_in=exp, scope=returned_scope)

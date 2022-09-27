@@ -1,20 +1,20 @@
+import re
 from typing import Optional
 from datetime import date
 
 from sqlalchemy.engine import CursorResult, Row
-from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncTransaction
 
 from apiserver.define.entities import User, SignedUp, UserData
 from apiserver.utilities import usp_hex
 from apiserver.data.source import Source, DataError, NoDataError
-from apiserver.data.use import retrieve_by_id, retrieve_by_unique, upsert_by_id, insert_return_id, \
-    double_insert_transaction, exists_by_unique, fetch_column_by_unique
+from apiserver.data.use import retrieve_by_id, retrieve_by_unique, upsert_by_id, insert_return_col, exists_by_unique, \
+    fetch_column_by_unique, update_column_by_unique, get_conn, upsert_by_unique
 from apiserver.db import USER_TABLE, USERDATA_TABLE
-from apiserver.db.model import USERNAME, PASSWORD, REGISTER_ID, SCOPES, USER_REGISTERED, UD_EMAIL
+from apiserver.db.model import USER_ID, PASSWORD, REGISTER_ID, SCOPES, USER_REGISTERED, UD_EMAIL, USER_EMAIL
 from apiserver.db.ops import DbError
 
-
-__all__ = ['get_user_by_id', 'upsert_user', 'create_user', 'user_exists', 'userdata_registered_by_email']
+__all__ = ['get_user_by_id', 'user_exists', 'userdata_registered_by_email']
 
 
 def parse_user(user_dict: Optional[dict]) -> User:
@@ -29,17 +29,22 @@ def parse_userdata(user_dict: Optional[dict]) -> UserData:
     return UserData.parse_obj(user_dict)
 
 
-async def user_exists(dsrc: Source, user_usph: str) -> bool:
-    return await exists_by_unique(dsrc, USER_TABLE, USERNAME, user_usph)
+async def user_exists(dsrc: Source, user_email: str) -> bool:
+    return await exists_by_unique(dsrc, USER_TABLE, USER_EMAIL, user_email)
 
 
-async def get_user_by_id(dsrc: Source, conn: AsyncConnection, id_int: int) -> User:
-    user_row = await retrieve_by_id(dsrc, conn, USER_TABLE, id_int)
+async def get_user_by_id(dsrc: Source, conn: AsyncConnection, user_id: str) -> User:
+    user_row = await retrieve_by_unique(dsrc, conn, USER_TABLE, USER_ID, user_id)
     return parse_user(user_row)
 
 
-async def get_userdata_by_register_id(dsrc: Source, register_id: str) -> UserData:
-    userdata_row = await retrieve_by_unique(dsrc, USERDATA_TABLE, REGISTER_ID, register_id)
+async def get_userdata_by_id(dsrc: Source, conn: AsyncConnection, user_id: str) -> UserData:
+    userdata_row = await retrieve_by_unique(dsrc, conn, USERDATA_TABLE, USER_ID, user_id)
+    return parse_userdata(userdata_row)
+
+
+async def get_userdata_by_register_id(dsrc: Source, conn: AsyncConnection, register_id: str) -> UserData:
+    userdata_row = await retrieve_by_unique(dsrc, conn, USERDATA_TABLE, REGISTER_ID, register_id)
     return parse_userdata(userdata_row)
 
 
@@ -48,52 +53,76 @@ async def userdata_registered_by_email(dsrc: Source, conn: AsyncConnection, emai
     return result if result is True else False
 
 
-async def get_user_by_usph(dsrc: Source, user_usph: str) -> User:
-    user_row = await retrieve_by_unique(dsrc, USER_TABLE, USERNAME, user_usph)
+async def get_user_by_email(dsrc: Source, conn: AsyncConnection, user_email: str) -> User:
+    user_row = await retrieve_by_unique(dsrc, conn, USER_TABLE, USER_EMAIL, user_email)
     return parse_user(user_row)
 
 
-async def upsert_user(dsrc: Source, user: User):
+async def update_password_file(dsrc: Source, conn: AsyncConnection, user_id: str, password_file: str):
+    await update_column_by_unique(dsrc, conn, USER_TABLE, PASSWORD, password_file, USER_ID, user_id)
+
+
+async def insert_return_user_id(dsrc: Source, conn: AsyncConnection, user: User) -> str:
+    user_row: dict = user.dict(exclude={'id', 'user_id'})
     try:
-        result = await upsert_by_id(dsrc, USER_TABLE, user.dict())
+        user_id = await insert_return_col(dsrc, conn, USER_TABLE, user_row, USER_ID)
     except DbError as e:
         raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
-    return result
+    return user_id
 
 
-async def insert_return_user_id(dsrc: Source, user_row: dict):
+whitespace_pattern = re.compile(r'\s+')
+
+
+def gen_id_name(first_name: str, last_name: str):
+    id_name_str = f"{first_name}_{last_name}".lower()
+    id_name_str = re.sub(whitespace_pattern, '_', id_name_str)
+    return usp_hex(id_name_str)
+
+
+async def new_user(dsrc: Source, conn: AsyncConnection, signed_up: SignedUp, register_id: str, av40id: int,
+                   joined: date):
+    id_name = gen_id_name(signed_up.firstname, signed_up.lastname)
+
+    user = User(id_name=id_name, email=signed_up.email, password_file="")
+    user_id = await insert_return_user_id(dsrc, conn, user)
+
+    userdata = UserData(user_id=user_id, active=True, registerid=register_id, firstname=signed_up.firstname,
+                        lastname=signed_up.lastname, email=signed_up.email, phone=signed_up.phone, av40id=av40id,
+                        joined=joined, registered=False)
+    await insert_userdata(dsrc, conn, userdata)
+
+    return user_id
+
+
+async def insert_userdata(dsrc: Source, conn: AsyncConnection, userdata: UserData):
     try:
-        result = await insert_return_id(dsrc, USER_TABLE, user_row)
+        user_id = await insert_return_col(dsrc, conn, USERDATA_TABLE, userdata.dict(), USER_ID)
     except DbError as e:
         raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
-    return result
+    return user_id
 
 
-async def new_user(dsrc: Source, signed_up: SignedUp, register_id: str, av40id: int, joined: date):
-    email_usph = usp_hex(signed_up.email)
-    user_row = create_user(email_usph, "")
-    user_data_row = UserData(id=0, active=True, registerid=register_id, firstname=signed_up.firstname,
-                             lastname=signed_up.lastname, email=signed_up.email, phone=signed_up.phone, av40id=av40id,
-                             joined=joined, registered=False).dict()
-    try:
-        result = await double_insert_transaction(dsrc, USER_TABLE, user_row, USERDATA_TABLE, user_data_row)
-    except DbError as e:
-        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
-    return result
-
-
-async def upsert_userdata(dsrc: Source, userdata: UserData):
+async def upsert_userdata(dsrc: Source, conn: AsyncConnection, userdata: UserData):
     """ Requires known id. Note that this cannot change any unique constraints, those must remain unaltered."""
     try:
-        result = await upsert_by_id(dsrc, USERDATA_TABLE, userdata.dict())
+        result = await upsert_by_unique(dsrc, conn, USERDATA_TABLE, userdata.dict(), USER_ID)
     except DbError as e:
         raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
     return result
 
 
-def create_user(ups_hex, password_file) -> dict:
-    return {
-        USERNAME: ups_hex,
-        PASSWORD: password_file,
-        SCOPES: "none"
-    }
+async def update_ud_email(dsrc: Source, conn: AsyncConnection, user_id: str, new_email: str) -> bool:
+    try:
+        count = await update_column_by_unique(dsrc, conn, USERDATA_TABLE, UD_EMAIL, new_email, UD_EMAIL, user_id)
+    except DbError as e:
+        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
+    return bool(count)
+
+
+async def update_user_email(dsrc: Source, conn: AsyncConnection, user_id: str, new_email: str) -> bool:
+    try:
+        count = await update_column_by_unique(dsrc, conn, USER_TABLE, USER_EMAIL, new_email, USER_ID, user_id)
+    except DbError as e:
+        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
+    return bool(count)

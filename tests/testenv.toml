@@ -12,3 +12,4 @@ KV_PORT=6379
 KV_PASS="abcpasskv"
 
 MAIL_PASS="abcpass"
+KEY_PASS="abcpass"

@@ -44,6 +44,9 @@ class Config(BaseModel):
     KV_PASS: str
 
     # 'envless' MUST BE DUMMY
+    KEY_PASS: str
+
+    # 'envless' MUST BE DUMMY
     MAIL_PASS: str
 
 

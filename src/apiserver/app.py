@@ -91,7 +91,7 @@ async def app_startup(dsrc_inst: Source):
                            "environment!")
     safe_startup(app, dsrc_inst, config)
     # Db connections, etc.
-    await dsrc_inst.startup()
+    await dsrc_inst.startup(config)
 
 
 async def app_shutdown(dsrc_inst: Source):

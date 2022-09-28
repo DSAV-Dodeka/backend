@@ -3,32 +3,24 @@ import json
 from secrets import token_urlsafe
 import logging
 
+from cryptography.exceptions import InvalidTag, InvalidSignature, InvalidKey
 from cryptography.fernet import InvalidToken
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from pydantic import ValidationError
 import jwt
 from jwt import PyJWTError, DecodeError, InvalidSignatureError, ExpiredSignatureError, InvalidTokenError
 
+from apiserver.auth.crypto_util import encrypt_dict, decrypt_dict
 from apiserver.define import LOGGER_NAME, id_exp, access_exp, refresh_exp, grace_period, frontend_client_id, \
     backend_client_id, issuer
-from apiserver.utilities import enc_b64url, dec_b64url
-from apiserver.define.entities import SavedRefreshToken, RefreshToken, AccessToken, IdToken, IdInfo, UserData
+from apiserver.utilities import enc_b64url, dec_b64url, dec_dict, enc_dict
+from apiserver.define.entities import SavedRefreshToken, RefreshToken, AccessToken, IdToken, IdInfo, UserData, PEMKey
 
-__all__ = ['verify_access_token', 'InvalidRefresh', 'BadVerification', 'create_tokens', 'aes_from_symmetric',
+__all__ = ['verify_access_token', 'InvalidRefresh', 'BadVerification', 'create_tokens',
            'finish_tokens', 'encode_token_dict', 'decrypt_old_refresh', 'verify_refresh', 'build_refresh_save',
            'id_info_from_ud']
 
 logger = logging.getLogger(LOGGER_NAME)
-
-
-def enc_dict(dct: dict) -> bytes:
-    """ Convert dict to UTF-8-encoded bytes in JSON format. """
-    return json.dumps(dct).encode('utf-8')
-
-
-def dec_dict(encoded: bytes) -> dict:
-    """ Convert UTF-8 bytes containing JSON to a dict. """
-    return json.loads(encoded.decode('utf-8'))
 
 
 class InvalidRefresh(Exception):
@@ -37,36 +29,24 @@ class InvalidRefresh(Exception):
 
 
 def encrypt_refresh(aesgcm: AESGCM, refresh: RefreshToken) -> str:
-    refresh_data = enc_dict(refresh.dict())
-    refresh_nonce = secrets.token_bytes(12)
-    encrypted = aesgcm.encrypt(refresh_nonce, refresh_data, None)
-    refresh_bytes = refresh_nonce + encrypted
-    return enc_b64url(refresh_bytes)
+    return encrypt_dict(aesgcm, refresh.dict())
 
 
 def decrypt_refresh(aesgcm: AESGCM, refresh_token) -> RefreshToken:
-    refresh_bytes = dec_b64url(refresh_token)
-    refresh_nonce = refresh_bytes[:12]
-    refresh_data = refresh_bytes[12:]
-    decrypted = aesgcm.decrypt(refresh_nonce, refresh_data, None)
-    refresh_dict = dec_dict(decrypted)
+    refresh_dict = decrypt_dict(aesgcm, refresh_token)
     return RefreshToken.parse_obj(refresh_dict)
 
 
-def aes_from_symmetric(symmetric_key) -> AESGCM:
-    # We store it unpadded (to match convention of not storing padding throughout the DB)
-    symmetric_key_bytes = dec_b64url(symmetric_key)
-    # We initialize an AES-GCM key class that will be used for encryption/decryption
-    return AESGCM(symmetric_key_bytes)
-
-
-def decrypt_old_refresh(aesgcm: AESGCM, old_refresh_token: str):
+def decrypt_old_refresh(aesgcm: AESGCM, old_aesgcm: AESGCM, old_refresh_token: str, tried_old=False):
     # expects base64url-encoded binary
     try:
         # If it has been tampered with, this will also give an error
         old_refresh = decrypt_refresh(aesgcm, old_refresh_token)
-    except InvalidToken:
-        # Fernet error or signature error, could also be key format
+    except (InvalidTag, InvalidSignature, InvalidKey):
+        # Retry with previous key
+        if not tried_old:
+            return decrypt_old_refresh(old_aesgcm, old_aesgcm, old_refresh_token, True)
+        # Problem with the key cryptography
         raise InvalidRefresh("InvalidToken")
     except ValidationError:
         # From parsing the dict
@@ -157,7 +137,7 @@ def create_tokens(user_id: str, scope: str, auth_time: int, id_nonce: str, utc_n
 
 
 def finish_tokens(refresh_id: int, refresh_save: SavedRefreshToken, aesgcm: AESGCM, access_token_data: AccessToken,
-                  id_token_data: IdToken, utc_now: int, signing_key: str, *, nonce: str):
+                  id_token_data: IdToken, utc_now: int, signing_key: PEMKey, *, nonce: str):
     refresh = RefreshToken(id=refresh_id, family_id=refresh_save.family_id, nonce=nonce)
     refresh_token = encrypt_refresh(aesgcm, refresh)
 
@@ -197,9 +177,9 @@ def finish_payload(token_val: dict, utc_now: int, exp: int):
     return payload
 
 
-def finish_encode_token(token_val: dict, utc_now: int, exp: int, key: str):
+def finish_encode_token(token_val: dict, utc_now: int, exp: int, key: PEMKey):
     finished_payload = finish_payload(token_val, utc_now, exp)
-    return jwt.encode(finished_payload, key, algorithm="EdDSA")
+    return jwt.encode(finished_payload, key.private, algorithm="EdDSA", headers={"kid": key.kid})
 
 
 def decode_refresh(rt: SavedRefreshToken):
@@ -216,6 +196,19 @@ class BadVerification(Exception):
 
     def __init__(self, err_key: str):
         self.err_key = err_key
+
+
+def get_kid(access_token: str):
+    try:
+        unverified_header = jwt.get_unverified_header(access_token)
+        return unverified_header['kid']
+    except KeyError:
+        raise BadVerification("no_kid")
+    except DecodeError:
+        raise BadVerification("decode_error")
+    except PyJWTError as e:
+        logging.debug(e)
+        raise BadVerification("other")
 
 
 def verify_access_token(public_key: str, access_token: str):

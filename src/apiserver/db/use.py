@@ -100,6 +100,14 @@ class PostgresOperations(DbOperations):
         return all_rows(res)
 
     @classmethod
+    async def get_largest_where(cls, conn: AsyncConnection, table: str, res_col: str, where_col: str, where_val,
+                                order_col: str, num: int) -> list[Any]:
+        query = text(f"SELECT {res_col} FROM {table} where {where_col} = :where_val ORDER BY {order_col} DESC LIMIT "
+                     f"{num};")
+        res: CursorResult = await conn.execute(query, parameters={"where_val": where_val})
+        return res.scalars().all()
+
+    @classmethod
     async def retrieve_table(cls, db: Database, table: str) -> list[dict]:
         """ Ensure `table` is never user-defined. """
         query = f"SELECT * FROM {table}"

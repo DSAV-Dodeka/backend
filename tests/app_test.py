@@ -11,12 +11,13 @@ from pytest_mock import MockerFixture
 from httpx import AsyncClient
 from fastapi import status
 
+from apiserver.auth.crypto_util import aes_from_symmetric
 from apiserver.auth.tokens import id_info_from_ud
 from apiserver.data.user import gen_id_name
 from apiserver.define import FlowUser, AuthRequest, SavedState, SavedRegisterState, frontend_client_id
 from apiserver.env import load_config
 from apiserver.utilities import utc_timestamp, usp_hex
-from apiserver.define.entities import SavedRefreshToken, UserData, User
+from apiserver.define.entities import SavedRefreshToken, UserData, User, PEMKey, A256GCMKey
 from apiserver.db.ops import DbOperations
 
 
@@ -171,10 +172,10 @@ mock_token_key = {
 
 @pytest_asyncio.fixture
 async def mock_get_keys(mocker: MockerFixture):
-    get_k_s = mocker.patch('apiserver.data.key.get_refresh_symmetric')
-    get_k_s.return_value = mock_symm_key['private']
-    get_k_p = mocker.patch('apiserver.data.key.get_token_private')
-    get_k_p.return_value = mock_token_key['private']
+    get_k_s = mocker.patch('apiserver.data.kv.get_symmetric_key')
+    get_k_s.return_value = A256GCMKey(kid='b', symmetric=mock_symm_key['private'])
+    get_k_p = mocker.patch('apiserver.data.kv.get_pem_key')
+    get_k_p.return_value = PEMKey(kid='a', public=mock_token_key['public'], private=mock_token_key['private'])
 
 
 def cr_user_id(id_int: int, g_id_name: str):
@@ -208,7 +209,7 @@ fake_token_id = 44
 
 @pytest_asyncio.fixture
 async def fake_tokens():
-    from apiserver.auth.tokens import create_tokens, aes_from_symmetric, finish_tokens, encode_token_dict
+    from apiserver.auth.tokens import create_tokens, finish_tokens, encode_token_dict
     utc_now = utc_timestamp()
     mock_id_info = id_info_from_ud(mock_userdata)
     access_token_data, id_token_data, access_scope, refresh_save = \
@@ -219,7 +220,7 @@ async def fake_tokens():
     id_val = encode_token_dict(id_token_data.dict())
 
     aesgcm = aes_from_symmetric(mock_symm_key['private'])
-    signing_key = mock_token_key['private']
+    signing_key = PEMKey(kid='a', public=mock_token_key['public'], private=mock_token_key['private'])
 
     refresh_token, access_token, id_token = finish_tokens(fake_token_id, refresh_save, aesgcm, access_token_data,
                                                           id_token_data, utc_now, signing_key, nonce="")

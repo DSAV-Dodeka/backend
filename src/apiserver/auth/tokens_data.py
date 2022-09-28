@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 
 from apiserver.auth.crypto_util import aes_from_symmetric
 from apiserver.define import id_exp
+from apiserver.define.entities import PEMKey
 from apiserver.utilities import utc_timestamp
 from apiserver.auth.tokens import decrypt_old_refresh, InvalidRefresh, verify_refresh, \
     build_refresh_save, finish_tokens, create_tokens, id_info_from_ud
@@ -10,25 +11,30 @@ import apiserver.data as data
 from apiserver.data import Source, DataError
 
 
-async def get_keys(dsrc: Source, conn: AsyncConnection) -> tuple[AESGCM, str]:
+async def get_keys(dsrc: Source) -> tuple[AESGCM, AESGCM, PEMKey]:
+    symmetric_kid = dsrc.state.current_symmetric
+    old_symmetric_kid = dsrc.state.current_symmetric
+    signing_kid = dsrc.state.current_pem
+
     # Symmetric key used to verify and encrypt/decrypt refresh tokens
-    symmetric_key = await data.key.get_refresh_symmetric(dsrc, conn)
-    aesgcm = aes_from_symmetric(symmetric_key)
+    symmetric_key = await data.kv.get_symmetric_key(dsrc, symmetric_kid)
+    aesgcm = aes_from_symmetric(symmetric_key.symmetric)
+    old_symmetric_key = await data.kv.get_symmetric_key(dsrc, old_symmetric_kid)
+    old_aesgcm = aes_from_symmetric(old_symmetric_key.symmetric)
     # Asymmetric private key used for signing access and ID tokens
     # A public key is then used to verify them
-    signing_key = await data.key.get_token_private(dsrc, conn)
+    signing_key = await data.kv.get_pem_key(dsrc, signing_kid)
 
-    return aesgcm, signing_key
+    return aesgcm, old_aesgcm, signing_key
 
 
 async def do_refresh(dsrc: Source, old_refresh_token: str):
+    aesgcm, old_aesgcm, signing_key = await get_keys(dsrc)
+    old_refresh = decrypt_old_refresh(aesgcm, old_aesgcm, old_refresh_token)
+
+    utc_now = utc_timestamp()
+
     async with data.get_conn(dsrc) as conn:
-        aesgcm, signing_key = await get_keys(dsrc, conn)
-
-        utc_now = utc_timestamp()
-
-        old_refresh = decrypt_old_refresh(aesgcm, old_refresh_token)
-
         try:
             # See if previous refresh exists
             saved_refresh = await data.refreshtoken.get_refresh_by_id(dsrc, conn, old_refresh.id)
@@ -59,8 +65,8 @@ async def do_refresh(dsrc: Source, old_refresh_token: str):
 
 
 async def new_token(dsrc: Source, user_id: str, scope: str, auth_time: int, id_nonce: str):
-    async with data.get_conn(dsrc) as conn:
-        aesgcm, signing_key = await get_keys(dsrc, conn)
+    aesgcm, _, signing_key = await get_keys(dsrc)
+
     utc_now = utc_timestamp()
 
     async with data.get_conn(dsrc) as conn:

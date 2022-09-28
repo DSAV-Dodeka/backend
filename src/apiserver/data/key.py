@@ -1,57 +1,32 @@
 from typing import Optional
 
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from apiserver.data.use import retrieve_by_id, upsert_by_id
-from apiserver.define.entities import TokenKey, SymmetricKey
+from apiserver.data.use import retrieve_by_id, get_largest_where, update_column_by_unique
+from apiserver.define.entities import TokenKey, SymmetricKey, JWKSRow
 from apiserver.data.source import Source, DataError
-from apiserver.db import KEY_TABLE
+from apiserver.db import KEY_TABLE, JWK_TABLE
+from apiserver.db.model import JWK_VALUE, KEY_ID, KEY_ISSUED, KEY_USE
 from apiserver.auth.key_util import new_ed448_keypair, new_symmetric_key
 
-__all__ = ['get_token_private', 'get_token_public', 'upsert_key_row']
+
+async def get_newest_symmetric(dsrc: Source, conn: AsyncConnection) -> tuple[str, str]:
+    results = await get_largest_where(dsrc, conn, KEY_TABLE, KEY_ID, KEY_USE, "enc", KEY_ISSUED, 2)
+    return results[0], results[1]
 
 
-async def _get_key_row(dsrc: Source, conn: AsyncConnection, id_int: int) -> Optional[dict]:
-    key_row = await retrieve_by_id(dsrc, conn, KEY_TABLE, id_int)
-
-    return key_row
+async def get_newest_pem(dsrc: Source, conn: AsyncConnection) -> str:
+    return (await get_largest_where(dsrc, conn, KEY_TABLE, KEY_ID, KEY_USE, "sig", KEY_ISSUED, 1))[0]
 
 
-async def _get_token_key(dsrc: Source, conn: AsyncConnection) -> TokenKey:
-    # TODO set id in config
-    id_int = 1
-    key_row = await _get_key_row(dsrc, conn, id_int)
-    if key_row is None:
-        # new_key = new_ed448_keypair(1)
-        # await upsert_key_row(dsrc, new_key.dict())
-        # key_row = await dsrc.ops.retrieve_by_id(dsrc.db, KEY_TABLE, 1)
-        raise DataError(message=f"Key missing for id {id_int}", key="missing_key")
-    return TokenKey.parse_obj(key_row)
+async def update_jwk(dsrc: Source, conn: AsyncConnection, encrypted_jwk_set: str) -> int:
+    return await update_column_by_unique(dsrc, conn, JWK_TABLE, JWK_VALUE, encrypted_jwk_set, "id", 1)
 
 
-async def _get_symmetric_key(dsrc: Source, conn: AsyncConnection):
-    # TODO set id in config
-    id_int = 2
-    key_row = await _get_key_row(dsrc, conn, id_int)
-    if key_row is None:
-        # new_key = new_symmetric_key(id_int)
-        # await upsert_key_row(dsrc, new_key.dict())
-        # key_row = await dsrc.ops.retrieve_by_id(dsrc.db, KEY_TABLE, 2)
-        raise DataError(message=f"Key missing for id {id_int}", key="missing_key")
-    return SymmetricKey.parse_obj(key_row)
+async def get_jwk(dsrc: Source, conn: AsyncConnection) -> str:
+    row_dict = await retrieve_by_id(dsrc, conn, JWK_TABLE, 1)
+    if row_dict is None:
+        raise DataError(message=f"JWK Set missing.", key="missing_jwks")
+    return JWKSRow.parse_obj(row_dict).encrypted_value
 
-
-async def get_token_private(dsrc: Source, conn: AsyncConnection) -> str:
-    return (await _get_token_key(dsrc, conn)).private
-
-
-async def get_token_public(dsrc: Source, conn: AsyncConnection) -> str:
-    return (await _get_token_key(dsrc, conn)).public
-
-
-async def get_refresh_symmetric(dsrc: Source, conn: AsyncConnection) -> str:
-    return (await _get_symmetric_key(dsrc, conn)).private
-
-
-async def upsert_key_row(dsrc: Source, key_row: dict):
-    return await upsert_by_id(dsrc, KEY_TABLE, key_row)

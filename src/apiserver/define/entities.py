@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Optional
+from typing import Optional, Literal
 
 from pydantic import BaseModel, validator, conint
 
@@ -143,12 +143,17 @@ class UserData(BaseModel):
     registered: bool
 
 
+class JWKSRow(BaseModel):
+    id: int
+    encrypted_value: str
+
+
 class JWK(BaseModel):
-    kty: str
-    use: str
-    alg: str
+    kty: Literal["okp", "oct"]
+    use: Literal["sig", "enc"]
+    alg: Literal["EdDSA", "A256GCM"]
     kid: str
-    crv: Optional[str]
+    crv: Optional[Literal["Ed448"]]
     k: Optional[str]
     x: Optional[str]
     d: Optional[str]
@@ -156,3 +161,14 @@ class JWK(BaseModel):
 
 class JWKSet(BaseModel):
     keys: list[JWK]
+
+
+class PEMKey(BaseModel):
+    kid: str
+    public: str  # PEM encoded X509PKCS#1 as unicode
+    private: str  # PEM encoded PKCS#8 as unicode
+
+
+class A256GCMKey(BaseModel):
+    kid: str
+    symmetric: str  # base64url encoded symmetric 256-bit key

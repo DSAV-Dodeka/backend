@@ -7,6 +7,7 @@ https://cryptography.io/en/latest/hazmat/primitives/asymmetric/serialization/#se
 https://www.rfc-editor.org/rfc/rfc8037.html#section-2
 
 https://www.rfc-editor.org/rfc/rfc7518.html
+https://www.rfc-editor.org/rfc/rfc7517.html JWK
 
 We will store the keys as an encrypted JSON Web Key Set, encrypted with a runtime key (from the dodeka secrets). Keys will be regenerated automatically.
 

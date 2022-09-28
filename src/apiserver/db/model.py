@@ -24,24 +24,26 @@ users = sqla.Table(
 )
 
 KEY_TABLE = "keys"
-PUBLIC_KEY_COLUMN = "public"
-PRIVATE_KEY_COLUMN = "private"
-PRIVATE_FMT_COLUMN = "private_format"
-PUBLIC_FMT_COLUMN = "public_format"
-PUBLIC_ENCODING = "public_encoding"
-PRIVATE_ENCODING = "private_encoding"
-ALGORITHM_COLUMN = "algorithm"
+KEY_ID = "kid"
+KEY_ISSUED = "iat"
+KEY_USE = "use"
 keys = sqla.Table(
     KEY_TABLE,
     metadata,
-    sqla.Column("id", sqla.Integer, primary_key=True),
-    sqla.Column(ALGORITHM_COLUMN, sqla.String(length=100), nullable=False),
-    sqla.Column(PUBLIC_KEY_COLUMN, sqla.String(length=200), nullable=False),
-    sqla.Column(PRIVATE_KEY_COLUMN, sqla.String(length=200), nullable=False),
-    sqla.Column(PUBLIC_FMT_COLUMN, sqla.String(length=100), nullable=False),
-    sqla.Column(PRIVATE_FMT_COLUMN, sqla.String(length=100), nullable=False),
-    sqla.Column(PUBLIC_ENCODING, sqla.String(length=100), nullable=False),
-    sqla.Column(PRIVATE_ENCODING, sqla.String(length=100), nullable=False)
+    sqla.Column(KEY_ID, sqla.String(length=50), primary_key=True),
+    sqla.Column(KEY_ISSUED, sqla.Integer, nullable=False),
+    sqla.Column(KEY_USE, sqla.String(length=50), nullable=False),
+)
+
+JWK_TABLE = "jwk"
+JWK_VALUE = "encrypted_value"
+jwk_check_text = sqla.text(f"id = 1")
+
+jwk = sqla.Table(
+    JWK_TABLE,
+    metadata,
+    sqla.Column("id", sqla.Integer, sqla.CheckConstraint(jwk_check_text, name='check_single'), primary_key=True),
+    sqla.Column(JWK_VALUE, sqla.String, nullable=False),
 )
 
 OPAQUE_SETUP_TABLE = "opaque"

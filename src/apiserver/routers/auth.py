@@ -149,6 +149,7 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
     # Two available grant types, 'authorization_code' (after login) and 'refresh_token' (when logged in)
     # The first requires a code provided by the OPAQUE login flow
     if token_request.grant_type == "authorization_code":
+        logger.debug(f"authorization_code request")
         # This grant type requires other body parameters than the refresh token grant type
         try:
             assert token_request.redirect_uri
@@ -202,6 +203,7 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
             await new_token(dsrc, token_user_id, token_scope, auth_time, id_nonce)
 
     elif token_request.grant_type == "refresh_token":
+        logger.debug(f"refresh_token request")
         try:
             assert token_request.refresh_token is not None
         except AssertionError as e:

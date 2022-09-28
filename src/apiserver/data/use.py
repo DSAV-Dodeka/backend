@@ -41,6 +41,11 @@ async def select_where(dsrc: Source, conn: AsyncConnection, table: str, column: 
     return await dsrc.gateway.ops.select_where(conn, table, column, value)
 
 
+async def get_largest_where(dsrc: Source, conn: AsyncConnection, table: str, res_col: str, where_col: str, where_val,
+                            order_col: str, num: int) -> list[Any]:
+    return await dsrc.gateway.ops.get_largest_where(conn, table, res_col, where_col, where_val, order_col, num)
+
+
 async def retrieve_table(dsrc: Source, table: str) -> list[dict]:
     return await dsrc.gateway.ops.retrieve_table(db_is_init(dsrc), table)
 

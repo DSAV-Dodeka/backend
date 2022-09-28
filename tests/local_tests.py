@@ -7,7 +7,8 @@ import pytest_asyncio
 from httpx import AsyncClient
 import opaquepy as opq
 
-from apiserver.define.entities import SignedUp
+from apiserver.auth.crypto_util import encrypt_dict, aes_from_symmetric, decrypt_dict
+from apiserver.define.entities import SignedUp, JWKSet
 from apiserver.resources import project_path
 from apiserver.env import load_config
 import apiserver.utilities as util
@@ -62,7 +63,7 @@ async def test_onboard_signup(local_client):
 async def local_dsrc(api_config):
     dsrc = Source()
     dsrc.init_gateway(api_config)
-    await dsrc.startup()
+    await dsrc.startup(api_config)
     yield dsrc
 
 
@@ -96,10 +97,46 @@ async def test_generate_admin(local_dsrc: Source):
 
 
 @pytest.mark.asyncio
-async def test_fill_signedup(local_dsrc):
-    for i in range(5):
-        signed_up = SignedUp(firstname="abc", lastname="abclast", email=f"abc{i}@abc.nl", phone="06")
-        await data.signedup.insert_su_row(local_dsrc, signed_up.dict())
+async def test_generate_rand():
+    x = util.random_time_hash_hex(short=True)
+    print(x)
+
+@pytest.mark.asyncio
+async def test_fill_signedup():
+    key_set_dict = {
+        "keys": [
+            {
+                "kid": "886011ae1466e872",
+                "kty": "oct",
+                "k": "hpPUuT_feql5Qo-1emMMlvkd50HSoTAiGKOUNZO2KZA",
+                "alg": "A256GCM",
+                "use": "enc"
+            },
+            {
+                "kid": "54e45c5a068effb1",
+                "kty": "oct",
+                "k": "E5Nw5-kXR542pWVyNy9lXiD7W46YV4sF-njX9biUBng",
+                "alg": "A256GCM",
+                "use": "enc"
+            },
+            {
+                "kid": "2dadb3af386b4d9d",
+                "alg": "EdDSA",
+                "kty": "okp",
+                "crv": "Ed448",
+                "x": "f5538Oa3cLDNVLcsZI_SLwYSZuM6Vn_5rV5iVi7IcRqoAQ9Ne5w9Nhy9uPZGVzQeZz5T0xYrx4mA",
+                "d": "JXpGIitdCa1PqlbFPY50pIunS5AiTz0OCai92WRWfC4-82r74uk-pIqKbk1Wv11dkcEP8gnACbZy",
+                "use": "sig"
+            }
+        ]
+    }
+
+    # key_set: JWKSet = JWKSet.parse_obj(key_set_dict)
+    runtime_key = aes_from_symmetric("AT_av0v62Z3hQH50VYwKBks1-VSukK9xDN_Ur34mdZ4")
+    reencrypted_key_set = encrypt_dict(runtime_key, key_set_dict)
+    x = decrypt_dict(runtime_key, reencrypted_key_set)
+    print(reencrypted_key_set)
+
 
 
 

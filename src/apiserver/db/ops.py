@@ -40,6 +40,12 @@ class DbOperations(ABC):
 
     @classmethod
     @abstractmethod
+    async def get_largest_where(cls, conn: AsyncConnection, table: str, res_col: str, where_col: str, where_val,
+                                order_col: str, num: int) -> list[Any]:
+        ...
+
+    @classmethod
+    @abstractmethod
     async def retrieve_table(cls, db: Database, table: str) -> list[dict]:
         ...
 

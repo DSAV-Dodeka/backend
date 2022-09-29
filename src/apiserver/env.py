@@ -32,6 +32,7 @@ class Config(BaseModel):
 
     DB_USER: str
     # 'envless' MUST BE DUMMY
+    # RECOMMENDED TO LOAD AS ENVIRON
     DB_PASS: str
     DB_HOST: str
     DB_PORT: str
@@ -41,12 +42,15 @@ class Config(BaseModel):
     KV_HOST: str
     KV_PORT: str
     # 'envless' MUST BE DUMMY
+    # RECOMMENDED TO LOAD AS ENVIRON
     KV_PASS: str
 
     # 'envless' MUST BE DUMMY
+    # RECOMMENDED TO LOAD AS ENVIRON
     KEY_PASS: str
 
     # 'envless' MUST BE DUMMY
+    # RECOMMENDED TO LOAD AS ENVIRON
     MAIL_PASS: str
 
 

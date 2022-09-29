@@ -1,9 +1,12 @@
 import re
-from datetime import date
 from typing import Optional
+from datetime import date
 
-from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy.engine import CursorResult, Row
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncTransaction
 
+from apiserver.define.entities import User, SignedUp, UserData
+from apiserver.utilities import usp_hex
 from apiserver.data.source import Source, DataError, NoDataError
 from apiserver.data.use import (
     retrieve_by_unique,
@@ -23,8 +26,6 @@ from apiserver.db.model import (
     USER_EMAIL,
 )
 from apiserver.db.ops import DbError
-from apiserver.define.entities import User, SignedUp, UserData
-from apiserver.utilities import usp_hex
 
 __all__ = ["get_user_by_id", "user_exists", "userdata_registered_by_email"]
 
@@ -184,3 +185,8 @@ async def update_user_email(
     except DbError as e:
         raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
     return bool(count)
+
+
+async def get_all_userdata(dsrc: Source, conn: AsyncConnection) -> list[UserData]:
+    all_userdata = await select_where(dsrc, conn, USERDATA_TABLE, UD_ACTIVE, True)
+    return [parse_userdata(ud_dct) for ud_dct in all_userdata]

@@ -24,13 +24,13 @@ async def get_refresh_by_id(dsrc: Source, conn: AsyncConnection, id_int: int) ->
     return parse_refresh(refresh_row)
 
 
-async def delete_family(dsrc: Source, family_id: str):
-    return await delete_by_column(dsrc, REFRESH_TOKEN_TABLE, FAMILY_ID, family_id)
+async def delete_family(dsrc: Source, conn: AsyncConnection, family_id: str):
+    return await delete_by_column(dsrc, conn, REFRESH_TOKEN_TABLE, FAMILY_ID, family_id)
 
 
 async def delete_refresh_by_id(dsrc: Source, conn: AsyncConnection, id_int: int):
     return await delete_by_id(dsrc, conn, REFRESH_TOKEN_TABLE, id_int)
 
 
-async def delete_by_user_id(dsrc: Source, user_id: str):
-    return await delete_by_column(dsrc, REFRESH_TOKEN_TABLE, USER_ID, user_id)
+async def delete_by_user_id(dsrc: Source, conn: AsyncConnection, user_id: str):
+    return await delete_by_column(dsrc, conn, REFRESH_TOKEN_TABLE, USER_ID, user_id)

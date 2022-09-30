@@ -57,8 +57,9 @@ async def init_signup(signup: SignupRequest, request: Request, background_tasks:
     what is provided to AV'40. So there is a manual check."""
     dsrc: Source = request.app.state.dsrc
 
-    u_ex = await data.user.user_exists(dsrc, signup.email)
-    su_ex = await data.signedup.signedup_exists(dsrc, signup.email)
+    async with data.get_conn(dsrc) as conn:
+        u_ex = await data.user.user_exists(dsrc, conn, signup.email)
+        su_ex = await data.signedup.signedup_exists(dsrc, conn, signup.email)
 
     do_send_email = not u_ex and not su_ex
     logger.debug(f"{signup.email} /onboard/signup - do_send_email {do_send_email}")

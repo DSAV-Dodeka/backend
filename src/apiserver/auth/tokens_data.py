@@ -44,7 +44,7 @@ async def do_refresh(dsrc: Source, old_refresh_token: str):
             # Only the most recent token should be valid and is always returned
             # So if someone possesses some deleted token family member, it is most likely an attacker
             # For this reason, all tokens in the family are invalidated to prevent further compromise
-            await data.refreshtoken.delete_family(dsrc, old_refresh.family_id)
+            await data.refreshtoken.delete_family(dsrc, conn, old_refresh.family_id)
             raise InvalidRefresh("Not recent")
 
     verify_refresh(saved_refresh, old_refresh, utc_now)

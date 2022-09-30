@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncTransaction
 from apiserver.define.entities import User, SignedUp, UserData
 from apiserver.utilities import usp_hex
 from apiserver.data.source import Source, DataError, NoDataError
-from apiserver.data.use import retrieve_by_id, retrieve_by_unique, upsert_by_id, insert_return_col, exists_by_unique, \
+from apiserver.data.use import retrieve_by_id, retrieve_by_unique, insert_return_col, exists_by_unique, \
     fetch_column_by_unique, update_column_by_unique, get_conn, upsert_by_unique
 from apiserver.db import USER_TABLE, USERDATA_TABLE
 from apiserver.db.model import USER_ID, PASSWORD, REGISTER_ID, SCOPES, USER_REGISTERED, UD_EMAIL, USER_EMAIL
@@ -29,8 +29,8 @@ def parse_userdata(user_dict: Optional[dict]) -> UserData:
     return UserData.parse_obj(user_dict)
 
 
-async def user_exists(dsrc: Source, user_email: str) -> bool:
-    return await exists_by_unique(dsrc, USER_TABLE, USER_EMAIL, user_email)
+async def user_exists(dsrc: Source, conn: AsyncConnection, user_email: str) -> bool:
+    return await exists_by_unique(dsrc, conn, USER_TABLE, USER_EMAIL, user_email)
 
 
 async def get_user_by_id(dsrc: Source, conn: AsyncConnection, user_id: str) -> User:

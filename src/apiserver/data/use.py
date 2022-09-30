@@ -5,13 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 from apiserver.data import Source, DataError
 
 
-def db_is_init(dsrc: Source):
-    if dsrc.gateway.db is None:
-        raise DataError("Database not initialized!", "no_db_init")
-    else:
-        return dsrc.gateway.db
-
-
 def eng_is_init(dsrc: Source):
     if dsrc.gateway.engine is None:
         raise DataError("Database not initialized!", "no_db_init")
@@ -46,20 +39,12 @@ async def get_largest_where(dsrc: Source, conn: AsyncConnection, table: str, res
     return await dsrc.gateway.ops.get_largest_where(conn, table, res_col, where_col, where_val, order_col, num)
 
 
-async def retrieve_table(dsrc: Source, table: str) -> list[dict]:
-    return await dsrc.gateway.ops.retrieve_table(db_is_init(dsrc), table)
-
-
-async def exists_by_unique(dsrc: Source, table: str, unique_column: str, value) -> bool:
-    return await dsrc.gateway.ops.exists_by_unique(db_is_init(dsrc), table, unique_column, value)
+async def exists_by_unique(dsrc: Source, conn: AsyncConnection, table: str, unique_column: str, value) -> bool:
+    return await dsrc.gateway.ops.exists_by_unique(conn, table, unique_column, value)
 
 
 async def upsert_by_unique(dsrc: Source, conn: AsyncConnection, table: str, row: dict, unique_column: str):
     return await dsrc.gateway.ops.upsert_by_unique(conn, table, row, unique_column)
-
-
-async def upsert_by_id(dsrc: Source, table: str, row: dict):
-    return await dsrc.gateway.ops.upsert_by_id(db_is_init(dsrc), table, row)
 
 
 async def update_column_by_unique(dsrc: Source, conn: AsyncConnection, table: str, set_column: str, set_value,
@@ -80,6 +65,6 @@ async def delete_by_id(dsrc: Source, conn: AsyncConnection, table: str, id_int: 
     return await dsrc.gateway.ops.delete_by_id(conn, table, id_int)
 
 
-async def delete_by_column(dsrc: Source, table: str, column: str, column_val):
-    return await dsrc.gateway.ops.delete_by_column(db_is_init(dsrc), table, column, column_val)
+async def delete_by_column(dsrc: Source, conn: AsyncConnection, table: str, column: str, column_val):
+    return await dsrc.gateway.ops.delete_by_column(conn, table, column, column_val)
 

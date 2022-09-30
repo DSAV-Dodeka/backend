@@ -106,7 +106,7 @@ async def update_password_finish(update_finish: UpdatePasswordFinish, request: R
     async with data.get_conn(dsrc) as conn:
         await data.user.update_password_file(dsrc, conn, saved_state.user_id, password_file)
 
-    await data.refreshtoken.delete_by_user_id(dsrc, saved_state.user_id)
+        await data.refreshtoken.delete_by_user_id(dsrc, conn, saved_state.user_id)
 
 
 @router.post("/update/email/send/")
@@ -154,9 +154,9 @@ async def update_email_check(update_check: UpdateEmailCheck, request: Request):
         return ErrorResponse(status_code=400, err_type="bad_update", err_desc=reason)
     user_id = stored_email.user_id
 
-    await data.refreshtoken.delete_by_user_id(dsrc, flow_user.user_id)
-
     async with data.get_conn(dsrc) as conn:
+        await data.refreshtoken.delete_by_user_id(dsrc, conn, flow_user.user_id)
+
         count_ud = await data.user.update_user_email(dsrc, conn, user_id, stored_email.new_email)
         if count_ud != 1:
             raise DataError("Internal data error.", "user_data_error")

@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 
 from apiserver.define.entities import SignedUp
 from apiserver.data.source import Source, DataError
-from apiserver.data.use import retrieve_by_unique, insert, exists_by_unique, retrieve_table, update_column_by_unique, \
+from apiserver.data.use import retrieve_by_unique, insert, exists_by_unique, update_column_by_unique, \
     select_where
 from apiserver.db import SIGNEDUP_TABLE
 from apiserver.db.model import SU_FIRSTNAME, SU_LASTNAME, SU_EMAIL, SU_PHONE, SU_CONFIRMED
@@ -34,8 +34,8 @@ async def get_all_signedup(dsrc: Source, conn: AsyncConnection) -> list[SignedUp
     return [parse_signedup(su_dct) for su_dct in all_signed_up]
 
 
-async def signedup_exists(dsrc: Source, email: str) -> bool:
-    return await exists_by_unique(dsrc, SIGNEDUP_TABLE, SU_EMAIL, email)
+async def signedup_exists(dsrc: Source, conn: AsyncConnection, email: str) -> bool:
+    return await exists_by_unique(dsrc, conn, SIGNEDUP_TABLE, SU_EMAIL, email)
 
 
 async def insert_su_row(dsrc: Source, conn: AsyncConnection, su_row: dict):

@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Optional, Any
 
-from databases import Database
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncConnection
 
 
@@ -46,12 +45,7 @@ class DbOperations(ABC):
 
     @classmethod
     @abstractmethod
-    async def retrieve_table(cls, db: Database, table: str) -> list[dict]:
-        ...
-
-    @classmethod
-    @abstractmethod
-    async def exists_by_unique(cls, db: Database, table: str, unique_column: str, value) -> bool:
+    async def exists_by_unique(cls, conn: AsyncConnection, table: str, unique_column: str, value) -> bool:
         ...
 
     @classmethod
@@ -61,10 +55,6 @@ class DbOperations(ABC):
 
     @classmethod
     @abstractmethod
-    async def upsert_by_id(cls, db: Database, table: str, row: dict):
-        ...
-
-    @classmethod
     async def update_column_by_unique(cls, conn: AsyncConnection, table: str, set_column: str, set_value,
                                       unique_column: str, value) -> int:
         ...
@@ -86,7 +76,7 @@ class DbOperations(ABC):
 
     @classmethod
     @abstractmethod
-    async def delete_by_column(cls, db: Database, table: str, column: str, column_val):
+    async def delete_by_column(cls, conn: AsyncConnection, table: str, column: str, column_val) -> int:
         ...
 
 

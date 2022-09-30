@@ -136,3 +136,15 @@ async def get_symmetric_key(dsrc: Source, kid: str) -> A256GCMKey:
     if symmetric_dict is None:
         raise NoDataError("JWK does not exist or expired.", "jwk_empty")
     return A256GCMKey.parse_obj(symmetric_dict)
+
+
+async def set_startup_lock(dsrc: Source, value="locked"):
+    await store_string(dsrc, "startup_lock", value, 25)
+
+
+async def startup_is_locked(dsrc: Source) -> Optional[bool]:
+    try:
+        lock = await get_string(dsrc, "startup_lock")
+        return lock == "locked"
+    except NoDataError:
+        return None

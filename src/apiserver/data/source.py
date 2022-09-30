@@ -1,14 +1,16 @@
+import logging
 from typing import Type, Optional
 from dataclasses import dataclass
 
+from random import random
+from anyio import sleep
 import redis
-from databases import Database
-
 from redis.asyncio import Redis
 from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine
 
+from apiserver.define import LOGGER_NAME
 from apiserver.define.entities import JWKSet, A256GCMKey, User
 import apiserver.utilities as util
 from apiserver.utilities.crypto import aes_from_symmetric, decrypt_dict, encrypt_dict
@@ -21,6 +23,9 @@ from apiserver.env import Config
 import apiserver.data as data
 
 __all__ = ['Source', 'DataError', 'Gateway', 'DbOperations', 'NoDataError']
+
+
+logger = logging.getLogger(LOGGER_NAME)
 
 
 class SourceError(ConnectionError):
@@ -41,7 +46,6 @@ class NoDataError(DataError):
 
 class Gateway:
     engine: Optional[AsyncEngine] = None
-    db: Optional[Database] = None
     kv: Optional[Redis] = None
     # Just store the class/type since we only use static methods
     ops: Type['DbOperations']
@@ -53,7 +57,6 @@ class Gateway:
         db_cluster = f"{config.DB_USER}:{config.DB_PASS}@{config.DB_HOST}:{config.DB_PORT}"
         db_url = f"{db_cluster}/{config.DB_NAME}"
         # Connections are not actually established, it simply initializes the connection parameters
-        self.db = Database(f"postgresql://{db_url}")
         self.kv = Redis(host=config.KV_HOST, port=config.KV_PORT, db=0,
                         password=config.KV_PASS)
         self.engine: AsyncEngine = create_async_engine(
@@ -61,10 +64,6 @@ class Gateway:
         )
 
     async def connect(self):
-        try:
-            await self.db.connect()
-        except ConnectionError:
-            raise SourceError(f"Unable to connect to DB! Please check if it is running.")
         try:
             # Redis requires no explicit call to connect, it simply connects the first time
             # a call is made to the database, so we test the connection by pinging
@@ -78,7 +77,6 @@ class Gateway:
             raise SourceError(f"Unable to connect to DB with SQLAlchemy! Please check if it is running.")
 
     async def disconnect(self):
-        await self.db.disconnect()
         await self.kv.close()
 
     async def startup(self):
@@ -106,15 +104,36 @@ class Source:
         self.gateway.init_objects(config)
 
     async def startup(self, config: Config, recreate=False):
-        if recreate:
+        # Checks lock: returns True if no lock had been in place, False otherwise
+        first_lock = await waiting_lock(self)
+        logger.debug(f"{first_lock} - lock status")
+        # Set lock
+        await data.kv.set_startup_lock(self)
+        if first_lock and recreate:
             drop_create_database(config)
         await self.gateway.startup()
-        if recreate:
+        if first_lock and recreate:
             await initial_population(self, config)
         await load_keys(self, config)
+        # Release lock
+        await data.kv.set_startup_lock(self, "not")
 
     async def shutdown(self):
         await self.gateway.shutdown()
+
+
+async def waiting_lock(dsrc: Source):
+    await sleep(random()+0.1)
+    was_locked = await data.kv.startup_is_locked(dsrc)
+    logger.debug(f"{was_locked} - was_locked init")
+    i = 0
+    while was_locked and await data.kv.startup_is_locked(dsrc):
+        was_locked = True
+        await sleep(1)
+        i += 1
+        if i > 15:
+            raise SourceError(f"Waited too long during startup!")
+    return was_locked is None
 
 
 def drop_create_database(config: Config):
@@ -156,8 +175,8 @@ async def initial_population(dsrc: Source, config: Config):
         await data.key.insert_key(dsrc, conn, kid2, utc_now+1, "enc")
         await data.key.insert_key(dsrc, conn, kid3, utc_now, "sig")
 
-    opaque_setup = util.keys.new_opaque_setup(0)
-    await data.opaquesetup.upsert_opaque_row(dsrc, opaque_setup)
+        opaque_setup = util.keys.new_opaque_setup(0)
+        await data.opaquesetup.insert_opaque_row(dsrc, conn, opaque_setup)
 
     fake_record_pass = f"{util.random_time_hash_hex()}{util.random_time_hash_hex()}"
     fake_pw_file = util.keys.gen_pw_file(opaque_setup.value, fake_record_pass, "1_fakerecord")

@@ -2,12 +2,12 @@ from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from apiserver.data.use import retrieve_by_id, upsert_by_id
+from apiserver.data.use import retrieve_by_id, insert
 from apiserver.define.entities import OpaqueSetup
 from apiserver.data.source import Source, DataError
 from apiserver.db import OPAQUE_SETUP_TABLE
 
-__all__ = ['get_setup', 'upsert_opaque_row']
+__all__ = ['get_setup', 'insert_opaque_row']
 
 
 async def _get_opaque_row(dsrc: Source, conn: AsyncConnection, id_int: int) -> Optional[dict]:
@@ -32,5 +32,5 @@ async def get_setup(dsrc: Source, conn: AsyncConnection) -> str:
     return (await _get_opaque_setup(dsrc, conn)).value
 
 
-async def upsert_opaque_row(dsrc: Source, opaque_setup: OpaqueSetup):
-    return await upsert_by_id(dsrc, OPAQUE_SETUP_TABLE, opaque_setup.dict())
+async def insert_opaque_row(dsrc: Source, conn: AsyncConnection, opaque_setup: OpaqueSetup):
+    return await insert(dsrc, conn, OPAQUE_SETUP_TABLE, opaque_setup.dict())

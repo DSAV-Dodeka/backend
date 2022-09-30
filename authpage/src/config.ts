@@ -1,8 +1,6 @@
-const production = false;
-
 export default
 {
-    "auth_location": production ? "" : "http://localhost:4243",
-    "client_location": production ? "" : "http://localhost:3000",
+    "auth_location": import.meta.env.AUTHPAGE_AUTH_URL,
+    "client_location": import.meta.env.AUTHPAGE_CLIENT_URL,
     "allowed_redirects": ["account/email/"]
 }

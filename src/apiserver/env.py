@@ -20,7 +20,7 @@ class ConfigError(Exception):
 # 2) Testing environment ('test'): Fully featured, automated testing environment in CI. Here it will not affect any
 # deployment but can still test against as a live system. It can load in certain secrets, like e-mail passwords. Uses a
 # dedicated config file for env.py.
-# 3) Local (dev) environment ('local'): Can be set up fully featured. No automatic loading of secrets, but can be set
+# 3) Local (dev) environment ('localdev'): Can be set up fully featured. No automatic loading of secrets, but can be set
 # locally. These secrets MUST NEVER be stored in Git. Use localenv.toml for this. Some tests with live side effects can
 # be run.
 # 4) No environment ('envless'): Can be in tests either locally or in automated CI, but not in a live environment. No

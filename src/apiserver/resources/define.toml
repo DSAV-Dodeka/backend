@@ -1,4 +1,4 @@
-allowed_envs = ["envless", "local", "test"]
+allowed_envs = ["envless", "localdev", "test"]
 
 api_root = "http://localhost:4243"
 issuer = "https://api.dsavdodeka.nl"

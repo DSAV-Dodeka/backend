@@ -1,4 +1,4 @@
-APISERVER_ENV="local"
+APISERVER_ENV="localdev"
 
 DB_USER="dodeka"
 DB_PASS="postpost"

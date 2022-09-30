@@ -117,3 +117,7 @@ Nothing may depend on a package below itself in this list
 * auth
 * routers
 * app
+
+### Important to keep in mind
+
+Always add a trailing "/" to endpoints.

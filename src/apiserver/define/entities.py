@@ -154,9 +154,9 @@ class JWK(BaseModel):
     alg: Literal["EdDSA", "A256GCM"]
     kid: str
     crv: Optional[Literal["Ed448"]]
-    k: Optional[str]
-    x: Optional[str]
-    d: Optional[str]
+    k: Optional[str]  # symmetric key base64url bytes
+    x: Optional[str]  # public asymmetric key base64url bytes
+    d: Optional[str]  # private asymmetric key base64url bytes
 
 
 class JWKSet(BaseModel):

@@ -7,9 +7,7 @@ import pytest_asyncio
 from httpx import AsyncClient
 import opaquepy as opq
 
-from apiserver.auth.crypto_util import encrypt_dict, aes_from_symmetric, decrypt_dict
-from apiserver.define.entities import SignedUp, JWKSet
-from apiserver.resources import project_path
+from apiserver.utilities.crypto import encrypt_dict, aes_from_symmetric, decrypt_dict
 from apiserver.env import load_config
 import apiserver.utilities as util
 from apiserver.auth.tokens import create_tokens, finish_tokens

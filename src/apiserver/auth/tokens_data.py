@@ -1,7 +1,6 @@
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from sqlalchemy.ext.asyncio import AsyncConnection
 
-from apiserver.auth.crypto_util import aes_from_symmetric
+from apiserver.utilities.crypto import aes_from_symmetric
 from apiserver.define import id_exp
 from apiserver.define.entities import PEMKey
 from apiserver.utilities import utc_timestamp

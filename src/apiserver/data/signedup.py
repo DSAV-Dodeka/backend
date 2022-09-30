@@ -38,9 +38,9 @@ async def signedup_exists(dsrc: Source, email: str) -> bool:
     return await exists_by_unique(dsrc, SIGNEDUP_TABLE, SU_EMAIL, email)
 
 
-async def insert_su_row(dsrc: Source, su_row: dict):
+async def insert_su_row(dsrc: Source, conn: AsyncConnection, su_row: dict):
     try:
-        result = await insert(dsrc, SIGNEDUP_TABLE, su_row)
+        result = await insert(dsrc, conn, SIGNEDUP_TABLE, su_row)
     except DbError as e:
         raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
     return result

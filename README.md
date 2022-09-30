@@ -103,3 +103,17 @@ To check if everything is working, try out the following:
 ### Dev vs production
 
 If you are in a dev environment, you can start by running `dev.py`
+
+### Import order
+
+Nothing may depend on a package below itself in this list
+
+* resources
+* define
+* define.*
+* utilities
+* db/kv
+* data
+* auth
+* routers
+* app

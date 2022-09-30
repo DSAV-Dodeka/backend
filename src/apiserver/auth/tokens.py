@@ -1,19 +1,17 @@
 import secrets
-import json
 from secrets import token_urlsafe
 import logging
 
 from cryptography.exceptions import InvalidTag, InvalidSignature, InvalidKey
-from cryptography.fernet import InvalidToken
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from pydantic import ValidationError
 import jwt
 from jwt import PyJWTError, DecodeError, InvalidSignatureError, ExpiredSignatureError, InvalidTokenError
 
-from apiserver.auth.crypto_util import encrypt_dict, decrypt_dict
 from apiserver.define import LOGGER_NAME, id_exp, access_exp, refresh_exp, grace_period, frontend_client_id, \
     backend_client_id, issuer
-from apiserver.utilities import enc_b64url, dec_b64url, dec_dict, enc_dict
+import apiserver.utilities as util
+from apiserver.utilities.crypto import encrypt_dict, decrypt_dict
 from apiserver.define.entities import SavedRefreshToken, RefreshToken, AccessToken, IdToken, IdInfo, UserData, PEMKey
 
 __all__ = ['verify_access_token', 'InvalidRefresh', 'BadVerification', 'create_tokens',
@@ -164,7 +162,7 @@ def id_access_tokens(sub, iss, aud_access, aud_id, scope, auth_time, id_nonce, i
 
 
 def encode_token_dict(token: dict):
-    return enc_b64url(enc_dict(token))
+    return util.enc_b64url(util.enc_dict(token))
 
 
 def finish_payload(token_val: dict, utc_now: int, exp: int):
@@ -183,9 +181,9 @@ def finish_encode_token(token_val: dict, utc_now: int, exp: int, key: PEMKey):
 
 
 def decode_refresh(rt: SavedRefreshToken):
-    saved_access_dict = dec_dict(dec_b64url(rt.access_value))
+    saved_access_dict = util.dec_dict(util.dec_b64url(rt.access_value))
     saved_access = AccessToken.parse_obj(saved_access_dict)
-    saved_id_token_dict = dec_dict(dec_b64url(rt.id_token_value))
+    saved_id_token_dict = util.dec_dict(util.dec_b64url(rt.id_token_value))
     saved_id_token = IdToken.parse_obj(saved_id_token_dict)
 
     return saved_access, saved_id_token

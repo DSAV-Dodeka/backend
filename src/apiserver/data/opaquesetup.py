@@ -6,7 +6,6 @@ from apiserver.data.use import retrieve_by_id, upsert_by_id
 from apiserver.define.entities import OpaqueSetup
 from apiserver.data.source import Source, DataError
 from apiserver.db import OPAQUE_SETUP_TABLE
-from apiserver.auth.key_util import new_opaque_setup
 
 __all__ = ['get_setup', 'upsert_opaque_row']
 
@@ -33,5 +32,5 @@ async def get_setup(dsrc: Source, conn: AsyncConnection) -> str:
     return (await _get_opaque_setup(dsrc, conn)).value
 
 
-async def upsert_opaque_row(dsrc: Source, opaque_row: dict):
-    return await upsert_by_id(dsrc, OPAQUE_SETUP_TABLE, opaque_row)
+async def upsert_opaque_row(dsrc: Source, opaque_setup: OpaqueSetup):
+    return await upsert_by_id(dsrc, OPAQUE_SETUP_TABLE, opaque_setup.dict())

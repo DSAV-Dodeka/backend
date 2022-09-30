@@ -75,13 +75,13 @@ class PostgresOperations(DbOperations):
 
     @classmethod
     async def retrieve_by_id(cls, conn: AsyncConnection, table: str, id_int: int) -> Optional[dict]:
-        query = text(f"SELECT * FROM {table} WHERE id = :id")
+        query = text(f"SELECT * FROM {table} WHERE id = :id;")
         res: CursorResult = await conn.execute(query, parameters={"id": id_int})
         return first_or_none(res)
 
     @classmethod
     async def retrieve_by_unique(cls, conn: AsyncConnection, table: str, unique_column: str, value) -> Optional[dict]:
-        query = text(f"SELECT * FROM {table} WHERE {unique_column} = :val")
+        query = text(f"SELECT * FROM {table} WHERE {unique_column} = :val;")
         res: CursorResult = await conn.execute(query, parameters={"val": value})
         return first_or_none(res)
 
@@ -89,13 +89,13 @@ class PostgresOperations(DbOperations):
     async def fetch_column_by_unique(cls, conn: AsyncConnection, table: str, fetch_column: str, unique_column: str,
                                      value) -> Optional[Any]:
         """ Ensure `unique_column` and `table` are never user-defined. """
-        query = text(f"SELECT {fetch_column} FROM {table} WHERE {unique_column} = :val")
+        query = text(f"SELECT {fetch_column} FROM {table} WHERE {unique_column} = :val;")
         return await conn.scalar(query, parameters={"val": value})
 
     @classmethod
     async def select_where(cls, conn: AsyncConnection, table: str, column, value) -> list[dict]:
         """ Ensure `table` is never user-defined. """
-        query = text(f"SELECT * FROM {table} WHERE {column} = :val")
+        query = text(f"SELECT * FROM {table} WHERE {column} = :val;")
         res = await conn.execute(query, parameters={"val": value})
         return all_rows(res)
 
@@ -117,7 +117,7 @@ class PostgresOperations(DbOperations):
     @classmethod
     async def exists_by_unique(cls, db: Database, table: str, unique_column: str, value) -> bool:
         """ Ensure `unique_column` and `table` are never user-defined. """
-        query = f"SELECT EXISTS (SELECT * FROM {table} WHERE {unique_column} = :val) AS \"exists\""
+        query = f"SELECT EXISTS (SELECT * FROM {table} WHERE {unique_column} = :val) AS \"exists\";"
         record = await db.fetch_one(query, values={"val": value})
         return dict(record).get('exists', False) if record is not None else False
 
@@ -158,15 +158,15 @@ class PostgresOperations(DbOperations):
         return res.rowcount
 
     @classmethod
-    async def insert(cls, db: Database, table: str, row: dict):
+    async def insert(cls, conn: AsyncConnection, table: str, row: dict) -> int:
         """ Note that while the values are safe from injection, the column names are not. Ensure the row dict
         is validated using the model and not just passed directly by the user. """
 
         row_keys, row_keys_vars, _ = _row_keys_vars_set(row)
+        query = text(f"INSERT INTO {table} ({row_keys}) VALUES ({row_keys_vars});")
 
-        query = f"INSERT INTO {table} ({row_keys}) VALUES ({row_keys_vars});"
-
-        return await execute_catch(db, query=query, values=row)
+        res: CursorResult = await conn.execute(query, parameters=row)
+        return res.rowcount
 
     @classmethod
     async def insert_return_col(cls, conn: AsyncConnection, table: str, row: dict, return_col: str) -> Any:
@@ -180,7 +180,7 @@ class PostgresOperations(DbOperations):
 
     @classmethod
     async def delete_by_id(cls, conn: AsyncConnection, table: str, id_int: int) -> int:
-        query = text(f"DELETE FROM {table} WHERE id = :id")
+        query = text(f"DELETE FROM {table} WHERE id = :id;")
         res: CursorResult = await conn.execute(query, parameters={"id": id_int})
         return res.rowcount
 
@@ -188,5 +188,5 @@ class PostgresOperations(DbOperations):
     async def delete_by_column(cls, db: Database, table: str, column: str, column_val):
         """ The column name is not safe from injections, be sure it is always defined by the server! """
 
-        query = f"DELETE FROM {table} WHERE {column} = :{column}"
+        query = f"DELETE FROM {table} WHERE {column} = :{column};"
         return await db.execute(query, values={column: column_val})

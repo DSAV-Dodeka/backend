@@ -11,12 +11,12 @@ from pytest_mock import MockerFixture
 from httpx import AsyncClient
 from fastapi import status
 
-from apiserver.auth.crypto_util import aes_from_symmetric
+from apiserver.utilities.crypto import aes_from_symmetric
 from apiserver.auth.tokens import id_info_from_ud
 from apiserver.data.user import gen_id_name
 from apiserver.define import FlowUser, AuthRequest, SavedState, SavedRegisterState, frontend_client_id
 from apiserver.env import load_config
-from apiserver.utilities import utc_timestamp, usp_hex
+from apiserver.utilities import utc_timestamp
 from apiserver.define.entities import SavedRefreshToken, UserData, User, PEMKey, A256GCMKey
 from apiserver.db.ops import DbOperations
 

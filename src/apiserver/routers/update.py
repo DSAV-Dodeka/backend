@@ -9,9 +9,8 @@ from apiserver.auth import authentication
 from apiserver.define import LOGGER_NAME, FinishRequest, UpdatePasswordRequest, ChangePasswordRequest, credentials_url, \
     ErrorResponse, SavedRegisterState, UpdatePasswordFinish, UpdateEmail, UpdateEmailCheck, ChangedEmailResponse, \
     UpdateEmailState
-import apiserver.utilities as util
 from apiserver.define.entities import User
-from apiserver.emailfn import send_email
+import apiserver.utilities as util
 import apiserver.data as data
 from apiserver.data import Source, NoDataError, DataError
 from apiserver.auth.authentication import send_register_start
@@ -30,7 +29,7 @@ def send_reset_email(background_tasks: BackgroundTasks, receiver: str, mail_pass
     }
 
     def send_lam():
-        send_email("passwordchange.html.jinja2", receiver, mail_pass, "Request for password reset", add_vars)
+        util.send_email("passwordchange.html.jinja2", receiver, mail_pass, "Request for password reset", add_vars)
 
     background_tasks.add_task(send_lam)
 
@@ -43,7 +42,7 @@ def send_change_email_email(background_tasks: BackgroundTasks, receiver: str, ma
     }
 
     def send_lam():
-        send_email("emailchange.html.jinja2", receiver, mail_pass, "Please confirm your new email", add_vars)
+        util.send_email("emailchange.html.jinja2", receiver, mail_pass, "Please confirm your new email", add_vars)
 
     background_tasks.add_task(send_lam)
 

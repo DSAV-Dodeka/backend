@@ -5,20 +5,22 @@ import redis
 from databases import Database
 
 from redis.asyncio import Redis
-from sqlalchemy.exc import DBAPIError
+from sqlalchemy import create_engine
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine
 
-from apiserver.auth.crypto_util import aes_from_symmetric, decrypt_dict, encrypt_dict
-from apiserver.auth.key_util import ed448_private_to_pem
-from apiserver.define.entities import JWKSet, JWK, A256GCMKey
-from apiserver.env import Config
+from apiserver.define.entities import JWKSet, A256GCMKey, User
+import apiserver.utilities as util
+from apiserver.utilities.crypto import aes_from_symmetric, decrypt_dict, encrypt_dict
+from apiserver.utilities.keys import ed448_private_to_pem
+import apiserver.db.model as db_model
+from apiserver.db.admin import drop_recreate_database
 from apiserver.db.ops import DbOperations
 from apiserver.db.use import PostgresOperations
+from apiserver.env import Config
 import apiserver.data as data
 
 __all__ = ['Source', 'DataError', 'Gateway', 'DbOperations', 'NoDataError']
-
-from apiserver.utilities import dec_b64url
 
 
 class SourceError(ConnectionError):
@@ -71,8 +73,8 @@ class Gateway:
             raise SourceError(f"Unable to ping Redis server! Please check if it is running.")
         try:
             async with self.engine.connect() as conn:
-                pass
-        except DBAPIError:
+                _ = conn.info
+        except SQLAlchemyError:
             raise SourceError(f"Unable to connect to DB with SQLAlchemy! Please check if it is running.")
 
     async def disconnect(self):
@@ -103,22 +105,81 @@ class Source:
     def init_gateway(self, config: Config):
         self.gateway.init_objects(config)
 
-    async def startup(self, config: Config):
+    async def startup(self, config: Config, recreate=False):
+        if recreate:
+            drop_create_database(config)
         await self.gateway.startup()
+        if recreate:
+            await initial_population(self, config)
         await load_keys(self, config)
 
     async def shutdown(self):
         await self.gateway.shutdown()
 
 
+def drop_create_database(config: Config):
+    # runtime_key = aes_from_symmetric(config.KEY_PASS)
+    db_cluster = f"{config.DB_USER}:{config.DB_PASS}@{config.DB_HOST}:{config.DB_PORT}"
+    db_url = f"{db_cluster}/{config.DB_NAME}"
+    admin_db_url = f"{db_cluster}/{config.DB_NAME_ADMIN}"
+
+    admin_engine = create_engine(
+        f"postgresql://{admin_db_url}", isolation_level="AUTOCOMMIT"
+    )
+    drop_recreate_database(admin_engine, config.DB_NAME)
+
+    sync_engine = create_engine(
+        f"postgresql://{db_url}"
+    )
+    db_model.metadata.create_all(bind=sync_engine)
+    del admin_engine
+    del sync_engine
+
+
+async def initial_population(dsrc: Source, config: Config):
+    kid1, kid2, kid3 = (util.random_time_hash_hex(short=True) for _ in range(3))
+    old_symmetric = util.keys.new_symmetric_key(kid1)
+    new_symmetric = util.keys.new_symmetric_key(kid2)
+    signing_key = util.keys.new_ed448_keypair(kid3)
+
+    jwk_set = JWKSet(keys=[old_symmetric, new_symmetric, signing_key])
+
+    # Key used to decrypt the keys stored in the database
+    runtime_key = aes_from_symmetric(config.KEY_PASS)
+
+    utc_now = util.utc_timestamp()
+
+    reencrypted_key_set = encrypt_dict(runtime_key, jwk_set.dict())
+    async with data.get_conn(dsrc) as conn:
+        await data.key.insert_jwk(dsrc, conn, reencrypted_key_set)
+        await data.key.insert_key(dsrc, conn, kid1, utc_now, "enc")
+        await data.key.insert_key(dsrc, conn, kid2, utc_now+1, "enc")
+        await data.key.insert_key(dsrc, conn, kid3, utc_now, "sig")
+
+    opaque_setup = util.keys.new_opaque_setup(0)
+    await data.opaquesetup.upsert_opaque_row(dsrc, opaque_setup)
+
+    fake_record_pass = f"{util.random_time_hash_hex()}{util.random_time_hash_hex()}"
+    fake_pw_file = util.keys.gen_pw_file(opaque_setup.value, fake_record_pass, "1_fakerecord")
+
+    async with data.get_conn(dsrc) as conn:
+        fake_user = User(id_name="fakerecord", email="fakerecord", password_file=fake_pw_file, scope="none")
+        user_id = await data.user.insert_return_user_id(dsrc, conn, fake_user)
+        assert user_id == "1_fakerecord"
+
+
 async def load_keys(dsrc: Source, config: Config):
+    # Key used to decrypt the keys stored in the database
     runtime_key = aes_from_symmetric(config.KEY_PASS)
     async with data.get_conn(dsrc) as conn:
         encrypted_key_set = await data.key.get_jwk(dsrc, conn)
         key_set_dict = decrypt_dict(runtime_key, encrypted_key_set)
         key_set: JWKSet = JWKSet.parse_obj(key_set_dict)
+        # We re-encrypt as is required when using AES encryption
         reencrypted_key_set = encrypt_dict(runtime_key, key_set_dict)
         await data.key.update_jwk(dsrc, conn, reencrypted_key_set)
+        # We get the Key IDs (kid) of the newest keys and also previous symmetric key
+        # These newest ones will be used for signing new tokens
         new_pem_kid = await data.key.get_newest_pem(dsrc, conn)
         new_symmetric_kid, old_symmetric_kid = await data.key.get_newest_symmetric(dsrc, conn)
 
@@ -127,17 +188,22 @@ async def load_keys(dsrc: Source, config: Config):
     public_keys = []
     for key in key_set.keys:
         if key.alg == "EdDSA":
-            key_private_bytes = dec_b64url(key.d)
+            key_private_bytes = util.dec_b64url(key.d)
+            # PyJWT only accepts keys in PEM format, so we convert them from the raw format we store them in
             pem_key = ed448_private_to_pem(key_private_bytes, key.kid)
             pem_keys.append(pem_key)
+            # The public keys we will store in raw format, we want to exclude the private key as we want to be able to
+            # publish these keys
             public_key_dict: dict = key.copy(exclude={'d'}).dict()
             public_keys.append(public_key_dict)
         elif key.alg == "A256GCM":
             symmetric_key = A256GCMKey(kid=key.kid, symmetric=key.k)
             symmetric_keys.append(symmetric_key)
 
+    # In the future we can publish these keys
     public_jwk_set = JWKSet(keys=public_keys)
 
+    # Store in KV for quick access
     await data.kv.store_pem_keys(dsrc, pem_keys)
     await data.kv.store_symmetric_keys(dsrc, symmetric_keys)
     await data.kv.store_jwks(dsrc, public_jwk_set)

@@ -8,18 +8,16 @@ from fastapi import APIRouter, Security, BackgroundTasks, Request
 
 import opaquepy as opq
 
-from apiserver.data.signedup import get_all_signedup
 from apiserver.define import ErrorResponse, LOGGER_NAME, signup_url, credentials_url, loc_dict
 from apiserver.define.entities import SignedUp, UserData, User
 from apiserver.define.reqres import SignupRequest, SignupConfirm, PasswordResponse, \
     RegisterRequest, FinishRequest, EmailConfirm, SavedRegisterState
 import apiserver.utilities as util
-from apiserver.auth.header import auth_header
-from apiserver.emailfn import send_email
 import apiserver.data as data
 from apiserver.data import DataError, Source, NoDataError
-from apiserver.env import Config
+from apiserver.auth.header import auth_header
 from apiserver.auth.authentication import send_register_start
+from apiserver.env import Config
 from apiserver.routers.helper import require_admin
 
 router = APIRouter()
@@ -35,7 +33,7 @@ def send_signup_email(background_tasks: BackgroundTasks, receiver: str, mail_pas
     }
 
     def send_lam():
-        send_email("confirm.html.jinja2", receiver, mail_pass, "Please confirm your email", add_vars)
+        util.send_email("confirm.html.jinja2", receiver, mail_pass, "Please confirm your email", add_vars)
 
     background_tasks.add_task(send_lam)
 
@@ -47,7 +45,7 @@ def send_register_email(background_tasks: BackgroundTasks, receiver: str, mail_p
 
     def send_lam():
         org_name = loc_dict['loc']['org_name']
-        send_email("register.html.jinja2", receiver, mail_pass, f"Welcome to {org_name}", add_vars)
+        util.send_email("register.html.jinja2", receiver, mail_pass, f"Welcome to {org_name}", add_vars)
 
     background_tasks.add_task(send_lam)
 
@@ -98,7 +96,8 @@ async def email_confirm(confirm_req: EmailConfirm, request: Request):
     signed_up = SignedUp(firstname=signup.firstname, lastname=signup.lastname, email=signup.email, phone=signup.phone)
 
     try:
-        await data.signedup.insert_su_row(dsrc, signed_up.dict())
+        async with data.get_conn(dsrc) as conn:
+            await data.signedup.insert_su_row(dsrc, conn, signed_up.dict())
     except DataError as e:
         logger.debug(e.message)
         if e.key == "unique_violation":
@@ -115,7 +114,7 @@ async def get_signedup(request: Request, authorization: str = Security(auth_head
     dsrc: Source = request.app.state.dsrc
     await require_admin(authorization, dsrc)
     async with data.get_conn(dsrc) as conn:
-        signed_up = await get_all_signedup(dsrc, conn)
+        signed_up = await data.signedup.get_all_signedup(dsrc, conn)
     return signed_up
 
 

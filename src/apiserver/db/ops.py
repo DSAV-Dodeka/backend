@@ -71,7 +71,7 @@ class DbOperations(ABC):
 
     @classmethod
     @abstractmethod
-    async def insert(cls, db: Database, table: str, row: dict):
+    async def insert(cls, conn: AsyncConnection, table: str, row: dict) -> int:
         ...
 
     @classmethod

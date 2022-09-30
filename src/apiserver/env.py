@@ -53,6 +53,8 @@ class Config(BaseModel):
     # RECOMMENDED TO LOAD AS ENVIRON
     MAIL_PASS: str
 
+    RECREATE: str = "no"
+
 
 def load_config(config_path_name: Optional[os.PathLike] = None) -> Config:
     env_config_path = os.environ.get("APISERVER_CONFIG")

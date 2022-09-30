@@ -68,8 +68,8 @@ async def update_column_by_unique(dsrc: Source, conn: AsyncConnection, table: st
     return await dsrc.gateway.ops.update_column_by_unique(conn, table, set_column, set_value, unique_column, value)
 
 
-async def insert(dsrc: Source, table: str, row: dict):
-    return await dsrc.gateway.ops.insert(db_is_init(dsrc), table, row)
+async def insert(dsrc: Source, conn: AsyncConnection, table: str, row: dict):
+    return await dsrc.gateway.ops.insert(conn, table, row)
 
 
 async def insert_return_col(dsrc: Source, conn: AsyncConnection, table: str, row: dict, return_col: str) -> Any:

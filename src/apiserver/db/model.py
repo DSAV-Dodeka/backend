@@ -54,7 +54,6 @@ keys = sqla.Table(
 
 JWK_TABLE = "jwk"
 JWK_VALUE = "encrypted_value"
-jwk_check_text = sqla.text(f"id = 1")
 
 jwk = sqla.Table(
     JWK_TABLE,
@@ -62,7 +61,7 @@ jwk = sqla.Table(
     sqla.Column(
         "id",
         sqla.Integer,
-        sqla.CheckConstraint(jwk_check_text, name="check_single"),
+        sqla.CheckConstraint("id = 1", name="check_single"),
         primary_key=True,
     ),
     sqla.Column(JWK_VALUE, sqla.String, nullable=False),

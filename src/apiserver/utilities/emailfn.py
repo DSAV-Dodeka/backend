@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Optional, Any
 
 import smtplib
 import ssl
@@ -28,13 +28,13 @@ def send_email(
     receiver_email: str,
     mail_pass: str,
     subject: str,
-    add_vars: Optional[dict] = None,
-):
+    add_vars: Optional[dict[str, Any]] = None,
+) -> None:
     """Automatically loads the localization dictionary from the filesystem, with add_vars replacing any keys and adding
     any ones that are undefined by the localization."""
     if add_vars is None:
         add_vars = dict()
-    templ_vars = {**loc_dict, **add_vars}
+    templ_vars = loc_dict | add_vars
     send_email_vars(
         template,
         template_env,
@@ -49,17 +49,17 @@ def send_email(
 
 
 def send_email_vars(
-    template: str,
+    template_name: str,
     loaded_env: Environment,
-    templ_vars: dict,
+    templ_vars: dict[str, Any],
     receiver_email: str,
     mail_pass: str,
-    from_email,
-    l_smtp_server,
-    l_smtp_port,
+    from_email: str,
+    l_smtp_server: str,
+    l_smtp_port: int,
     subject: str,
-):
-    template = loaded_env.get_template(template)
+) -> None:
+    template = loaded_env.get_template(template_name)
 
     html = template.render(templ_vars)
 

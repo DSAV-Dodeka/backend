@@ -1,15 +1,22 @@
-from typing import Coroutine, Callable
+from collections.abc import Coroutine, Callable
+from typing import Any
 
 from anyio import create_memory_object_stream, create_task_group
+from anyio.streams.memory import MemoryObjectSendStream
 
 
-async def result_task(task, send_stream):
+Awaitable = Callable[..., Coroutine]
+
+
+async def result_task(
+    task: Awaitable, send_stream: MemoryObjectSendStream[Any]
+) -> None:
     result = await task()
     await send_stream.send(result)
 
 
 # Simple tests seem to indicate these are not faster for just two DB calls
-async def gather(tasks: list[Callable[[], Coroutine]]):
+async def gather(tasks: list[Awaitable]) -> list[Any]:
     send_stream, receive_stream = create_memory_object_stream()
     task_num = len(tasks)
     results = []

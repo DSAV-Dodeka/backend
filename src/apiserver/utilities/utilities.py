@@ -1,6 +1,5 @@
+from typing import Optional, Union, Any
 import json
-from typing import Optional, Union
-
 from base64 import urlsafe_b64encode, urlsafe_b64decode
 import sys
 import time
@@ -10,7 +9,9 @@ import math
 from datetime import datetime, timezone
 
 
-def random_time_hash_hex(extra_seed: Optional[Union[bytes, str]] = None, short=False):
+def random_time_hash_hex(
+    extra_seed: Optional[Union[bytes, str]] = None, short: bool = False
+) -> str:
     """Random string (bound to timestamp and optional extra seed) to represent events/objects that must be uniquely
     identified. These should not be used for security."""
     if isinstance(extra_seed, str):
@@ -38,7 +39,7 @@ rad64_dict = urlsafe + "~"
 
 
 # urlsafe-preserving hex
-def usp_hex(unicode_str: str):
+def usp_hex(unicode_str: str) -> str:
     """It is nice to internally use an urlsafe (i.e. only using characters that don't have to be percent-encoded (e.g.
     @ becomes %40) representations of Unicode usernames that preserves some common, urlsafe characters, making it more
     readable. It might be a good idea to write accelerated Rust extensions for this in the future if it proves to be
@@ -57,7 +58,7 @@ def usp_hex(unicode_str: str):
     return anp_base64url_str
 
 
-def de_usp_hex(usp_hex_str: str):
+def de_usp_hex(usp_hex_str: str) -> str:
     """Reverse of usp_hex, returns the utf-8 string."""
     b_str = b""
 
@@ -108,7 +109,7 @@ def _rad64_dec(rad64_cs: str) -> int:
 """END LICENSED CODE"""
 
 
-def rad64_frombytes(b: bytes):
+def rad64_frombytes(b: bytes) -> str:
     return _rad64_enc(int.from_bytes(b, byteorder="big"))
 
 
@@ -126,7 +127,7 @@ def usp_hex_debin(usp_hex_bytes: bytes) -> str:
     return rad64_frombytes(usp_hex_bytes)
 
 
-def add_base64_padding(unpadded: str):
+def add_base64_padding(unpadded: str) -> str:
     while len(unpadded) % 4 != 0:
         unpadded += "="
     return unpadded
@@ -147,15 +148,18 @@ def dec_b64url(s: str) -> bytes:
     return urlsafe_b64decode(b64_bytes)
 
 
-def utc_timestamp():
+def utc_timestamp() -> int:
     return int(datetime.now(timezone.utc).timestamp())
 
 
-def enc_dict(dct: dict) -> bytes:
+def enc_dict(dct: dict[str, Any]) -> bytes:
     """Convert dict to UTF-8-encoded bytes in JSON format."""
     return json.dumps(dct).encode("utf-8")
 
 
-def dec_dict(encoded: bytes) -> dict:
+def dec_dict(encoded: bytes) -> dict[str, Any]:
     """Convert UTF-8 bytes containing JSON to a dict."""
-    return json.loads(encoded.decode("utf-8"))
+    obj = json.loads(encoded.decode("utf-8"))
+    if not isinstance(obj, dict):
+        raise ValueError("Only supports JSON objects, not primitives.")
+    return obj

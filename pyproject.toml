@@ -8,7 +8,7 @@ authors = ["Tip ten Brink <75669206+tiptenbrink@users.noreply.github.com>"]
 python = ">=3.10, <3.11"
 tomli = "2.0.1"
 fastapi = "0.85.0"
-uvicorn = {extras = ["standard"], version = "^0.18.1"}
+uvicorn = { extras = ["standard"], version = "^0.18.1" }
 asyncpg = "^0.26"
 gunicorn = "^20.1.0"
 redis = "^4.3.1"
@@ -17,10 +17,13 @@ cryptography = "38.0.1"
 pydantic = "^1.10.1"
 jinja2 = "^3.1.2"
 anyio = "^3.6.1"
-opaquepy = "^0.3.0"
-sqlalchemy = "^1.4.41"
+opaquepy = "^0.3.1"
+sqlalchemy = { extras = ["mypy"], version = "^1.4.41" }
 typing-extensions = "^4.3.0"
 psycopg2-binary = "^2.9.2"
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^2.20.0"
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
@@ -36,10 +39,41 @@ httpx = "^0.23.0"
 alembic = "^1.8.0"
 coverage = "^6.3.2"
 black = "^22.8.0"
+mypy = "^0.981"
+types-redis = "^4.3.21"
+sqlalchemy-stubs = "^0.4"
 
 [tool.black]
 target-version = ['py310']
 preview = true
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+files = ["src"]
+plugins = [
+    "sqlmypy",
+    "pydantic.mypy",
+    "sqlalchemy.ext.mypy.plugin"
+]
+exclude = [
+    "src/apiserver/db/migrations/"
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "apiserver.auth.*",
+    "apiserver.data.*",
+    "apiserver.db.*",
+    "apiserver.db.migrations.*",
+    "apiserver.kv.*",
+    "apiserver.routers.*",
+    "apiserver.app",
+    "apiserver.dev",
+    "apiserver.env",
+
+]
+ignore_errors = true
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

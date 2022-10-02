@@ -66,19 +66,9 @@ def load_config(config_path_name: Optional[os.PathLike] = None) -> Config:
         config_path = Path(config_path_name)
 
     with open(config_path, "rb") as f:
-        config_dict = tomli.load(f)
+        config = tomli.load(f)
 
     # Config will contain all variables in a dict
-    config = {
-        **config_dict,
-        **os.environ,  # override loaded values with environment variables
-    }
-
-    # try:
-    #     kv_host = config['KV_HOST']
-    #     kv_port = config['KV_PORT']
-    #     kv_password = config['KV_PASS']
-    # except KeyError as e:
-    #     raise ConfigError(f"Not all mandatory config values set in {config_path.resolve()}!") from e
+    config |= os.environ  # override loaded values with environment variables
 
     return Config.parse_obj(config)

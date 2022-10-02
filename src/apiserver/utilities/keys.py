@@ -1,5 +1,6 @@
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+import opaquepy as opq
 from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PrivateKey
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.serialization import (
     PrivateFormat,
     PublicFormat,
@@ -7,10 +8,8 @@ from cryptography.hazmat.primitives.serialization import (
     NoEncryption,
 )
 
-import opaquepy as opq
-
-from apiserver.define.entities import OpaqueSetup, TokenKey, SymmetricKey, PEMKey, JWK
-from apiserver.utilities import enc_b64url, usp_hex
+from apiserver.define.entities import OpaqueSetup, PEMKey, JWK
+from apiserver.utilities import enc_b64url
 
 
 def new_ed448_keypair(kid: str) -> JWK:

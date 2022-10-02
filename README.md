@@ -3,7 +3,7 @@
 
 **Backend framework (Server)**: Python **[FastAPI](https://github.com/tiangolo/fastapi)** server running on **uvicorn** (managed by **[gunicorn](https://github.com/benoitc/gunicorn)** in production), which uses **[uvloop](https://github.com/MagicStack/uvloop)** as its async event loop.
 
-**Frontend framework (authpage)**: **[React](https://reactjs.org/)**, using [Vite](https://vitejs.dev/).
+**Frontend framework (authpage)**: **[React](https://reactjs.org/)**, built using [Vite](https://vitejs.dev/) as a multi-page app and served statically by FastAPI.
 
 **Persistent database (DB)**: **[PostgreSQL](https://www.postgresql.org/)** relationa
 
@@ -29,6 +29,69 @@ In addition to this, we rely heavily on the following libraries:
 **Deployment**: Everything is designed to run easily inside a **[Docker](https://www.docker.com/)** container. The total package (Server, DB, KV) is recommended to be deployed using separate Docker containers using **[Docker Compose](https://docs.docker.com/compose/)**. We manage deployment from the **[DSAV-Dodeka/dodeka](https://github.com/DSAV-Dodeka/dodeka)** repository.
 
 
+## Development
+
+##### Running locally
+
+Before you can run `apiserver` locally, you must
+
+* If you want to run it locally, [install Poetry](https://python-poetry.org/docs/master/). This can be complicated as it is still a somewhat fragile tool, but it is really easy to make good virtual environments with. 
+* Then, set up your IDE with a Python 3.10 Poetry virtual environment. This step can also be complicated. The best way is to simply run `poetry update` in the /server directory. It will give you a path towards the virtualenv it created, which will contain a python executable in the /bin folder (if it doesn't, run `poetry env info`). If you point your IDE to that executable as the project interpreter, everything should work.
+  * Getting poetry to run with Python 3.10 is also not easy. What usually works is to first make sure Python 3.10 is installed on your system (for example using `pyenv`) and then running `poetry env use python3.10`.
+* Next run `poetry install`, which will also install the project. Currently the `apiserver` package is in a /src folder which is nice for test isolation, but it might confuse your IDE. In that case, find something like 'project structure' configuration and set the /src folder as a 'sources folder' (or similar, might be different in your IDE).
+* Before running, you must have the environment variable APISERVER_CONFIG set to `./devenv.toml` in order to be able to run it. This can be most easily done by editing the run configuration to always set that environment variable.
+* Now you can run the server either by just running the `dev.py` in src/apiserver or by running `poetry run s-dodeka`. The server will automatically reload if you change any files. It will tell you at which address you can access it.
+
+##### Production
+* First, build a Python environment with the dependencies installed by running: `docker build --tag dodeka/server-deps -f server-deps.Dockerfile .`
+* Next, build the project itself by running `docker build --tag dodeka/server .` in the main directory.
+* If you did not yet build the Redis server, first build the Redis server by running `./build.sh` in the /server/redis folder.
+* Be sure you have the database running with the `dodeka` network turned on, after which you can run `./deploy.sh` in /server/deployment. It works similar to the database and can be shut down using `./down.sh`. 
+
+### Configuration and import structure
+
+The first loaded module is loaded is `define/define.py`. It should be fully independent of any other modules. It determines the so-called "compiled configuration", i.e. variables you want to access easily in code without having to resort to any kind of application state. This means the variables must always be available statically, before the application is started and should be compiled into any deployment. For example, when deployed as a Docker container, these should already be included inside the container. However, they could also vary between "local development" and "production". By default, it loads the `define.toml` in the resources folder. This file is populated with values meant for local development and environment-less testing (i.e. without the database). The file should include a list of environments the variables are applicable to.
+
+Variables that are more "runtime" are loaded in by `env.py`. These are only accessible by loading application state (after startup). Using the `APISERVER_CONFIG` environment variable the path of the config file can be set. By default, it is the incomplete `env.toml` in the resources file. For a development environment, this variable should be set, with `APISERVER_ENV="localdev"` included in the `.toml` file.
+
+To prevent circular imports, no module may depend on a module below itself in this list:
+
+* resources
+* define
+* define.*
+* utilities
+* db/kv
+* env
+* data
+* auth
+* routers
+* app
+
+
+### Database migrations
+
+We can use Alembic for migrations, which allow you to programatically apply large schema changes to your database.
+
+First you need to have the Poetry environment running as described earlier and ensure the database is on as well. 
+
+* Navigate to the /server/src/apiserver/db/migrations directory.
+* From there run `poetry run alembic revision --autogenerate -m "Some message"`
+* This will generate a Python file in the migrations/versions directory, which you can view to see if everything looks good. It basically looks at the database, looks at the schema described in db/model.py and generates code to migrate to the described schema.
+* Then, you can run `poetry run alembic upgrade head`, which will apply the latest generated revision. If you now use your database viewer, the table will have hopefully appeared.
+* If there is a mismatch with the current revision, use `poetry run alembic stamp head` before the above 2 commmands.
+
+
+
+### Dev vs production
+
+If you are in a dev environment, you can start by running `dev.py`
+
+### Important to keep in mind
+
+Always add a trailing "/" to endpoints.
+
+## Background info
+
 ### Why did we choose \<x\>?
 
 #### FastAPI
@@ -52,87 +115,4 @@ Implementing good authentication/authorization for a website is hard. There are 
 
 OPAQUE is an in-development protocol that seeks to provide a permanent solution to the question of how to best store passwords and authenticate users using them. A simple hash-based solution would have been good enough, but there are many (good and bad) ways to implement this, while OPAQUE makes it much more straightforward to implement it the right way. It also provides tangible security benefits. It has also been used by big companies (for example by WhatsApp for their end-to-end encrypted backups), so it is mature enough for production use.
 
-Our implementation relies on [opaque-ke](https://github.com/novifinancial/opaque-ke), a library written in Rust. As there is no Python library, a simple wrapper for the Rust library, [opquepy](https://github.com/tiptenbrink/opaquebind/tree/main/opaquepy), was written for this project. It exposes the necessary functions for using OPAQUE and consists of very little code, making it easy to maintain.
-
-
-### Current configuration
-
-(Only tested on Linux)
-
-
-#### Server
-
-The server can be run directly from your development environment or in a Docker container in production mode.
-
-##### Setup Redis
-For persistence between requests, we use the Redis key-value database. 
-
-* First, go to /dodekabackend/server/redis
-* Run `./build.sh`. This should build the required Docker image and you only have to do this once.
-* Go to /server/dev.
-* Run `./deploy.sh`. This will make the Redis server accessible. Be sure to do this *after* setting up the PostgreSQL database.
-
-Use `./down.sh` to turn Redis off. Do this *before* shutting down the PostgreSQL database.
-
-##### Configuration and import structure
-
-* The first loaded module is loaded is `define/define.py`. It should be fully independent of any other modules. It determines the so-called "compiled configuration", i.e. app-specific configuration. Every application should have this same configuration, no matter the deploy environment. However, it might still change easily and there are good reasons to not define it in the code. It could also vary between "local development" and "production". By default, it loads the `envconfig.toml` in the resources file. This file is populated with values meant for local development and environment-less testing (i.e. without the database). However, if no runtime-flag indicating it is an "envless" environment is set during app startup, a failure will occur.
-* Variables that are more "runtime" are loaded in by `env.py`. Using `APISERVER_CONFIG` the path of the config file can be set. By default it is the incomplete `env.toml`. For a development environment, this variable should be set, with `APISERVER_ENV="envless"` included.
-
-##### Development
-* If you want to run it locally, [install Poetry](https://python-poetry.org/docs/master/). This can be complicated as it is still a somewhat fragile tool, but it is really easy to make good virtual environments with. 
-* Then, set up your IDE with a Python 3.9 Poetry virtual environment. This step can also be complicated. The best way is to simply run `poetry update` in the /server directory. It will give you a path towards the virtualenv it created, which will contain a python executable in the /bin folder. If you point your IDE to that executable as the project interpreter, everything should work.
-* Next run `poetry install`, which will also install the project. Currently the `apiserver` package is in a /src folder which is nice for test isolation, but it might confuse your IDE. In that case, find something like 'project structure' configuration and set the /src folder as a 'sources folder' or similar.
-* Before running, you must have the environment variable APISERVER_CONFIG set to `./dev.config.toml` in order to be able to run it. This can be most easily done by editing the run configuration in an IDE as PyCharm.
-* Now you can run the server either by just running the `dev.py` in src/apiserver or by running `poetry run s-dodeka`. The server will automatically reload if you change any files. It will tell you at which address you can access it.
-
-##### Production
-* First, build a Python environment with the dependencies installed by running: `docker build --tag dodeka/server-deps -f server-deps.Dockerfile .`
-* Next, build the project itself by running `docker build --tag dodeka/server .` in the main directory.
-* If you did not yet build the Redis server, first build the Redis server by running `./build.sh` in the /server/redis folder.
-* Be sure you have the database running with the `dodeka` network turned on, after which you can run `./deploy.sh` in /server/deployment. It works similar to the database and can be shut down using `./down.sh`. 
-
-### Migrations
-
-We can use Alembic for migrations, which allow you to programatically apply large schema changes to your database.
-
-First you need to have the Poetry environment running as described earlier and ensure the database is on as well. 
-
-* Navigate to the /server/src/apiserver/db/migrations directory.
-* From there run `poetry run alembic revision --autogenerate -m "Some message"`
-* This will generate a Python file in the migrations/versions directory, which you can view to see if everything looks good. It basically looks at the database, looks at the schema described in db/model.py and generates code to migrate to the described schema.
-* Then, you can run `poetry run alembic upgrade head`, which will apply the latest generated revision. If you now use your database viewer, the table will have hopefully appeared.
-* If there is a mismatch with the current revision, use `poetry run alembic stamp head` before the above 2 commmands.
-
-To check if everything is working, try out the following:
-
-* Navigate to http://localhost:4242/user_write/126?name=YOURNAME&last_name=YOURLASTNAME (replace YOURNAME and YOURLASTNAME with what you want)
-* Check if it is indeed retrievable by going to http://localhost:4242/users/126
-
-
-### Startup and shutdown flow
-
-* Start the DB
-
-
-### Dev vs production
-
-If you are in a dev environment, you can start by running `dev.py`
-
-### Import order
-
-Nothing may depend on a package below itself in this list
-
-* resources
-* define
-* define.*
-* utilities
-* db/kv
-* data
-* auth
-* routers
-* app
-
-### Important to keep in mind
-
-Always add a trailing "/" to endpoints.
+Our implementation relies on [opaque-ke](https://github.com/novifinancial/opaque-ke), a library written in Rust. As there is no Python library, a simple wrapper for the Rust library, [opquepy](https://github.com/tiptenbrink/opaquebind/tree/main/opaquepy), was written for this project. It exposes the necessary functions for using OPAQUE and consists of very little code, making it easy to maintain. The wrapper is part of a library that also includes a WebAssembly wrapper, which allows it to be called from JavaScript in the browser.

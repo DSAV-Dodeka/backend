@@ -1,49 +1,64 @@
 # Backend and database
 
 
-**Main backend framework**: *[FastAPI](https://github.com/tiangolo/fastapi)* running on *[uvicorn](https://github.com/encode/uvicorn) (uvloop)* inside a *[Docker](https://www.docker.com/)* container.
+**Backend framework (Server)**: Python **[FastAPI](https://github.com/tiangolo/fastapi)** server running on **uvicorn** (managed by **[gunicorn](https://github.com/benoitc/gunicorn)** in production), which uses **[uvloop](https://github.com/MagicStack/uvloop)** as its async event loop.
 
-We use the async *[Databases](https://github.com/encode/databases)* for database connections with *[Alembic](https://github.com/sqlalchemy/alembic)* as a migration tool.
+**Frontend framework (authpage)**: **[React](https://reactjs.org/)**, using [Vite](https://vitejs.dev/).
 
-**Database**: *[PostgreSQL](https://www.postgresql.org/)* using a *Docker* volume running inside a *Docker* container.
+**Persistent database (DB)**: **[PostgreSQL](https://www.postgresql.org/)** relationa
+
+**In-memory key-value store (KV)**: **[Redis](https://redis.io/)**
+
+We use the async engine of **[SQLAlchemy](https://github.com/sqlalchemy/sqlalchemy)** (only Core, no ORM, we write SQL manually) as a frontend for **[asyncpg](https://github.com/MagicStack/asyncpg)** for all DB operations. **[Alembic](https://github.com/sqlalchemy/alembic)** is used as a migration tool.
+
+The async component of the **[redis-py](https://github.com/redis/redis-py)** library is used as our KV client.
+
+This is an authorization server, authentication server and web app backend API in one. This model is not recommended for large-scale setups but works well for our purposes. It has been designed in a way that makes the components easy to separate.
+
+Client authentication uses the [OPAQUE protocol](https://datatracker.ietf.org/doc/draft-irtf-cfrg-opaque/) (password-authentication key exchange), which protects against agains pre-computation attacks upon server compromise. This makes passwords extra safe in a way that they never leave the client.
+
+Authorization is performed using [OAuth 2.1](https://datatracker.ietf.org/doc/draft-ietf-oauth-v2-1/), with much of [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html) also implemented to make it appropriate for authenticating users.
+
+In addition to this, we rely heavily on the following libraries:
+* [PyJWT](https://github.com/jpadilla/pyjwt) for signing and parsing JSON web tokens.
+* [cryptography](https://github.com/pyca/cryptography) for many cryptographic primitives, primarily for encrypting refresh tokens and handling the keys used for signing the JWTs.
+* [pydantic](https://github.com/pydantic/pydantic) for modeling and parsing all data throughout the application.
+
+
+
+**Deployment**: Everything is designed to run easily inside a **[Docker](https://www.docker.com/)** container. The total package (Server, DB, KV) is recommended to be deployed using separate Docker containers using **[Docker Compose](https://docs.docker.com/compose/)**. We manage deployment from the **[DSAV-Dodeka/dodeka](https://github.com/DSAV-Dodeka/dodeka)** repository.
+
+
+### Why did we choose \<x\>?
+
+#### FastAPI
+
+FastAPI was selected because of its modern features reliant on Python typing, which greatly simplify development. FastAPI is built on [Starlette](https://github.com/encode/starlette), a lightweight async web server framework. We wanted a lightweight framework that is not too opinionated, as we wanted full control over as many components as possible. Flask would have been another option, but the heavy integration of typing in FastAPI made us choose it instead. Of course, there are also many other options outside the Python ecosystem. We chose to use Python simply because it is very well-known among university students.
+
+
+#### Redis and PostgreSQL
+
+PostgreSQL and Redis were selected simply by their popularity and open-source status. They have the most libraries built for them, have a large feature set and are widely supported. We chose a relational database because we do not need massive scaling and having relational constraints simplifies keeping all data in sync. For Redis, we use the [RedisJSON](https://github.com/RedisJSON/RedisJSON) extension module to greatly simplify temporarily storing dictionary-like datastructures for storing state across requests. Since there are a great many specific data types that need to be persisted, and they do not have any interdependency, this is much easier to do in an unstructured key-value store like Redis. It is also much faster than having to do this all in a structured, relational database. Note that all DB and KV accesses are heavily abstracted, the underlying queries could easily be re-implemented in other database systems if necessary.
+
+We went all-in on async, expecting database and IO calls to make up the majority of response times. Using async, other waiting requests can be handled in the mean-time.
+
+
+#### OAuth
+
+Implementing good authentication/authorization for a website is hard. There are many mistakes to be made. However, many available libraries are very opinionated and hard to hook in to. Furthermore, the options become qutie limited when there is approximately no budget. There are some self-hosted solutions, but getting the configuration right can be very tricky and none were found that served our needs. As a result, we went for our own solution, but built using well-regarded web standards to ensure there are no security holes. OAuth is used by every major website nowadays, so the choice was easy. 
+
+
+#### OPAQUE
+
+OPAQUE is an in-development protocol that seeks to provide a permanent solution to the question of how to best store passwords and authenticate users using them. A simple hash-based solution would have been good enough, but there are many (good and bad) ways to implement this, while OPAQUE makes it much more straightforward to implement it the right way. It also provides tangible security benefits. It has also been used by big companies (for example by WhatsApp for their end-to-end encrypted backups), so it is mature enough for production use.
+
+Our implementation relies on [opaque-ke](https://github.com/novifinancial/opaque-ke), a library written in Rust. As there is no Python library, a simple wrapper for the Rust library, [opquepy](https://github.com/tiptenbrink/opaquebind/tree/main/opaquepy), was written for this project. It exposes the necessary functions for using OPAQUE and consists of very little code, making it easy to maintain.
+
 
 ### Current configuration
 
 (Only tested on Linux)
 
-* Checkout the DSAV-Dodeka/dodekabackend repository, which contains a /server and /db directory.
-
-#### Database
-The database is always run from a container. We use the official [PostgreSQL 14 container](https://hub.docker.com/_/postgres/) for the entire runtime.
-
-Requirements:
-* [Docker Engine](https://docs.docker.com/engine/install/)
-* [Docker Compose V2](https://docs.docker.com/compose/cli-command/)
-
-It it is recommended to use some kind of IDE to easily view the database, for example [JetBrains](https://www.jetbrains.com/community/education/#students) DataGrip (which you can get for free with TU Delft e-mail account)
-
-* Checkout the DSAV-Dodeka/dodekabackend repository.
-* Go into the /db folder.
-* Run `./build.sh`. Only do this once.
-* Go into the /db/deployment folder.
-* Run `./deploy.sh`.
-
-You now have a PostgreSQL server running with the configuration as described in the .env.deploy and .env.db files. You can access it at postgresql://{POSTGRESS_USER}:{POSTGRES_PASSWORD}@{HOST}:{PORT}/{POSTGRES_USER} (based on the environment variable files). If you are in a container on the network defined in the `docker-compose.yml`, {HOST}:{PORT} is {container name}:{PostgreSQL port=5432}. If you are on the host, it is localhost:{HOST_PORT}. Currently: postgresql://dodeka:dodeka@localhost:3141/dodeka
-
-You can turn it off using `./down.sh`.
-
-##### What is going on behind the scenes?
-
-Most files have comments explaining what everything is. 
-
-* `./build.sh` simply (for now, at least) pulls the PostgreSQL container and names it dodeka/postgres.
-* `./deploy.sh` loads a bunch of configuration files and then runs `docker compose up`.
-
-Take a look at the `docker-compose.yml`, for the set up. In essence, it just runs the container, uses a host directory for all the database files (so it is persisted across runs) and runs on a network so that other containers can access it.
-
-##### Barman backup
-
-//TODO
 
 #### Server
 

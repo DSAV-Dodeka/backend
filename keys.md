@@ -1,6 +1,6 @@
 # Key rotation
 
-Key rotation is not a trivial problem.
+Key management and rotation is not a trivial problem.
 
 https://datatracker.ietf.org/doc/html/rfc7517#appendix-C.3
 https://cryptography.io/en/latest/hazmat/primitives/asymmetric/serialization/#serialization-encodings

@@ -26,7 +26,7 @@ def decrypt_dict(aesgcm: AESGCM, b64url_crypt_dict: str) -> dict:
 
 
 def aes_from_symmetric(symmetric_key: str) -> AESGCM:
-    """ Symmetric_key is a base64url encoded AES-GCM key. """
+    """Symmetric_key is a base64url encoded AES-GCM key."""
     # We store it unpadded (to match convention of not storing padding throughout the DB)
     symmetric_key_bytes = dec_b64url(symmetric_key)
     # We initialize an AES-GCM key class that will be used for encryption/decryption

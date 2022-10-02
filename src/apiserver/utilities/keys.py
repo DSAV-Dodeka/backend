@@ -1,6 +1,11 @@
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PrivateKey
-from cryptography.hazmat.primitives.serialization import PrivateFormat, PublicFormat, Encoding, NoEncryption
+from cryptography.hazmat.primitives.serialization import (
+    PrivateFormat,
+    PublicFormat,
+    Encoding,
+    NoEncryption,
+)
 
 import opaquepy as opq
 
@@ -13,16 +18,27 @@ def new_ed448_keypair(kid: str) -> JWK:
     d_bytes = private_key.private_bytes(Encoding.Raw, PrivateFormat.Raw, NoEncryption())
     x_bytes = private_key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
 
-    return JWK(kty="okp", use="sig", alg="EdDSA", x=enc_b64url(x_bytes), d=enc_b64url(d_bytes), kid=kid)
+    return JWK(
+        kty="okp",
+        use="sig",
+        alg="EdDSA",
+        x=enc_b64url(x_bytes),
+        d=enc_b64url(d_bytes),
+        kid=kid,
+    )
 
 
 def ed448_private_to_pem(private_bytes: bytes, kid: str) -> PEMKey:
     private_key = Ed448PrivateKey.from_private_bytes(private_bytes)
 
-    private = private_key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()).decode(
-        encoding='utf-8')
-    public = private_key.public_key().public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo).decode(
-        encoding="utf-8")
+    private = private_key.private_bytes(
+        Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()
+    ).decode(encoding="utf-8")
+    public = (
+        private_key.public_key()
+        .public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
+        .decode(encoding="utf-8")
+    )
 
     return PEMKey(kid=kid, public=public, private=private)
 

@@ -12,7 +12,4 @@ async def get_profile(request: Request, authorization: str = Security(auth_heade
     dsrc: Source = request.app.state.dsrc
     acc = await handle_auth(authorization, dsrc)
 
-    return {
-        "username": acc.sub,
-        "scope": acc.scope
-    }
+    return {"username": acc.sub, "scope": acc.scope}

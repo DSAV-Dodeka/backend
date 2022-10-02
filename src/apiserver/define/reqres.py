@@ -9,26 +9,26 @@ from apiserver.define import frontend_client_id, valid_redirects
 
 
 class ErrorResponse(Exception):
-    """ Exception response type that conforms to standard OAuth 2.0 error response in JSON form. """
-    def __init__(self, status_code: int, err_type: str, err_desc: str, debug_key: str = None):
+    """Exception response type that conforms to standard OAuth 2.0 error response in JSON form.
+    """
+
+    def __init__(
+        self, status_code: int, err_type: str, err_desc: str, debug_key: str = None
+    ):
         self.status_code = status_code
         self.err_type = err_type
         self.err_desc = err_desc
         self.debug_key = debug_key
 
 
-def error_response_return(err_status_code: int, err_type: str, err_desc: str, err_debug_key: str = None):
-    content = {
-        "error": err_type,
-        "error_description": err_desc
-    }
+def error_response_return(
+    err_status_code: int, err_type: str, err_desc: str, err_debug_key: str = None
+):
+    content = {"error": err_type, "error_description": err_desc}
     if err_debug_key is not None:
         content["debug_key"] = err_debug_key
 
-    return JSONResponse(
-        status_code=err_status_code,
-        content=content
-    )
+    return JSONResponse(status_code=err_status_code, content=content)
 
 
 def error_response_handler(request: Request, e: ErrorResponse):
@@ -44,40 +44,40 @@ class AuthRequest(BaseModel):
     code_challenge_method: str
     nonce: str
 
-    @validator('response_type')
+    @validator("response_type")
     def check_type(cls, v):
         assert v == "code", "'response_type' must be 'code'"
         return v
 
-    @validator('client_id')
+    @validator("client_id")
     def check_client(cls, v):
         assert v == frontend_client_id, "Unrecognized client ID!"
         return v
 
-    @validator('redirect_uri')
+    @validator("redirect_uri")
     def check_redirect(cls, v):
         assert v in valid_redirects, "Unrecognized redirect!"
         return v
 
-    @validator('state')
+    @validator("state")
     def check_state(cls, v):
         assert len(v) < 100, "State must not be too long!"
         return v
 
     # possibly replace for performance
-    @validator('code_challenge')
+    @validator("code_challenge")
     def check_challenge(cls, v: str):
         assert 128 >= len(v) >= 43, "Length must be 128 >= len >= 43!"
         for c in v:
             assert c.isalnum() or c in "-._~", "Invalid character in challenge!"
         return v
 
-    @validator('code_challenge_method')
+    @validator("code_challenge_method")
     def check_method(cls, v: str):
         assert v == "S256", "Only S256 is supported!"
         return v
 
-    @validator('nonce')
+    @validator("nonce")
     def check_nonce(cls, v: str):
         assert len(v) < 100, "Nonce must not be too long!"
         return v
@@ -89,6 +89,7 @@ class PasswordRequest(BaseModel):
     :var client_request: serialized (base64url-encoded) opaque-ke RegistrationUpload using the same cipher suite as the
         backend server
     """
+
     email: str
     client_request: str
 

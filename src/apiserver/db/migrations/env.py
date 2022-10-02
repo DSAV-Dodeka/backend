@@ -16,7 +16,7 @@ config = context.config
 api_config = load_config(project_path.joinpath("devenv.toml"))
 db_cluster = f"postgresql://{api_config.DB_USER}:{api_config.DB_PASS}@{api_config.DB_HOST}:{api_config.DB_PORT}"
 db_url = f"{db_cluster}/{api_config.DB_NAME}"
-config.set_main_option('sqlalchemy.url', db_url)
+config.set_main_option("sqlalchemy.url", db_url)
 
 
 # Interpret the config file for Python logging.
@@ -73,9 +73,7 @@ def run_migrations_online():
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

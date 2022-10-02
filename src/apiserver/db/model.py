@@ -2,11 +2,11 @@ import sqlalchemy as sqla
 
 # Helps name constraints
 convention = {
-  "ix": 'ix_%(column_0_label)s',
-  "uq": "uq_%(table_name)s_%(column_0_name)s",
-  "ck": "ck_%(table_name)s_%(constraint_name)s",
-  "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
-  "pk": "pk_%(table_name)s"
+    "ix": "ix_%(column_0_label)s",
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s",
 }
 
 metadata = sqla.MetaData(naming_convention=convention)
@@ -25,11 +25,19 @@ users = sqla.Table(
     # binary int of usp_hex
     sqla.Column("id", sqla.Integer, primary_key=True),
     sqla.Column("id_name", sqla.String, nullable=False),
-    sqla.Column(USER_ID, sqla.String(length=150), sqla.Computed(compute_text), unique=True, nullable=False,
-                index=True),
-    sqla.Column(USER_EMAIL, sqla.String(length=255), unique=True, nullable=False, index=True),
+    sqla.Column(
+        USER_ID,
+        sqla.String(length=150),
+        sqla.Computed(compute_text),
+        unique=True,
+        nullable=False,
+        index=True,
+    ),
+    sqla.Column(
+        USER_EMAIL, sqla.String(length=255), unique=True, nullable=False, index=True
+    ),
     sqla.Column(PASSWORD, sqla.String(length=500)),
-    sqla.Column(SCOPES, sqla.String(length=200), nullable=False)
+    sqla.Column(SCOPES, sqla.String(length=200), nullable=False),
 )
 
 KEY_TABLE = "keys"
@@ -51,7 +59,12 @@ jwk_check_text = sqla.text(f"id = 1")
 jwk = sqla.Table(
     JWK_TABLE,
     metadata,
-    sqla.Column("id", sqla.Integer, sqla.CheckConstraint(jwk_check_text, name='check_single'), primary_key=True),
+    sqla.Column(
+        "id",
+        sqla.Integer,
+        sqla.CheckConstraint(jwk_check_text, name="check_single"),
+        primary_key=True,
+    ),
     sqla.Column(JWK_VALUE, sqla.String, nullable=False),
 )
 
@@ -62,7 +75,7 @@ opaque_setup = sqla.Table(
     OPAQUE_SETUP_TABLE,
     metadata,
     sqla.Column("id", sqla.Integer, primary_key=True),
-    sqla.Column(OPAQUE_VALUE, sqla.String(length=300), nullable=False)
+    sqla.Column(OPAQUE_VALUE, sqla.String(length=300), nullable=False),
 )
 
 REFRESH_TOKEN_TABLE = "refreshtokens"
@@ -76,15 +89,18 @@ refreshtokens = sqla.Table(
     REFRESH_TOKEN_TABLE,
     metadata,
     sqla.Column("id", sqla.Integer, primary_key=True),
-    sqla.Column(USER_ID, sqla.String(length=150), sqla.ForeignKey(f"{USER_TABLE}.{USER_ID}",
-                                                                  ondelete="CASCADE"),
-                nullable=False),
+    sqla.Column(
+        USER_ID,
+        sqla.String(length=150),
+        sqla.ForeignKey(f"{USER_TABLE}.{USER_ID}", ondelete="CASCADE"),
+        nullable=False,
+    ),
     sqla.Column(FAMILY_ID, sqla.String(length=200), nullable=False),
     sqla.Column(ACCESS_VALUE, sqla.String(length=1000), nullable=False),
     sqla.Column(ID_TOKEN_VALUE, sqla.String(length=1000), nullable=False),
     sqla.Column(EXPIRATION, sqla.Integer, nullable=False),
     sqla.Column(ISSUED_AT, sqla.Integer, nullable=False),
-    sqla.Column(NONCE, sqla.String(length=200))
+    sqla.Column(NONCE, sqla.String(length=200)),
 )
 
 SIGNEDUP_TABLE = "signedup"
@@ -119,21 +135,30 @@ USER_REGISTERED = "registered"
 userdata = sqla.Table(
     USERDATA_TABLE,
     metadata,
-    sqla.Column(USER_ID, sqla.String(length=150),
-                sqla.ForeignKey(f"{USER_TABLE}.{USER_ID}", ondelete="CASCADE"),
-                primary_key=True),
+    sqla.Column(
+        USER_ID,
+        sqla.String(length=150),
+        sqla.ForeignKey(f"{USER_TABLE}.{USER_ID}", ondelete="CASCADE"),
+        primary_key=True,
+    ),
     sqla.Column(UD_ACTIVE, sqla.Boolean, nullable=False),
     sqla.Column(UD_FIRSTNAME, sqla.String(length=100), nullable=False),
     sqla.Column(UD_LASTNAME, sqla.String(length=100), nullable=False),
     sqla.Column(UD_CALLNAME, sqla.String(length=100)),
     sqla.Column(UD_PHONE, sqla.String(length=15)),
-    sqla.Column(UD_EMAIL, sqla.String(length=255), sqla.ForeignKey(f"{USER_TABLE}.{USER_EMAIL}",
-                                                                   ondelete="CASCADE", onupdate="CASCADE"),
-                unique=True, nullable=False),
+    sqla.Column(
+        UD_EMAIL,
+        sqla.String(length=255),
+        sqla.ForeignKey(
+            f"{USER_TABLE}.{USER_EMAIL}", ondelete="CASCADE", onupdate="CASCADE"
+        ),
+        unique=True,
+        nullable=False,
+    ),
     sqla.Column(AV40_ID, sqla.Integer),
     sqla.Column(JOINED, sqla.Date),
     sqla.Column(BIRTHDATE, sqla.Date, nullable=False),
     sqla.Column(REGISTER_ID, sqla.String(length=100), unique=True),
     sqla.Column(EDUCATION_INSTITUTION, sqla.String(length=100)),
-    sqla.Column(USER_REGISTERED, sqla.Boolean, nullable=False)
+    sqla.Column(USER_REGISTERED, sqla.Boolean, nullable=False),
 )

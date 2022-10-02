@@ -13,9 +13,16 @@ from fastapi.exceptions import RequestValidationError
 # in the app state
 # In most cases this is where all environment variables and other configuration is loaded
 
-from apiserver.define import res_path, ErrorResponse, error_response_handler, LOGGER_NAME, allowed_envs, \
-    error_response_return
+from apiserver.define import (
+    res_path,
+    ErrorResponse,
+    error_response_handler,
+    LOGGER_NAME,
+    allowed_envs,
+    error_response_return,
+)
 from apiserver.env import load_config, Config
+
 # Import types separately to make it clear in what line the module is first loaded and its top-level run
 from apiserver.data import Source
 
@@ -32,7 +39,9 @@ def init_logging(logger_name: str, log_level: int):
     logger_init.setLevel(log_level)
     handler = logging.StreamHandler()
     log_format = "%(levelprefix)s %(asctime)s | %(message)s"
-    formatter = uvicorn.logging.DefaultFormatter(log_format, datefmt="%Y-%m-%d %H:%M:%S")
+    formatter = uvicorn.logging.DefaultFormatter(
+        log_format, datefmt="%Y-%m-%d %H:%M:%S"
+    )
     handler.setFormatter(formatter)
     logger_init.addHandler(handler)
     return logger_init
@@ -44,8 +53,13 @@ def create_app() -> tuple[FastAPI, Logger]:
         "*",
     ]
     routes = [
-        Mount('/credentials', app=StaticFiles(directory=res_path.joinpath("static/credentials"), html=True),
-              name="credentials")
+        Mount(
+            "/credentials",
+            app=StaticFiles(
+                directory=res_path.joinpath("static/credentials"), html=True
+            ),
+            name="credentials",
+        )
     ]
     new_app = FastAPI(routes=routes)
     new_app.include_router(basic.router)
@@ -53,8 +67,12 @@ def create_app() -> tuple[FastAPI, Logger]:
     new_app.include_router(profile.router)
     new_app.include_router(onboard.router)
     new_app.include_router(update.router)
-    new_app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=['*'],
-                           allow_headers=['Authorization'])
+    new_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_methods=["*"],
+        allow_headers=["Authorization"],
+    )
     new_app.add_exception_handler(ErrorResponse, handler=error_response_handler)
     # TODO change logger behavior in tests
     new_logger = init_logging(LOGGER_NAME, logging.DEBUG)
@@ -79,6 +97,7 @@ def safe_startup(this_app: FastAPI, dsrc_inst: Source, config: Config):
 
 # We use the functions below, so we can also manually call them in tests
 
+
 async def app_startup(dsrc_inst: Source):
     # Only startup events that do not work in all environments or require other processes to run belong here
     # Safe startup events with variables that depend on the environment, but should always be run, can be included in
@@ -86,9 +105,11 @@ async def app_startup(dsrc_inst: Source):
     # Safe startup events that do not depend on the environment, can be included in the 'create_app()' above
     config = load_config()
     if config.APISERVER_ENV not in allowed_envs:
-        raise RuntimeError("Runtime environment (env.toml) does not correspond to compiled environment (define.toml)! "
-                           "Ensure defined variables are appropriate for the runtime environment before changing the "
-                           "environment!")
+        raise RuntimeError(
+            "Runtime environment (env.toml) does not correspond to compiled environment"
+            " (define.toml)! Ensure defined variables are appropriate for the runtime"
+            " environment before changing the environment!"
+        )
     safe_startup(app, dsrc_inst, config)
     # Db connections, etc.
     do_recreate = config.RECREATE == "yes"
@@ -100,6 +121,7 @@ async def app_shutdown(dsrc_inst: Source):
 
 
 # Hooks defined by FastAPI to run on startup and shutdown
+
 
 @app.on_event("startup")
 async def startup():
@@ -120,4 +142,6 @@ def validation_exception_handler(request, exc: RequestValidationError):
     # Also show debug if there is an error in the request
     exc_str = str(exc)
     logger.debug(str(exc))
-    return error_response_return(err_status_code=400, err_type="bad_request_validation", err_desc=exc_str)
+    return error_response_return(
+        err_status_code=400, err_type="bad_request_validation", err_desc=exc_str
+    )

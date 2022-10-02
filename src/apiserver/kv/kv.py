@@ -1,11 +1,19 @@
-from typing import Any, Optional, Union, overload
+from typing import Any, Optional, Union
 
 from redis.asyncio import Redis
 from redis.exceptions import ResponseError
 
-__all__ = ['store_json', 'get_json', 'store_kv', 'get_kv', 'pop_json', 'store_json_perm', 'store_json_multi']
+__all__ = [
+    "store_json",
+    "get_json",
+    "store_kv",
+    "get_kv",
+    "pop_json",
+    "store_json_perm",
+    "store_json_multi",
+]
 
-JsonType = Union[str, int, float, bool, None, dict[str, 'JsonType'], list['JsonType']]
+JsonType = Union[str, int, float, bool, None, dict[str, "JsonType"], list["JsonType"]]
 
 
 async def store_json(kv: Redis, key: str, json, expire: int, path: str = "."):
@@ -16,8 +24,8 @@ async def store_json(kv: Redis, key: str, json, expire: int, path: str = "."):
 
 
 async def get_json(kv: Redis, key: str, path: str = ".") -> JsonType:
-    """ '.' is the root path. Getting nested objects is as simple as passing '.first.deep' to set the JSON object at the
-         key 'deep' within the top-level 'first' JSON object. """
+    """'.' is the root path. Getting nested objects is as simple as passing '.first.deep' to set the JSON object at the
+    key 'deep' within the top-level 'first' JSON object."""
     try:
         return await kv.json().get(key, path)
     except ResponseError:
@@ -26,8 +34,8 @@ async def get_json(kv: Redis, key: str, path: str = ".") -> JsonType:
 
 
 async def store_json_perm(kv: Redis, key: str, json, path: str = "."):
-    """ '.' is the root path. Getting nested objects is as simple as passing '.first.deep' to set the JSON object at the
-     key 'deep' within the top-level 'first' JSON object. """
+    """'.' is the root path. Getting nested objects is as simple as passing '.first.deep' to set the JSON object at the
+    key 'deep' within the top-level 'first' JSON object."""
     await kv.json().set(key, path, json)
 
 

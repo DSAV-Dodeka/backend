@@ -1,13 +1,28 @@
 from typing import Optional
 
 from redis.asyncio import Redis
-from apiserver.define import email_expiration
-from apiserver.define.entities import PEMKey, JWK, A256GCMKey, JWKSet
-from apiserver.define.reqres import FlowUser, AuthRequest, SavedState, SavedRegisterState, SignupRequest, \
-    UpdateEmailState
-from apiserver.data.source import NoDataError
+
 from apiserver.data import Source, DataError
-from apiserver.kv import store_json, get_json, get_kv, store_kv, pop_json, store_json_perm, store_json_multi
+from apiserver.data.source import NoDataError
+from apiserver.define import email_expiration
+from apiserver.define.entities import PEMKey, A256GCMKey, JWKSet
+from apiserver.define.reqres import (
+    FlowUser,
+    AuthRequest,
+    SavedState,
+    SavedRegisterState,
+    SignupRequest,
+    UpdateEmailState,
+)
+from apiserver.kv import (
+    store_json,
+    get_json,
+    get_kv,
+    store_kv,
+    pop_json,
+    store_json_perm,
+    store_json_multi,
+)
 from apiserver.kv.kv import store_kv_perm
 
 
@@ -28,11 +43,15 @@ async def pop_flow_user(dsrc: Source, authorization_code: str) -> FlowUser:
 async def get_auth_request(dsrc: Source, flow_id: str) -> AuthRequest:
     auth_req_dict: dict = await get_json(kv_is_init(dsrc), flow_id)
     if auth_req_dict is None:
-        raise NoDataError("Auth request does not exist or expired.", "auth_request_empty")
+        raise NoDataError(
+            "Auth request does not exist or expired.", "auth_request_empty"
+        )
     return AuthRequest.parse_obj(auth_req_dict)
 
 
-async def store_auth_register_state(dsrc: Source, auth_id: str, state: SavedRegisterState):
+async def store_auth_register_state(
+    dsrc: Source, auth_id: str, state: SavedRegisterState
+):
     await store_json(kv_is_init(dsrc), auth_id, state.dict(), expire=1000)
 
 
@@ -62,25 +81,35 @@ async def store_auth_request(dsrc: Source, flow_id: str, auth_request: AuthReque
     await store_json(kv_is_init(dsrc), flow_id, auth_request.dict(), expire=1000)
 
 
-async def store_email_confirmation(dsrc: Source, confirm_id: str, signup: SignupRequest):
-    await store_json(kv_is_init(dsrc), confirm_id, signup.dict(), expire=email_expiration)
+async def store_email_confirmation(
+    dsrc: Source, confirm_id: str, signup: SignupRequest
+):
+    await store_json(
+        kv_is_init(dsrc), confirm_id, signup.dict(), expire=email_expiration
+    )
 
 
 async def get_email_confirmation(dsrc: Source, confirm_id: str) -> SignupRequest:
     signup_dict: dict = await get_json(kv_is_init(dsrc), confirm_id)
     if signup_dict is None:
-        raise NoDataError("Confirmation ID does not exist or expired.", "saved_confirm_empty")
+        raise NoDataError(
+            "Confirmation ID does not exist or expired.", "saved_confirm_empty"
+        )
     return SignupRequest.parse_obj(signup_dict)
 
 
-async def store_update_email(dsrc: Source, flow_id: str, update_email: UpdateEmailState):
+async def store_update_email(
+    dsrc: Source, flow_id: str, update_email: UpdateEmailState
+):
     await store_json(kv_is_init(dsrc), flow_id, update_email.dict(), expire=1000)
 
 
 async def get_update_email(dsrc: Source, flow_id: str) -> UpdateEmailState:
     email_dict: dict = await pop_json(kv_is_init(dsrc), flow_id)
     if email_dict is None:
-        raise NoDataError("Flow ID does not exist or expired.", "saved_email_update_empty")
+        raise NoDataError(
+            "Flow ID does not exist or expired.", "saved_email_update_empty"
+        )
     return UpdateEmailState.parse_obj(email_dict)
 
 
@@ -94,7 +123,9 @@ async def store_string(dsrc: Source, key: str, value: str, expire: int = 1000):
 async def get_string(dsrc: Source, key: str) -> str:
     value = await get_kv(kv_is_init(dsrc), key)
     if value is None:
-        raise NoDataError("String for this key does not exist or expired.", "saved_str_empty")
+        raise NoDataError(
+            "String for this key does not exist or expired.", "saved_str_empty"
+        )
     try:
         return value.decode()
     except UnicodeEncodeError:

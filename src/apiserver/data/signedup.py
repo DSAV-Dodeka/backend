@@ -4,14 +4,30 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 
 from apiserver.define.entities import SignedUp
 from apiserver.data.source import Source, DataError
-from apiserver.data.use import retrieve_by_unique, insert, exists_by_unique, update_column_by_unique, \
-    select_where
+from apiserver.data.use import (
+    retrieve_by_unique,
+    insert,
+    exists_by_unique,
+    update_column_by_unique,
+    select_where,
+)
 from apiserver.db import SIGNEDUP_TABLE
-from apiserver.db.model import SU_FIRSTNAME, SU_LASTNAME, SU_EMAIL, SU_PHONE, SU_CONFIRMED
+from apiserver.db.model import (
+    SU_FIRSTNAME,
+    SU_LASTNAME,
+    SU_EMAIL,
+    SU_PHONE,
+    SU_CONFIRMED,
+)
 from apiserver.db.ops import DbError
 
 
-__all__ = ['get_signedup_by_email', 'insert_su_row', 'signedup_exists', 'get_all_signedup']
+__all__ = [
+    "get_signedup_by_email",
+    "insert_su_row",
+    "signedup_exists",
+    "get_all_signedup",
+]
 
 
 def parse_signedup(signedup_dict: Optional[dict]) -> SignedUp:
@@ -20,13 +36,17 @@ def parse_signedup(signedup_dict: Optional[dict]) -> SignedUp:
     return SignedUp.parse_obj(signedup_dict)
 
 
-async def get_signedup_by_email(dsrc: Source, conn: AsyncConnection, email: str) -> SignedUp:
+async def get_signedup_by_email(
+    dsrc: Source, conn: AsyncConnection, email: str
+) -> SignedUp:
     signedup_row = await retrieve_by_unique(dsrc, conn, SIGNEDUP_TABLE, SU_EMAIL, email)
     return parse_signedup(signedup_row)
 
 
 async def confirm_signup(dsrc: Source, conn: AsyncConnection, email: str):
-    await update_column_by_unique(dsrc, conn, SIGNEDUP_TABLE, SU_CONFIRMED, True, SU_EMAIL, email)
+    await update_column_by_unique(
+        dsrc, conn, SIGNEDUP_TABLE, SU_CONFIRMED, True, SU_EMAIL, email
+    )
 
 
 async def get_all_signedup(dsrc: Source, conn: AsyncConnection) -> list[SignedUp]:

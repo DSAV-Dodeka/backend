@@ -3,13 +3,20 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from apiserver.data.source import DataError, Source
-from apiserver.data.use import retrieve_by_id, insert_return_col, delete_by_column, delete_by_id
+from apiserver.data.use import (
+    retrieve_by_id,
+    insert_return_col,
+    delete_by_column,
+    delete_by_id,
+)
 from apiserver.define.entities import SavedRefreshToken
 from apiserver.db.model import REFRESH_TOKEN_TABLE, FAMILY_ID, USER_ID
 
 
-async def insert_refresh_row(dsrc: Source, conn: AsyncConnection, refresh: SavedRefreshToken) -> int:
-    refresh_row = refresh.dict(exclude={'id'})
+async def insert_refresh_row(
+    dsrc: Source, conn: AsyncConnection, refresh: SavedRefreshToken
+) -> int:
+    refresh_row = refresh.dict(exclude={"id"})
     return await insert_return_col(dsrc, conn, REFRESH_TOKEN_TABLE, refresh_row, "id")
 
 
@@ -19,7 +26,9 @@ def parse_refresh(refresh_dict: Optional[dict]) -> SavedRefreshToken:
     return SavedRefreshToken.parse_obj(refresh_dict)
 
 
-async def get_refresh_by_id(dsrc: Source, conn: AsyncConnection, id_int: int) -> SavedRefreshToken:
+async def get_refresh_by_id(
+    dsrc: Source, conn: AsyncConnection, id_int: int
+) -> SavedRefreshToken:
     refresh_row = await retrieve_by_id(dsrc, conn, REFRESH_TOKEN_TABLE, id_int)
     return parse_refresh(refresh_row)
 

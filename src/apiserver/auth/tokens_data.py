@@ -4,8 +4,15 @@ from apiserver.utilities.crypto import aes_from_symmetric
 from apiserver.define import id_exp
 from apiserver.define.entities import PEMKey
 from apiserver.utilities import utc_timestamp
-from apiserver.auth.tokens import decrypt_old_refresh, InvalidRefresh, verify_refresh, \
-    build_refresh_save, finish_tokens, create_tokens, id_info_from_ud
+from apiserver.auth.tokens import (
+    decrypt_old_refresh,
+    InvalidRefresh,
+    verify_refresh,
+    build_refresh_save,
+    finish_tokens,
+    create_tokens,
+    id_info_from_ud,
+)
 import apiserver.data as data
 from apiserver.data import Source, DataError
 
@@ -36,7 +43,9 @@ async def do_refresh(dsrc: Source, old_refresh_token: str):
     async with data.get_conn(dsrc) as conn:
         try:
             # See if previous refresh exists
-            saved_refresh = await data.refreshtoken.get_refresh_by_id(dsrc, conn, old_refresh.id)
+            saved_refresh = await data.refreshtoken.get_refresh_by_id(
+                dsrc, conn, old_refresh.id
+            )
         except DataError as e:
             if e.key != "refresh_empty":
                 # If not refresh_empty, it was some other internal error
@@ -49,21 +58,39 @@ async def do_refresh(dsrc: Source, old_refresh_token: str):
 
     verify_refresh(saved_refresh, old_refresh, utc_now)
 
-    access_token_data, id_token_data, user_id, access_scope, \
-        new_nonce, new_refresh_save = build_refresh_save(saved_refresh, utc_now)
+    (
+        access_token_data,
+        id_token_data,
+        user_id,
+        access_scope,
+        new_nonce,
+        new_refresh_save,
+    ) = build_refresh_save(saved_refresh, utc_now)
 
     # Deletes previous token, saves new one, only succeeds if all components of the transaction succeed
     async with data.get_conn(dsrc) as conn:
         await data.refreshtoken.delete_refresh_by_id(dsrc, conn, saved_refresh.id)
-        new_refresh_id = await data.refreshtoken.insert_refresh_row(dsrc, conn, new_refresh_save)
+        new_refresh_id = await data.refreshtoken.insert_refresh_row(
+            dsrc, conn, new_refresh_save
+        )
 
-    refresh_token, access_token, id_token = finish_tokens(new_refresh_id, new_refresh_save, aesgcm, access_token_data,
-                                                          id_token_data, utc_now, signing_key, nonce=new_nonce)
+    refresh_token, access_token, id_token = finish_tokens(
+        new_refresh_id,
+        new_refresh_save,
+        aesgcm,
+        access_token_data,
+        id_token_data,
+        utc_now,
+        signing_key,
+        nonce=new_nonce,
+    )
 
     return id_token, access_token, refresh_token, id_exp, access_scope, user_id
 
 
-async def new_token(dsrc: Source, user_id: str, scope: str, auth_time: int, id_nonce: str):
+async def new_token(
+    dsrc: Source, user_id: str, scope: str, auth_time: int, id_nonce: str
+):
     aesgcm, _, signing_key = await get_keys(dsrc)
 
     utc_now = utc_timestamp()
@@ -72,12 +99,23 @@ async def new_token(dsrc: Source, user_id: str, scope: str, auth_time: int, id_n
         ud = await data.user.get_userdata_by_id(dsrc, conn, user_id)
         id_info = id_info_from_ud(ud)
 
-        access_token_data, id_token_data, access_scope, refresh_save = create_tokens(user_id, scope, auth_time,
-                                                                                     id_nonce, utc_now, id_info)
+        access_token_data, id_token_data, access_scope, refresh_save = create_tokens(
+            user_id, scope, auth_time, id_nonce, utc_now, id_info
+        )
 
-        refresh_id = await data.refreshtoken.insert_refresh_row(dsrc, conn, refresh_save)
+        refresh_id = await data.refreshtoken.insert_refresh_row(
+            dsrc, conn, refresh_save
+        )
 
-    refresh_token, access_token, id_token = finish_tokens(refresh_id, refresh_save, aesgcm, access_token_data,
-                                                          id_token_data, utc_now, signing_key, nonce="")
+    refresh_token, access_token, id_token = finish_tokens(
+        refresh_id,
+        refresh_save,
+        aesgcm,
+        access_token_data,
+        id_token_data,
+        utc_now,
+        signing_key,
+        nonce="",
+    )
 
     return id_token, access_token, refresh_token, id_exp, access_scope

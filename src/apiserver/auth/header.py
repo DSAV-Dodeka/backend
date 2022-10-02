@@ -12,8 +12,11 @@ auth_header = APIKeyHeader(name="Authorization", scheme_name=scheme, auto_error=
 
 
 class BadAuth(Exception):
-    """ Error during handling header. """
-    def __init__(self, status_code: int, err_type: str, err_desc: str, debug_key: str = ""):
+    """Error during handling header."""
+
+    def __init__(
+        self, status_code: int, err_type: str, err_desc: str, debug_key: str = ""
+    ):
         self.status_code = status_code
         self.err_type = err_type
         self.err_desc = err_desc
@@ -22,9 +25,15 @@ class BadAuth(Exception):
 
 async def handle_header(authorization: str, dsrc: Source) -> AccessToken:
     if authorization is None:
-        raise BadAuth(400, err_type="invalid_request", err_desc="No authorization provided.")
+        raise BadAuth(
+            400, err_type="invalid_request", err_desc="No authorization provided."
+        )
     if "Bearer " not in authorization:
-        raise BadAuth(400, err_type="invalid_request", err_desc="Authorization must follow 'Bearer' scheme")
+        raise BadAuth(
+            400,
+            err_type="invalid_request",
+            err_desc="Authorization must follow 'Bearer' scheme",
+        )
     token = authorization.removeprefix("Bearer ")
 
     try:
@@ -32,6 +41,16 @@ async def handle_header(authorization: str, dsrc: Source) -> AccessToken:
         public_key = await data.kv.get_pem_key(dsrc, kid)
         return verify_access_token(public_key.public, token)
     except NoDataError as e:
-        raise BadAuth(401, err_type="invalid_token", err_desc="Key does not exist!", debug_key=e.key)
+        raise BadAuth(
+            401,
+            err_type="invalid_token",
+            err_desc="Key does not exist!",
+            debug_key=e.key,
+        )
     except BadVerification as e:
-        raise BadAuth(401, err_type="invalid_token", err_desc="Token verification failed!", debug_key=e.err_key)
+        raise BadAuth(
+            401,
+            err_type="invalid_token",
+            err_desc="Token verification failed!",
+            debug_key=e.err_key,
+        )

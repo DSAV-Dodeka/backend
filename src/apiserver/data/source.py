@@ -22,7 +22,7 @@ from apiserver.db.use import PostgresOperations
 from apiserver.env import Config
 import apiserver.data as data
 
-__all__ = ['Source', 'DataError', 'Gateway', 'DbOperations', 'NoDataError']
+__all__ = ["Source", "DataError", "Gateway", "DbOperations", "NoDataError"]
 
 
 logger = logging.getLogger(LOGGER_NAME)
@@ -48,20 +48,21 @@ class Gateway:
     engine: Optional[AsyncEngine] = None
     kv: Optional[Redis] = None
     # Just store the class/type since we only use static methods
-    ops: Type['DbOperations']
+    ops: Type["DbOperations"]
 
     def __init__(self, ops: Type[DbOperations] = None):
         self.ops = PostgresOperations
 
     def init_objects(self, config: Config):
-        db_cluster = f"{config.DB_USER}:{config.DB_PASS}@{config.DB_HOST}:{config.DB_PORT}"
+        db_cluster = (
+            f"{config.DB_USER}:{config.DB_PASS}@{config.DB_HOST}:{config.DB_PORT}"
+        )
         db_url = f"{db_cluster}/{config.DB_NAME}"
         # Connections are not actually established, it simply initializes the connection parameters
-        self.kv = Redis(host=config.KV_HOST, port=config.KV_PORT, db=0,
-                        password=config.KV_PASS)
-        self.engine: AsyncEngine = create_async_engine(
-            f"postgresql+asyncpg://{db_url}"
+        self.kv = Redis(
+            host=config.KV_HOST, port=config.KV_PORT, db=0, password=config.KV_PASS
         )
+        self.engine: AsyncEngine = create_async_engine(f"postgresql+asyncpg://{db_url}")
 
     async def connect(self):
         try:
@@ -69,12 +70,17 @@ class Gateway:
             # a call is made to the database, so we test the connection by pinging
             await self.kv.ping()
         except redis.ConnectionError:
-            raise SourceError(f"Unable to ping Redis server! Please check if it is running.")
+            raise SourceError(
+                f"Unable to ping Redis server! Please check if it is running."
+            )
         try:
             async with self.engine.connect() as conn:
                 _ = conn.info
         except SQLAlchemyError:
-            raise SourceError(f"Unable to connect to DB with SQLAlchemy! Please check if it is running.")
+            raise SourceError(
+                f"Unable to connect to DB with SQLAlchemy! Please check if it is"
+                f" running."
+            )
 
     async def disconnect(self):
         await self.kv.close()
@@ -123,7 +129,7 @@ class Source:
 
 
 async def waiting_lock(dsrc: Source):
-    await sleep(random()+0.1)
+    await sleep(random() + 0.1)
     was_locked = await data.kv.startup_is_locked(dsrc)
     logger.debug(f"{was_locked} - was_locked init")
     i = 0
@@ -147,9 +153,7 @@ def drop_create_database(config: Config):
     )
     drop_recreate_database(admin_engine, config.DB_NAME)
 
-    sync_engine = create_engine(
-        f"postgresql://{db_url}"
-    )
+    sync_engine = create_engine(f"postgresql://{db_url}")
     db_model.metadata.create_all(bind=sync_engine)
     del admin_engine
     del sync_engine
@@ -172,17 +176,24 @@ async def initial_population(dsrc: Source, config: Config):
     async with data.get_conn(dsrc) as conn:
         await data.key.insert_jwk(dsrc, conn, reencrypted_key_set)
         await data.key.insert_key(dsrc, conn, kid1, utc_now, "enc")
-        await data.key.insert_key(dsrc, conn, kid2, utc_now+1, "enc")
+        await data.key.insert_key(dsrc, conn, kid2, utc_now + 1, "enc")
         await data.key.insert_key(dsrc, conn, kid3, utc_now, "sig")
 
         opaque_setup = util.keys.new_opaque_setup(0)
         await data.opaquesetup.insert_opaque_row(dsrc, conn, opaque_setup)
 
     fake_record_pass = f"{util.random_time_hash_hex()}{util.random_time_hash_hex()}"
-    fake_pw_file = util.keys.gen_pw_file(opaque_setup.value, fake_record_pass, "1_fakerecord")
+    fake_pw_file = util.keys.gen_pw_file(
+        opaque_setup.value, fake_record_pass, "1_fakerecord"
+    )
 
     async with data.get_conn(dsrc) as conn:
-        fake_user = User(id_name="fakerecord", email="fakerecord", password_file=fake_pw_file, scope="none")
+        fake_user = User(
+            id_name="fakerecord",
+            email="fakerecord",
+            password_file=fake_pw_file,
+            scope="none",
+        )
         user_id = await data.user.insert_return_user_id(dsrc, conn, fake_user)
         assert user_id == "1_fakerecord"
 
@@ -200,7 +211,9 @@ async def load_keys(dsrc: Source, config: Config):
         # We get the Key IDs (kid) of the newest keys and also previous symmetric key
         # These newest ones will be used for signing new tokens
         new_pem_kid = await data.key.get_newest_pem(dsrc, conn)
-        new_symmetric_kid, old_symmetric_kid = await data.key.get_newest_symmetric(dsrc, conn)
+        new_symmetric_kid, old_symmetric_kid = await data.key.get_newest_symmetric(
+            dsrc, conn
+        )
 
     pem_keys = []
     symmetric_keys = []
@@ -213,7 +226,7 @@ async def load_keys(dsrc: Source, config: Config):
             pem_keys.append(pem_key)
             # The public keys we will store in raw format, we want to exclude the private key as we want to be able to
             # publish these keys
-            public_key_dict: dict = key.copy(exclude={'d'}).dict()
+            public_key_dict: dict = key.copy(exclude={"d"}).dict()
             public_keys.append(public_key_dict)
         elif key.alg == "A256GCM":
             symmetric_key = A256GCMKey(kid=key.kid, symmetric=key.k)

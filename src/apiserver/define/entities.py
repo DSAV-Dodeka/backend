@@ -30,27 +30,27 @@ class OpaqueSetup(BaseModel):
 
 
 class TokenKey(Key):
-    @validator('algorithm')
+    @validator("algorithm")
     def validate_alg(cls, v):
         assert v == "ed448"
         return v
 
-    @validator('public_format')
+    @validator("public_format")
     def validate_pub_fmt(cls, v):
         assert v == "X509PKCS#1"
         return v
 
-    @validator('public_encoding')
+    @validator("public_encoding")
     def validate_pub_enc(cls, v):
         assert v == "PEM"
         return v
 
-    @validator('private_format')
+    @validator("private_format")
     def validate_priv_fmt(cls, v):
         assert v == "PKCS#8"
         return v
 
-    @validator('private_encoding')
+    @validator("private_encoding")
     def validate_priv_enc(cls, v):
         assert v == "PEM"
         return v
@@ -61,17 +61,17 @@ class SymmetricKey(Key):
     public_format: str = None
     public_encoding: str = None
 
-    @validator('algorithm')
+    @validator("algorithm")
     def validate_alg(cls, v):
         assert v == "symmetric"
         return v
 
-    @validator('private_format')
+    @validator("private_format")
     def validate_priv_fmt(cls, v):
         assert v == "none"
         return v
 
-    @validator('private_encoding')
+    @validator("private_encoding")
     def validate_priv_enc(cls, v):
         assert v == "base64url"
         return v

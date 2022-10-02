@@ -6,23 +6,55 @@ from cryptography.exceptions import InvalidTag, InvalidSignature, InvalidKey
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from pydantic import ValidationError
 import jwt
-from jwt import PyJWTError, DecodeError, InvalidSignatureError, ExpiredSignatureError, InvalidTokenError
+from jwt import (
+    PyJWTError,
+    DecodeError,
+    InvalidSignatureError,
+    ExpiredSignatureError,
+    InvalidTokenError,
+)
 
-from apiserver.define import LOGGER_NAME, id_exp, access_exp, refresh_exp, grace_period, frontend_client_id, \
-    backend_client_id, issuer
+from apiserver.define import (
+    LOGGER_NAME,
+    id_exp,
+    access_exp,
+    refresh_exp,
+    grace_period,
+    frontend_client_id,
+    backend_client_id,
+    issuer,
+)
 import apiserver.utilities as util
 from apiserver.utilities.crypto import encrypt_dict, decrypt_dict
-from apiserver.define.entities import SavedRefreshToken, RefreshToken, AccessToken, IdToken, IdInfo, UserData, PEMKey
+from apiserver.define.entities import (
+    SavedRefreshToken,
+    RefreshToken,
+    AccessToken,
+    IdToken,
+    IdInfo,
+    UserData,
+    PEMKey,
+)
 
-__all__ = ['verify_access_token', 'InvalidRefresh', 'BadVerification', 'create_tokens',
-           'finish_tokens', 'encode_token_dict', 'decrypt_old_refresh', 'verify_refresh', 'build_refresh_save',
-           'id_info_from_ud']
+__all__ = [
+    "verify_access_token",
+    "InvalidRefresh",
+    "BadVerification",
+    "create_tokens",
+    "finish_tokens",
+    "encode_token_dict",
+    "decrypt_old_refresh",
+    "verify_refresh",
+    "build_refresh_save",
+    "id_info_from_ud",
+]
 
 logger = logging.getLogger(LOGGER_NAME)
 
 
 class InvalidRefresh(Exception):
-    """ Invalid refresh token. """
+    """Invalid refresh token."""
+
     pass
 
 
@@ -35,7 +67,9 @@ def decrypt_refresh(aesgcm: AESGCM, refresh_token) -> RefreshToken:
     return RefreshToken.parse_obj(refresh_dict)
 
 
-def decrypt_old_refresh(aesgcm: AESGCM, old_aesgcm: AESGCM, old_refresh_token: str, tried_old=False):
+def decrypt_old_refresh(
+    aesgcm: AESGCM, old_aesgcm: AESGCM, old_refresh_token: str, tried_old=False
+):
     # expects base64url-encoded binary
     try:
         # If it has been tampered with, this will also give an error
@@ -56,8 +90,13 @@ def decrypt_old_refresh(aesgcm: AESGCM, old_aesgcm: AESGCM, old_refresh_token: s
     return old_refresh
 
 
-def verify_refresh(saved_refresh: SavedRefreshToken, old_refresh: RefreshToken, utc_now: int) -> None:
-    if saved_refresh.nonce != old_refresh.nonce or saved_refresh.family_id != old_refresh.family_id:
+def verify_refresh(
+    saved_refresh: SavedRefreshToken, old_refresh: RefreshToken, utc_now: int
+) -> None:
+    if (
+        saved_refresh.nonce != old_refresh.nonce
+        or saved_refresh.family_id != old_refresh.family_id
+    ):
         raise InvalidRefresh("Bad comparison")
     elif saved_refresh.iat > utc_now or saved_refresh.iat < 1640690242:
         # sanity check
@@ -82,17 +121,36 @@ def build_refresh_save(saved_refresh: SavedRefreshToken, utc_now: int):
     new_nonce = token_urlsafe(16).rstrip("=")
     # We don't store the access tokens and refresh tokens in the final token
     # To construct new tokens, we need that information so we save it in the DB
-    new_refresh_save = SavedRefreshToken(family_id=saved_refresh.family_id,
-                                         access_value=saved_refresh.access_value,
-                                         id_token_value=saved_refresh.id_token_value, exp=saved_refresh.exp,
-                                         iat=utc_now, nonce=new_nonce, user_id=saved_refresh.user_id)
+    new_refresh_save = SavedRefreshToken(
+        family_id=saved_refresh.family_id,
+        access_value=saved_refresh.access_value,
+        id_token_value=saved_refresh.id_token_value,
+        exp=saved_refresh.exp,
+        iat=utc_now,
+        nonce=new_nonce,
+        user_id=saved_refresh.user_id,
+    )
 
-    return saved_access, saved_id_token, user_id, access_scope, new_nonce, new_refresh_save
+    return (
+        saved_access,
+        saved_id_token,
+        user_id,
+        access_scope,
+        new_nonce,
+        new_refresh_save,
+    )
 
 
-def build_refresh_token(new_refresh_id: int, saved_refresh: SavedRefreshToken, new_nonce: str, aesgcm: AESGCM):
+def build_refresh_token(
+    new_refresh_id: int,
+    saved_refresh: SavedRefreshToken,
+    new_nonce: str,
+    aesgcm: AESGCM,
+):
     # The actual refresh token is an encrypted JSON dictionary containing the id, family_id and nonce
-    refresh = RefreshToken(id=new_refresh_id, family_id=saved_refresh.family_id, nonce=new_nonce)
+    refresh = RefreshToken(
+        id=new_refresh_id, family_id=saved_refresh.family_id, nonce=new_nonce
+    )
     refresh_token = encrypt_refresh(aesgcm, refresh)
     return refresh_token
 
@@ -105,20 +163,29 @@ def id_info_from_ud(ud: UserData):
         family_name=ud.lastname,
         nickname=ud.callname,
         preferred_username=ud.callname,
-        birthdate=ud.birthdate.isoformat()
+        birthdate=ud.birthdate.isoformat(),
     )
 
 
-def create_tokens(user_id: str, scope: str, auth_time: int, id_nonce: str, utc_now: int, id_info: IdInfo):
+def create_tokens(
+    user_id: str,
+    scope: str,
+    auth_time: int,
+    id_nonce: str,
+    utc_now: int,
+    id_info: IdInfo,
+):
     # Build new tokens
-    access_token_data, id_token_data = id_access_tokens(sub=user_id,
-                                                        iss=issuer,
-                                                        aud_access=[frontend_client_id, backend_client_id],
-                                                        aud_id=[frontend_client_id],
-                                                        scope=scope,
-                                                        auth_time=auth_time,
-                                                        id_nonce=id_nonce,
-                                                        id_info=id_info)
+    access_token_data, id_token_data = id_access_tokens(
+        sub=user_id,
+        iss=issuer,
+        aud_access=[frontend_client_id, backend_client_id],
+        aud_id=[frontend_client_id],
+        scope=scope,
+        auth_time=auth_time,
+        id_nonce=id_nonce,
+        id_info=id_info,
+    )
 
     # Scope to be returned in response
     access_scope = access_token_data.scope
@@ -128,35 +195,53 @@ def create_tokens(user_id: str, scope: str, auth_time: int, id_nonce: str, utc_n
     id_token_val_encoded = encode_token_dict(id_token_data.dict())
     # Each authentication creates a refresh token of a particular family, which has a static lifetime
     family_id = secrets.token_urlsafe(16)
-    refresh_save = SavedRefreshToken(family_id=family_id, access_value=access_val_encoded,
-                                     id_token_value=id_token_val_encoded, exp=utc_now + refresh_exp, iat=utc_now,
-                                     nonce="", user_id=user_id)
+    refresh_save = SavedRefreshToken(
+        family_id=family_id,
+        access_value=access_val_encoded,
+        id_token_value=id_token_val_encoded,
+        exp=utc_now + refresh_exp,
+        iat=utc_now,
+        nonce="",
+        user_id=user_id,
+    )
     return access_token_data, id_token_data, access_scope, refresh_save
 
 
-def finish_tokens(refresh_id: int, refresh_save: SavedRefreshToken, aesgcm: AESGCM, access_token_data: AccessToken,
-                  id_token_data: IdToken, utc_now: int, signing_key: PEMKey, *, nonce: str):
+def finish_tokens(
+    refresh_id: int,
+    refresh_save: SavedRefreshToken,
+    aesgcm: AESGCM,
+    access_token_data: AccessToken,
+    id_token_data: IdToken,
+    utc_now: int,
+    signing_key: PEMKey,
+    *,
+    nonce: str,
+):
     refresh = RefreshToken(id=refresh_id, family_id=refresh_save.family_id, nonce=nonce)
     refresh_token = encrypt_refresh(aesgcm, refresh)
 
-    access_token = finish_encode_token(access_token_data.dict(), utc_now, access_exp, signing_key)
+    access_token = finish_encode_token(
+        access_token_data.dict(), utc_now, access_exp, signing_key
+    )
     id_token = finish_encode_token(id_token_data.dict(), utc_now, id_exp, signing_key)
 
     return refresh_token, access_token, id_token
 
 
-def id_access_tokens(sub, iss, aud_access, aud_id, scope, auth_time, id_nonce, id_info: IdInfo):
-    """ Create ID and access token objects. """
-    access_core = AccessToken(sub=sub,
-                              iss=iss,
-                              aud=aud_access,
-                              scope=scope)
-    id_core = IdToken(**id_info.dict(),
-                      sub=sub,
-                      iss=iss,
-                      aud=aud_id,
-                      auth_time=auth_time,
-                      nonce=id_nonce)
+def id_access_tokens(
+    sub, iss, aud_access, aud_id, scope, auth_time, id_nonce, id_info: IdInfo
+):
+    """Create ID and access token objects."""
+    access_core = AccessToken(sub=sub, iss=iss, aud=aud_access, scope=scope)
+    id_core = IdToken(
+        **id_info.dict(),
+        sub=sub,
+        iss=iss,
+        aud=aud_id,
+        auth_time=auth_time,
+        nonce=id_nonce,
+    )
 
     return access_core, id_core
 
@@ -166,7 +251,7 @@ def encode_token_dict(token: dict):
 
 
 def finish_payload(token_val: dict, utc_now: int, exp: int):
-    """ Add time-based information to static token dict. """
+    """Add time-based information to static token dict."""
     payload_add = {
         "iat": utc_now,
         "exp": utc_now + exp,
@@ -177,7 +262,9 @@ def finish_payload(token_val: dict, utc_now: int, exp: int):
 
 def finish_encode_token(token_val: dict, utc_now: int, exp: int, key: PEMKey):
     finished_payload = finish_payload(token_val, utc_now, exp)
-    return jwt.encode(finished_payload, key.private, algorithm="EdDSA", headers={"kid": key.kid})
+    return jwt.encode(
+        finished_payload, key.private, algorithm="EdDSA", headers={"kid": key.kid}
+    )
 
 
 def decode_refresh(rt: SavedRefreshToken):
@@ -190,7 +277,7 @@ def decode_refresh(rt: SavedRefreshToken):
 
 
 class BadVerification(Exception):
-    """ Error during token verification. """
+    """Error during token verification."""
 
     def __init__(self, err_key: str):
         self.err_key = err_key
@@ -199,7 +286,7 @@ class BadVerification(Exception):
 def get_kid(access_token: str):
     try:
         unverified_header = jwt.get_unverified_header(access_token)
-        return unverified_header['kid']
+        return unverified_header["kid"]
     except KeyError:
         raise BadVerification("no_kid")
     except DecodeError:
@@ -211,8 +298,15 @@ def get_kid(access_token: str):
 
 def verify_access_token(public_key: str, access_token: str):
     try:
-        decoded_payload = jwt.decode(access_token, public_key, algorithms=["EdDSA"], leeway=grace_period,
-                                     require=["exp", "aud"], issuer=issuer, audience=[backend_client_id])
+        decoded_payload = jwt.decode(
+            access_token,
+            public_key,
+            algorithms=["EdDSA"],
+            leeway=grace_period,
+            require=["exp", "aud"],
+            issuer=issuer,
+            audience=[backend_client_id],
+        )
     except InvalidSignatureError:
         raise BadVerification("invalid_signature")
     except DecodeError:

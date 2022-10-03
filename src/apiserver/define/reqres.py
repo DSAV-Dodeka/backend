@@ -91,12 +91,6 @@ class AuthRequest(BaseModel):
 
 
 class PasswordRequest(BaseModel):
-    """
-    :var username: Username string, any valid Unicode works
-    :var client_request: serialized (base64url-encoded) opaque-ke RegistrationUpload using the same cipher suite as the
-        backend server
-    """
-
     email: str
     client_request: str
 

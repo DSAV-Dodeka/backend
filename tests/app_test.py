@@ -14,16 +14,28 @@ from fastapi import status
 from apiserver.utilities.crypto import aes_from_symmetric
 from apiserver.auth.tokens import id_info_from_ud
 from apiserver.data.user import gen_id_name
-from apiserver.define import FlowUser, AuthRequest, SavedState, SavedRegisterState, frontend_client_id
+from apiserver.define import (
+    FlowUser,
+    AuthRequest,
+    SavedState,
+    SavedRegisterState,
+    frontend_client_id,
+)
 from apiserver.env import load_config
 from apiserver.utilities import utc_timestamp
-from apiserver.define.entities import SavedRefreshToken, UserData, User, PEMKey, A256GCMKey
+from apiserver.define.entities import (
+    SavedRefreshToken,
+    UserData,
+    User,
+    PEMKey,
+    A256GCMKey,
+)
 from apiserver.db.ops import DbOperations
 
 
 @pytest.fixture(scope="module")
 def event_loop():
-    """ Necessary for async tests with module-scoped fixtures """
+    """Necessary for async tests with module-scoped fixtures"""
     loop = asyncio.new_event_loop()
     yield loop
     loop.close()
@@ -31,16 +43,16 @@ def event_loop():
 
 @pytest_asyncio.fixture(scope="module")
 async def app_mod():
-    import apiserver.app as app_mod
+    import apiserver.app as app_module
 
-    yield app_mod
+    yield app_module
 
 
 @pytest_asyncio.fixture(scope="module")
 async def app(app_mod):
     # startup, shutdown is not run
-    app = app_mod.app
-    yield app
+    apiserver_app = app_mod.apiserver_app
+    yield apiserver_app
 
 
 @pytest.fixture(scope="module")
@@ -79,7 +91,7 @@ async def test_incorrect_client_id(test_client: AsyncClient):
         "code": "",
         "redirect_uri": "",
         "code_verifier": "",
-        "refresh_token": ""
+        "refresh_token": "",
     }
     response = await test_client.post("/oauth/token/", json=req)
     assert response.status_code == 400
@@ -94,7 +106,7 @@ async def test_incorrect_grant_type(test_client: AsyncClient):
         "code": "",
         "redirect_uri": "",
         "code_verifier": "",
-        "refresh_token": ""
+        "refresh_token": "",
     }
 
     response = await test_client.post("/oauth/token/", json=req)
@@ -111,7 +123,7 @@ async def test_empty_verifier(test_client: AsyncClient):
         "code": "some",
         "redirect_uri": "some",
         "code_verifier": "",
-        "refresh_token": ""
+        "refresh_token": "",
     }
 
     response = await test_client.post("/oauth/token/", json=req)
@@ -128,7 +140,7 @@ async def test_missing_redirect(test_client: AsyncClient):
         "grant_type": "authorization_code",
         "code": "some",
         "code_verifier": "some",
-        "refresh_token": ""
+        "refresh_token": "",
     }
 
     response = await test_client.post("/oauth/token/", json=req)
@@ -146,7 +158,7 @@ async def test_empty_code(test_client: AsyncClient):
         "code": "",
         "redirect_uri": "some",
         "code_verifier": "some",
-        "refresh_token": ""
+        "refresh_token": "",
     }
 
     response = await test_client.post("/oauth/token/", json=req)
@@ -157,29 +169,48 @@ async def test_empty_code(test_client: AsyncClient):
 
 
 mock_symm_key = {
-    'id': 2, 'algorithm': 'symmetric', 'public': None, 'private': '8T3oEm_haJZbn6xu-klttJXk5QBPYlurQrqA5SDx-Ck',
-    'public_format': None, 'public_encoding': None, 'private_format': 'none', 'private_encoding': 'base64url'
+    "id": 2,
+    "algorithm": "symmetric",
+    "public": None,
+    "private": "8T3oEm_haJZbn6xu-klttJXk5QBPYlurQrqA5SDx-Ck",
+    "public_format": None,
+    "public_encoding": None,
+    "private_format": "none",
+    "private_encoding": "base64url",
 }
 mock_token_key = {
-    'id': 1, 'algorithm': 'ed448',
-    'public': '-----BEGIN PUBLIC KEY-----\nMEMwBQYDK2VxAzoAtPGddEupA3b5P5yr9gT3rvjzWeQH5cedY6RcwN3A5zTS9n8C\nc6dOR+'
-              'XUPVLVu0o0i/t46fW1HMQA\n-----END PUBLIC KEY-----\n',
-    'private': '-----BEGIN PRIVATE KEY-----\nMEcCAQAwBQYDK2VxBDsEOY1wa98ZvsK8pYML+ICD9Mbtavr+QC5PC301oVn5jPM6\nT8tE'
-               'CKaZvu5mxG/OfxlEKxl/XIKuClP1mw==\n-----END PRIVATE KEY-----\n',
-    'public_format': 'X509PKCS#1', 'public_encoding': 'PEM', 'private_format': 'PKCS#8', 'private_encoding': 'PEM'
+    "id": 1,
+    "algorithm": "ed448",
+    "public": (
+        "-----BEGIN PUBLIC"
+        " KEY-----\nMEMwBQYDK2VxAzoAtPGddEupA3b5P5yr9gT3rvjzWeQH5cedY6RcwN3A5zTS9n8C\nc6dOR+XUPVLVu0o0i/t46fW1HMQA\n-----END"
+        " PUBLIC KEY-----\n"
+    ),
+    "private": (
+        "-----BEGIN PRIVATE"
+        " KEY-----\nMEcCAQAwBQYDK2VxBDsEOY1wa98ZvsK8pYML+ICD9Mbtavr+QC5PC301oVn5jPM6\nT8tECKaZvu5mxG/OfxlEKxl/XIKuClP1mw==\n-----END"
+        " PRIVATE KEY-----\n"
+    ),
+    "public_format": "X509PKCS#1",
+    "public_encoding": "PEM",
+    "private_format": "PKCS#8",
+    "private_encoding": "PEM",
 }
 
 
 @pytest_asyncio.fixture
 async def mock_get_keys(mocker: MockerFixture):
-    get_k_s = mocker.patch('apiserver.data.kv.get_symmetric_key')
-    get_k_s.return_value = A256GCMKey(kid='b', symmetric=mock_symm_key['private'])
-    get_k_p = mocker.patch('apiserver.data.kv.get_pem_key')
-    get_k_p.return_value = PEMKey(kid='a', public=mock_token_key['public'], private=mock_token_key['private'])
+    get_k_s = mocker.patch("apiserver.data.kv.get_symmetric_key")
+    get_k_s.return_value = A256GCMKey(kid="b", symmetric=mock_symm_key["private"])
+    get_k_p = mocker.patch("apiserver.data.kv.get_pem_key")
+    get_k_p.return_value = PEMKey(
+        kid="a", public=mock_token_key["public"], private=mock_token_key["private"]
+    )
 
 
 def cr_user_id(id_int: int, g_id_name: str):
     return f"{id_int}_{g_id_name}"
+
 
 code_session_key = "somecomplexsessionkey"
 mock_redirect = "http://localhost:3000/auth/callback"
@@ -191,16 +222,32 @@ mock_user_id_ln = "lastmocker"
 mock_user_email = "mr@mocker.nl"
 mock_user_id_name = gen_id_name(mock_user_id_fn, mock_user_id_ln)
 mock_user_id = cr_user_id(mock_user_id_int, mock_user_id_name)
-mock_flow_user = FlowUser(auth_time=utc_timestamp() - 20, flow_id=mock_flow_id,
-                          scope=fake_token_scope, user_id=mock_user_id)
-mock_userdata = UserData(user_id=mock_user_id, active=True, firstname="Test", lastname="Register",
-                              email=mock_user_email, phone="06", av40id=123, joined=date.today(), registered=False)
-mock_auth_request = AuthRequest(response_type="code", client_id="dodekaweb_client",
-                                redirect_uri=mock_redirect,
-                                state="KV6A2hTOv6mOFYVpTAOmWw",
-                                code_challenge="8LNMS54GS7iB7H67U5OFLclCl0F87vy5uf-Izj3TCdQ",
-                                code_challenge_method="S256",
-                                nonce="-eB2lpr1IqZdJzt9CfDZ5jrHGa6yE87UUTFd4CWweOI")
+mock_flow_user = FlowUser(
+    auth_time=utc_timestamp() - 20,
+    flow_id=mock_flow_id,
+    scope=fake_token_scope,
+    user_id=mock_user_id,
+)
+mock_userdata = UserData(
+    user_id=mock_user_id,
+    active=True,
+    firstname="Test",
+    lastname="Register",
+    email=mock_user_email,
+    phone="06",
+    av40id=123,
+    joined=date.today(),
+    registered=False,
+)
+mock_auth_request = AuthRequest(
+    response_type="code",
+    client_id="dodekaweb_client",
+    redirect_uri=mock_redirect,
+    state="KV6A2hTOv6mOFYVpTAOmWw",
+    code_challenge="8LNMS54GS7iB7H67U5OFLclCl0F87vy5uf-Izj3TCdQ",
+    code_challenge_method="S256",
+    nonce="-eB2lpr1IqZdJzt9CfDZ5jrHGa6yE87UUTFd4CWweOI",
+)
 nonce_original = "6SWk9T1sUfqgSYeq2XlawA"
 code_verifier = "NiiCPTK4e73kAVCfWZyZX6AvIXyPg396Q4063oGOI3w"
 
@@ -210,36 +257,66 @@ fake_token_id = 44
 @pytest_asyncio.fixture
 async def fake_tokens():
     from apiserver.auth.tokens import create_tokens, finish_tokens, encode_token_dict
+
     utc_now = utc_timestamp()
     mock_id_info = id_info_from_ud(mock_userdata)
-    access_token_data, id_token_data, access_scope, refresh_save = \
-        create_tokens(mock_flow_user.user_id, fake_token_scope, mock_flow_user.auth_time,
-                      mock_auth_request.nonce, utc_now, mock_id_info)
+    access_token_data, id_token_data, access_scope, refresh_save = create_tokens(
+        mock_flow_user.user_id,
+        fake_token_scope,
+        mock_flow_user.auth_time,
+        mock_auth_request.nonce,
+        utc_now,
+        mock_id_info,
+    )
 
     acc_val = encode_token_dict(access_token_data.dict())
     id_val = encode_token_dict(id_token_data.dict())
 
-    aesgcm = aes_from_symmetric(mock_symm_key['private'])
-    signing_key = PEMKey(kid='a', public=mock_token_key['public'], private=mock_token_key['private'])
+    aesgcm = aes_from_symmetric(mock_symm_key["private"])
+    signing_key = PEMKey(
+        kid="a", public=mock_token_key["public"], private=mock_token_key["private"]
+    )
 
-    refresh_token, access_token, id_token = finish_tokens(fake_token_id, refresh_save, aesgcm, access_token_data,
-                                                          id_token_data, utc_now, signing_key, nonce="")
-    yield {'refresh': refresh_token, 'access': access_token, 'id': id_token, 'family_id': refresh_save.family_id,
-           'iat': refresh_save.iat, 'exp': refresh_save.exp, 'nonce': refresh_save.nonce, 'acc_val': acc_val,
-           'id_val': id_val, 'user_id': refresh_save.user_id}
+    refresh_token, access_token, id_token = finish_tokens(
+        fake_token_id,
+        refresh_save,
+        aesgcm,
+        access_token_data,
+        id_token_data,
+        utc_now,
+        signing_key,
+        nonce="",
+    )
+    yield {
+        "refresh": refresh_token,
+        "access": access_token,
+        "id": id_token,
+        "family_id": refresh_save.family_id,
+        "iat": refresh_save.iat,
+        "exp": refresh_save.exp,
+        "nonce": refresh_save.nonce,
+        "acc_val": acc_val,
+        "id_val": id_val,
+        "user_id": refresh_save.user_id,
+    }
 
 
 @pytest.mark.asyncio
 async def test_refresh(test_client, mocker: MockerFixture, mock_get_keys, fake_tokens):
-    get_r = mocker.patch('apiserver.data.refreshtoken.get_refresh_by_id')
-    get_refr = mocker.patch('apiserver.data.refreshtoken.insert_refresh_row')
+    get_r = mocker.patch("apiserver.data.refreshtoken.get_refresh_by_id")
+    get_refr = mocker.patch("apiserver.data.refreshtoken.insert_refresh_row")
 
     def side_effect(f_dsrc, conn, id_int):
         if id_int == fake_token_id:
-            return SavedRefreshToken(family_id=fake_tokens['family_id'], access_value=fake_tokens['acc_val'],
-                                     id_token_value=fake_tokens['id_val'], iat=fake_tokens['iat'],
-                                     exp=fake_tokens['exp'],
-                                     nonce=fake_tokens['nonce'], user_id=fake_tokens['user_id'])
+            return SavedRefreshToken(
+                family_id=fake_tokens["family_id"],
+                access_value=fake_tokens["acc_val"],
+                id_token_value=fake_tokens["id_val"],
+                iat=fake_tokens["iat"],
+                exp=fake_tokens["exp"],
+                nonce=fake_tokens["nonce"],
+                user_id=fake_tokens["user_id"],
+            )
 
     get_r.side_effect = side_effect
     get_refr.return_value = 45
@@ -247,7 +324,7 @@ async def test_refresh(test_client, mocker: MockerFixture, mock_get_keys, fake_t
     req = {
         "client_id": frontend_client_id,
         "grant_type": "refresh_token",
-        "refresh_token": fake_tokens['refresh'],
+        "refresh_token": fake_tokens["refresh"],
     }
 
     response = await test_client.post("/oauth/token/", json=req)
@@ -258,10 +335,10 @@ async def test_refresh(test_client, mocker: MockerFixture, mock_get_keys, fake_t
 
 @pytest.mark.asyncio
 async def test_auth_code(test_client, mocker: MockerFixture, mock_get_keys):
-    get_flow = mocker.patch('apiserver.data.kv.pop_flow_user')
-    get_auth = mocker.patch('apiserver.data.kv.get_auth_request')
-    get_ud = mocker.patch('apiserver.data.user.get_userdata_by_id')
-    r_save = mocker.patch('apiserver.data.refreshtoken.insert_refresh_row')
+    get_flow = mocker.patch("apiserver.data.kv.pop_flow_user")
+    get_auth = mocker.patch("apiserver.data.kv.get_auth_request")
+    get_ud = mocker.patch("apiserver.data.user.get_userdata_by_id")
+    r_save = mocker.patch("apiserver.data.refreshtoken.insert_refresh_row")
 
     def flow_side_effect(f_dsrc, code):
         if code == code_session_key:
@@ -288,7 +365,7 @@ async def test_auth_code(test_client, mocker: MockerFixture, mock_get_keys):
         "grant_type": "authorization_code",
         "code": code_session_key,
         "redirect_uri": mock_redirect,
-        "code_verifier": code_verifier
+        "code_verifier": code_verifier,
     }
 
     response = await test_client.post("/oauth/token/", json=req)
@@ -298,8 +375,8 @@ async def test_auth_code(test_client, mocker: MockerFixture, mock_get_keys):
 
 
 mock_opq_setup = {
-    'id': 0,
-    'value': 'pd32VP-D21oNgNId22WdbEiUn5vUeFNhgNReuAv2FQvT8kyBZu9gW2kBn8E60HgbAEHDT6KCy575MVIzgLJQ2daSp_2XpESlXFbsxftf6Bw0_RYzAOZ1YL2Dnrtq1MwOF4jzOi3gs3bHnS_odl9VpaXz4GjQTT7aol5CYB0yYgE'
+    "id": 0,
+    "value": "pd32VP-D21oNgNId22WdbEiUn5vUeFNhgNReuAv2FQvT8kyBZu9gW2kBn8E60HgbAEHDT6KCy575MVIzgLJQ2daSp_2XpESlXFbsxftf6Bw0_RYzAOZ1YL2Dnrtq1MwOF4jzOi3gs3bHnS_odl9VpaXz4GjQTT7aol5CYB0yYgE",
 }
 
 
@@ -311,7 +388,7 @@ async def store_fix():
 
 @pytest_asyncio.fixture
 async def state_store(store_fix, mocker: MockerFixture):
-    s_store = mocker.patch('apiserver.data.kv.store_auth_state')
+    s_store = mocker.patch("apiserver.data.kv.store_auth_state")
 
     def store_side_effect(f_dsrc, auth_id, state):
         store_fix[auth_id] = state
@@ -323,7 +400,7 @@ async def state_store(store_fix, mocker: MockerFixture):
 
 @pytest_asyncio.fixture
 async def register_state_store(store_fix, mocker: MockerFixture):
-    s_store = mocker.patch('apiserver.data.kv.store_auth_register_state')
+    s_store = mocker.patch("apiserver.data.kv.store_auth_register_state")
 
     def store_side_effect(f_dsrc, auth_id, state):
         store_fix[auth_id] = state
@@ -335,7 +412,7 @@ async def register_state_store(store_fix, mocker: MockerFixture):
 
 @pytest_asyncio.fixture
 async def flow_store(store_fix, mocker: MockerFixture):
-    f_store = mocker.patch('apiserver.data.kv.store_flow_user')
+    f_store = mocker.patch("apiserver.data.kv.store_flow_user")
 
     def store_side_effect(f_dsrc, s_key, flow_user):
         store_fix[s_key] = flow_user
@@ -346,8 +423,10 @@ async def flow_store(store_fix, mocker: MockerFixture):
 
 
 @pytest.mark.asyncio
-async def test_start_register(test_client, mocker: MockerFixture, register_state_store: dict):
-    t_hash = mocker.patch('apiserver.utilities.random_time_hash_hex')
+async def test_start_register(
+    test_client, mocker: MockerFixture, register_state_store: dict
+):
+    t_hash = mocker.patch("apiserver.utilities.random_time_hash_hex")
     test_user_email = "start@loginer.nl"
     user_fn = "terst"
     user_ln = "nagmer"
@@ -362,34 +441,49 @@ async def test_start_register(test_client, mocker: MockerFixture, register_state
 
     t_hash.side_effect = hash_side_effect
 
-    g_ud = mocker.patch('apiserver.data.user.get_userdata_by_register_id')
-    test_register_id = "8c01e95c6021f62f7fc7a0c6149df725129fa4ea846edc1cdc0b13905e880f0c"
+    g_ud = mocker.patch("apiserver.data.user.get_userdata_by_register_id")
+    test_register_id = (
+        "8c01e95c6021f62f7fc7a0c6149df725129fa4ea846edc1cdc0b13905e880f0c"
+    )
 
     def ud_side_effect(f_dsrc, conn, register_id):
         if register_id == test_register_id:
-            return UserData(user_id=test_user_id, active=True, firstname="Test", lastname="Register", email=test_user_email,
-                            phone="06",
-                            av40id=123, joined=date.today(), registered=False)
+            return UserData(
+                user_id=test_user_id,
+                active=True,
+                firstname="Test",
+                lastname="Register",
+                email=test_user_email,
+                phone="06",
+                av40id=123,
+                joined=date.today(),
+                registered=False,
+            )
 
     g_ud.side_effect = ud_side_effect
 
-    g_u = mocker.patch('apiserver.data.user.get_user_by_id')
+    g_u = mocker.patch("apiserver.data.user.get_user_by_id")
 
     def u_side_effect(f_dsrc, conn, user_id):
         if user_id == test_user_id:
-            return User(id=test_user_id_int, id_name=test_id_name, user_id=test_user_id, password_file="",
-                        email=test_user_email)
+            return User(
+                id=test_user_id_int,
+                id_name=test_id_name,
+                user_id=test_user_id,
+                password_file="",
+                email=test_user_email,
+            )
 
     g_u.side_effect = u_side_effect
 
-    opq_setup = mocker.patch('apiserver.data.opaquesetup.get_setup')
-    opq_setup.return_value = mock_opq_setup['value']
+    opq_setup = mocker.patch("apiserver.data.opaquesetup.get_setup")
+    opq_setup.return_value = mock_opq_setup["value"]
 
     # password 'clientele'
     req = {
         "email": test_user_email,
         "client_request": "GM3pwtpnoj4e9JQJtectg6lZ7FYRZmD6fGo4cMttmSc",
-        "register_id": test_register_id
+        "register_id": test_register_id,
     }
 
     response = await test_client.post("/onboard/register/", json=req)
@@ -399,7 +493,7 @@ async def test_start_register(test_client, mocker: MockerFixture, register_state
     # n-aQ8YSkFMbIoTJPS46lBeO4X4v5KbQ52ztB9-xP8wg
     # example message
     # GGnMPMzUGlKDTd0O4Yjw2S3sNrte4a1ybatXCr_-cRvyxVgYqutFLW3oUC5bmAczDl2DMzPRvmukMc-eKmSsZg
-    assert res_j['auth_id'] == test_auth_id
+    assert res_j["auth_id"] == test_auth_id
     assert response.status_code == 200
     saved_state = SavedRegisterState.parse_obj(register_state_store[test_auth_id])
     assert saved_state.user_id == test_user_id
@@ -419,8 +513,8 @@ async def test_finish_register(test_client, mocker: MockerFixture):
     # password 'clientele'
     test_state = "n-aQ8YSkFMbIoTJPS46lBeO4X4v5KbQ52ztB9-xP8wg"
 
-    g_state = mocker.patch('apiserver.data.kv.get_register_state')
-    g_ud_rid = mocker.patch('apiserver.data.user.get_userdata_by_register_id')
+    g_state = mocker.patch("apiserver.data.kv.get_register_state")
+    g_ud_rid = mocker.patch("apiserver.data.user.get_userdata_by_register_id")
 
     def state_side_effect(f_dsrc, auth_id):
         if auth_id == test_auth_id:
@@ -428,8 +522,17 @@ async def test_finish_register(test_client, mocker: MockerFixture):
 
     def ud_side_effect(f_dsrc, conn, r_id):
         if r_id == test_r_id:
-            return UserData(user_id=test_user_id, email=test_user_email, active=False, firstname="first", lastname="last", phone="063",
-                            av40id=2, joined=date.today(), registered=False)
+            return UserData(
+                user_id=test_user_id,
+                email=test_user_email,
+                active=False,
+                firstname="first",
+                lastname="last",
+                phone="063",
+                av40id=2,
+                joined=date.today(),
+                registered=False,
+            )
 
     g_state.side_effect = state_side_effect
     g_ud_rid.side_effect = ud_side_effect
@@ -442,7 +545,7 @@ async def test_finish_register(test_client, mocker: MockerFixture):
         "register_id": test_r_id,
         "callname": "somecaller",
         "eduinstitution": "testinstitution",
-        "birthdate": "2022-09-05"
+        "birthdate": "2022-09-05",
     }
 
     # TODO check saved data
@@ -458,11 +561,11 @@ async def test_finish_register(test_client, mocker: MockerFixture):
 
 @pytest.mark.asyncio
 async def test_start_login(test_client, mocker: MockerFixture, state_store: dict):
-    opq_setup = mocker.patch('apiserver.data.opaquesetup.get_setup')
-    opq_setup.return_value = mock_opq_setup['value']
+    opq_setup = mocker.patch("apiserver.data.opaquesetup.get_setup")
+    opq_setup.return_value = mock_opq_setup["value"]
 
-    g_pw = mocker.patch('apiserver.data.user.get_user_by_id')
-    g_pw_email = mocker.patch('apiserver.data.user.get_user_by_email')
+    g_pw = mocker.patch("apiserver.data.user.get_user_by_id")
+    g_pw_email = mocker.patch("apiserver.data.user.get_user_by_email")
     test_user_email = "start@loginer.nl"
     user_fn = "test"
     user_ln = "namer"
@@ -475,19 +578,31 @@ async def test_start_login(test_client, mocker: MockerFixture, state_store: dict
 
     def pw_side_effect(f_dsrc, f_conn, user_id):
         if user_id == "1_fakerecord":
-            return User(id=1, id_name="fakerecord", password_file=fake_password_file, scope="none",
-                        user_id="1_fakerecord", email="fakeemail")
+            return User(
+                id=1,
+                id_name="fakerecord",
+                password_file=fake_password_file,
+                scope="none",
+                user_id="1_fakerecord",
+                email="fakeemail",
+            )
 
     g_pw.side_effect = pw_side_effect
 
     def pw_em_side_effect(f_dsrc, f_conn, user_email):
         if user_email == test_user_email:
-            return User(id=test_user_id_int, id_name=test_id_name, password_file=correct_password_file, scope="none",
-                        user_id=test_user_id, email=test_user_email)
+            return User(
+                id=test_user_id_int,
+                id_name=test_id_name,
+                password_file=correct_password_file,
+                scope="none",
+                user_id=test_user_id,
+                email=test_user_email,
+            )
 
     g_pw_email.side_effect = pw_em_side_effect
 
-    t_hash = mocker.patch('apiserver.utilities.random_time_hash_hex')
+    t_hash = mocker.patch("apiserver.utilities.random_time_hash_hex")
     test_auth_id = "d7a822c06ca8faa0e1df42fe3cbb0371"
 
     def hash_side_effect(user_usph):
@@ -511,7 +626,7 @@ async def test_start_login(test_client, mocker: MockerFixture, state_store: dict
     # NxOxeb4oKwirncPlH1SlCbE_md8lH767HsgGv57G1l3aMinOwsi9BDWQW054L-iqZh9le2YqQ4LI10kCbfh4ijIV36HPrGDZg1ObZKx4U1Mgg-5wnLKZx-qtUukSWgON8a0fkN7_C_Jazl8oZxKC4fXBbJj1NKKn2xZM0yrezur9PbOOAi8m9g4WTgKcEwyHGXz41dey2QetWH2GnK-w540e3mdi5vP9q7NPGXOJ-I6TIqvU9tp5B3539LnwwTE1
     assert response.status_code == 200
     assert test_auth_id in state_store.keys()
-    assert res_j['auth_id'] == test_auth_id
+    assert res_j["auth_id"] == test_auth_id
     print(state_store[test_auth_id])
 
 
@@ -526,12 +641,17 @@ async def test_finish_login(test_client, mocker: MockerFixture, flow_store: dict
     test_email = "finish@login.nl"
 
     # password 'clientele' with mock_opq_key
-    g_state = mocker.patch('apiserver.data.kv.get_state')
+    g_state = mocker.patch("apiserver.data.kv.get_state")
     test_state = "NxOxeb4oKwirncPlH1SlCbE_md8lH767HsgGv57G1l3aMinOwsi9BDWQW054L-iqZh9le2YqQ4LI10kCbfh4ijIV36HPrGDZg1ObZKx4U1Mgg-5wnLKZx-qtUukSWgON8a0fkN7_C_Jazl8oZxKC4fXBbJj1NKKn2xZM0yrezur9PbOOAi8m9g4WTgKcEwyHGXz41dey2QetWH2GnK-w540e3mdi5vP9q7NPGXOJ-I6TIqvU9tp5B3539LnwwTE1"
 
     def state_side_effect(f_dsrc, auth_id):
         if auth_id == test_auth_id:
-            return SavedState(user_id=test_user_id, state=test_state, scope=fake_token_scope, user_email=test_email)
+            return SavedState(
+                user_id=test_user_id,
+                state=test_state,
+                scope=fake_token_scope,
+                user_email=test_email,
+            )
 
     g_state.side_effect = state_side_effect
 
@@ -541,7 +661,7 @@ async def test_finish_login(test_client, mocker: MockerFixture, flow_store: dict
         "email": test_email,
         "client_request": "28gMIH7k8inGBdiMrpKidOtwtbcUlgMkmRNGVBy6CrXF_XPtVbzCwmtVCeUEuTSeRkyKFqDnD-v9AXcEfPUZ1w",
         "auth_id": test_auth_id,
-        "flow_id": flow_id
+        "flow_id": flow_id,
     }
     session_key = "_T2zjgIvJvYOFk4CnBMMhxl8-NXXstkHrVh9hpyvsOeNHt5nYubz_auzTxlzifiOkyKr1PbaeQd-d_S58MExNQ"
 
@@ -556,7 +676,7 @@ async def test_finish_login(test_client, mocker: MockerFixture, flow_store: dict
 
 @pytest_asyncio.fixture
 async def req_store(store_fix, mocker: MockerFixture):
-    r_store = mocker.patch('apiserver.data.kv.store_auth_request')
+    r_store = mocker.patch("apiserver.data.kv.store_auth_request")
 
     def store_side_effect(f_dsrc, flow_id, req):
         store_fix[flow_id] = req
@@ -575,7 +695,7 @@ async def test_oauth_authorize(test_client: AsyncClient, req_store):
         "state": "KV6A2hTOv6mOFYVpTAOmWw",
         "code_challenge": "8LNMS54GS7iB7H67U5OFLclCl0F87vy5uf-Izj3TCdQ",
         "code_challenge_method": "S256",
-        "nonce": "eB2lpr1IqZdJzt9CfDZ5jrHGa6yE87UUTFd4CWweOI"
+        "nonce": "eB2lpr1IqZdJzt9CfDZ5jrHGa6yE87UUTFd4CWweOI",
     }
 
     response = await test_client.get("/oauth/authorize/", params=req)
@@ -588,7 +708,7 @@ async def test_oauth_callback(test_client: AsyncClient, mocker: MockerFixture):
     test_flow_id = "1cd7afeca7eb420201ea69e06d9085ae2b8dd84adaae8d27c89746aab75d1dff"
     test_code = "zySjwa5CpddMzSydqKOvXZHQrtRK-VD83aOPMAB_1gEVxSscBywmS8XxZze3letN9whXUiRfSEfGel9e-5XGgQ"
 
-    get_auth = mocker.patch('apiserver.data.kv.get_auth_request')
+    get_auth = mocker.patch("apiserver.data.kv.get_auth_request")
 
     def auth_side_effect(f_dsrc, flow_id):
         if flow_id == test_flow_id:
@@ -602,9 +722,9 @@ async def test_oauth_callback(test_client: AsyncClient, mocker: MockerFixture):
     }
 
     response = await test_client.get("/oauth/callback/", params=req)
-    loc = response.headers['location']
+    loc = response.headers["location"]
     queries = parse_qs(urlparse(loc).query)
     print(response)
-    assert queries['code'] == [test_code]
-    assert queries['state'] == [mock_auth_request.state]
+    assert queries["code"] == [test_code]
+    assert queries["state"] == [mock_auth_request.state]
     assert response.status_code == status.HTTP_303_SEE_OTHER

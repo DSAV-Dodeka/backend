@@ -1,13 +1,17 @@
 import logging
 from logging import Logger
+from pathlib import Path
 
-import uvicorn
+from uvicorn.logging import DefaultFormatter
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.middleware import Middleware
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.routing import Mount
 from fastapi.exceptions import RequestValidationError
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.types import ASGIApp
 
 # We rely upon database parameters being set at import time, which is fragile, but the only way to easily re-use it
 # in the app state
@@ -33,21 +37,36 @@ import apiserver.routers.profile as profile
 import apiserver.routers.onboard as onboard
 import apiserver.routers.update as update
 
+log_path = Path("/home/erag/files/gitp/dodekabackend/test.log")
+
+
+class LoggerMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app: ASGIApp, mw_logger: Logger):
+        super().__init__(app)
+        self.mw_logger = mw_logger
+
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint):
+        # self.mw_logger.debug(request.headers)
+        return await call_next(request)
+
 
 def init_logging(logger_name: str, log_level: int):
     logger_init = logging.getLogger(logger_name)
     logger_init.setLevel(log_level)
-    handler = logging.StreamHandler()
-    log_format = "%(levelprefix)s %(asctime)s | %(message)s"
-    formatter = uvicorn.logging.DefaultFormatter(
-        log_format, datefmt="%Y-%m-%d %H:%M:%S"
-    )
-    handler.setFormatter(formatter)
-    logger_init.addHandler(handler)
+    str_handler = logging.StreamHandler()
+    # handler = logging.FileHandler(filename=log_path)
+    log_format = "%(levelprefix)s %(asctime)s | %(message)s "
+    formatter = DefaultFormatter(log_format, datefmt="%Y-%m-%d %H:%M:%S")
+    # handler.setFormatter(formatter)
+    str_handler.setFormatter(formatter)
+    # logger_init.addHandler(handler)
+    logger_init.addHandler(str_handler)
     return logger_init
 
 
 def create_app() -> tuple[FastAPI, Logger]:
+    new_logger = init_logging(LOGGER_NAME, logging.DEBUG)
+
     # TODO change all origins
     origins = [
         "*",
@@ -61,21 +80,25 @@ def create_app() -> tuple[FastAPI, Logger]:
             name="credentials",
         )
     ]
-    new_app = FastAPI(routes=routes)
+    middleware = [
+        Middleware(
+            CORSMiddleware,
+            allow_origins=origins,
+            allow_methods=["*"],
+            allow_headers=["Authorization"],
+        ),
+        Middleware(LoggerMiddleware, mw_logger=new_logger),
+    ]
+
+    new_app = FastAPI(title="apiserver", routes=routes, middleware=middleware)
     new_app.include_router(basic.router)
     new_app.include_router(auth.router)
     new_app.include_router(profile.router)
     new_app.include_router(onboard.router)
     new_app.include_router(update.router)
-    new_app.add_middleware(
-        CORSMiddleware,
-        allow_origins=origins,
-        allow_methods=["*"],
-        allow_headers=["Authorization"],
-    )
     new_app.add_exception_handler(ErrorResponse, handler=error_response_handler)
     # TODO change logger behavior in tests
-    new_logger = init_logging(LOGGER_NAME, logging.DEBUG)
+
     new_logger.info("Starting...")
 
     dsrc = Source()
@@ -86,7 +109,7 @@ def create_app() -> tuple[FastAPI, Logger]:
 
 # Running FastAPI relies on the fact the app is created at module top-level
 # Seperating the logic in a function also allows it to be called elsewhere, like tests
-app, logger = create_app()
+apiserver_app, logger = create_app()
 
 
 # Should always be manually run in tests
@@ -110,7 +133,7 @@ async def app_startup(dsrc_inst: Source):
             " (define.toml)! Ensure defined variables are appropriate for the runtime"
             " environment before changing the environment!"
         )
-    safe_startup(app, dsrc_inst, config)
+    safe_startup(apiserver_app, dsrc_inst, config)
     # Db connections, etc.
     do_recreate = config.RECREATE == "yes"
     await dsrc_inst.startup(config, do_recreate)
@@ -123,21 +146,21 @@ async def app_shutdown(dsrc_inst: Source):
 # Hooks defined by FastAPI to run on startup and shutdown
 
 
-@app.on_event("startup")
+@apiserver_app.on_event("startup")
 async def startup():
-    dsrc: Source = app.state.dsrc
+    dsrc: Source = apiserver_app.state.dsrc
     logger.info("Running startup...")
     await app_startup(dsrc)
 
 
-@app.on_event("shutdown")
+@apiserver_app.on_event("shutdown")
 async def shutdown():
-    dsrc: Source = app.state.dsrc
+    dsrc: Source = apiserver_app.state.dsrc
     logger.info("Running shutdown...")
     await app_shutdown(dsrc)
 
 
-@app.exception_handler(RequestValidationError)
+@apiserver_app.exception_handler(RequestValidationError)
 def validation_exception_handler(request, exc: RequestValidationError):
     # Also show debug if there is an error in the request
     exc_str = str(exc)

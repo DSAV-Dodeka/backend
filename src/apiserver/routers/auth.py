@@ -38,24 +38,29 @@ async def start_login(login_start: PasswordRequest, request: Request):
     check flow."""
     dsrc: Source = request.app.state.dsrc
 
-    async with data.get_conn(dsrc) as conn:
-        opaque_setup = await data.opaquesetup.get_setup(dsrc, conn)
-
     scope = "none"
     async with data.get_conn(dsrc) as conn:
+        # We get server setup required for using OPAQUE protocol
+        opaque_setup = await data.opaquesetup.get_setup(dsrc, conn)
+
+        # We start with a fakerecord
         u = await data.user.get_user_by_id(dsrc, conn, "1_fakerecord")
         password_file = u.password_file
         try:
-            u = await data.user.get_user_by_email(dsrc, conn, login_start.email)
-            if u.password_file:
-                password_file = u.password_file
-                scope = u.scope
-        except NoDataError as e:
-            # If user does not exist, fake user record is passed to prevent client enumeration
+            ru = await data.user.get_user_by_email(dsrc, conn, login_start.email)
+            # If the user exists and has a password set (meaning they are registered), we perform the check with the
+            # actual password
+            if ru.password_file:
+                u = ru
+                password_file = ru.password_file
+                scope = ru.scope
+        except NoDataError:
+            # If user or password file does not exist, user, password_file and scope default to the fake record
             pass
 
     auth_id = util.random_time_hash_hex(u.user_id)
 
+    # This will only fail if the client message is an invalid OPAQUE protocol message
     response, state = opq.login(
         opaque_setup, password_file, login_start.client_request, u.user_id
     )
@@ -78,7 +83,10 @@ async def finish_login(login_finish: FinishLogin, request: Request):
         logger.debug(e.message)
         reason = "Login not initialized or expired"
         raise ErrorResponse(
-            400, err_type="invalid_login", err_desc=reason, debug_key="no_login_start"
+            status_code=400,
+            err_type="invalid_login",
+            err_desc=reason,
+            debug_key="no_login_start",
         )
 
     if saved_state.user_email != login_finish.email:

@@ -177,7 +177,7 @@ class PostgresOperations(DbOperations):
         row_keys, row_keys_vars, _ = _row_keys_vars_set(row)
         query = text(f"INSERT INTO {table} ({row_keys}) VALUES ({row_keys_vars});")
 
-        res: CursorResult = await conn.execute(query, parameters=row)
+        res: CursorResult = await execute_catch_conn(conn, query, params=row)
         return res.rowcount
 
     @classmethod

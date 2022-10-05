@@ -137,8 +137,8 @@ async def email_confirm(confirm_req: EmailConfirm, request: Request):
         async with data.get_conn(dsrc) as conn:
             await data.signedup.insert_su_row(dsrc, conn, signed_up.dict())
     except DataError as e:
-        logger.debug(e.message)
-        if e.key == "unique_violation":
+        if e.key == "integrity_violation":
+            logger.debug(e.key)
             raise ErrorResponse(
                 400,
                 err_type="invalid_signup",
@@ -146,6 +146,7 @@ async def email_confirm(confirm_req: EmailConfirm, request: Request):
                 debug_key="user_exists",
             )
         else:
+            logger.debug(e.message)
             raise e
 
     return None
@@ -177,8 +178,8 @@ async def confirm_join(
                 dsrc, conn, signup.email
             )
     except DataError as e:
-        logger.debug(e.message)
         if e.key == "signedup_empty":
+            logger.debug(e.key)
             raise ErrorResponse(
                 400,
                 err_type="invalid_onboard",
@@ -186,6 +187,7 @@ async def confirm_join(
                 debug_key="no_user_signup",
             )
         else:
+            logger.debug(e.message)
             raise e
 
     # Success here means removing any existing records in signedup and also the KV relating to that email

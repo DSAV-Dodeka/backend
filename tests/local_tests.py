@@ -18,7 +18,7 @@ from apiserver.auth.tokens_data import get_keys
 
 @pytest.fixture(scope="module", autouse=True)
 def event_loop():
-    """ Necessary for async tests with module-scoped fixtures """
+    """Necessary for async tests with module-scoped fixtures"""
     loop = asyncio.get_event_loop()
     yield loop
     loop.close()
@@ -50,7 +50,7 @@ async def test_onboard_signup(local_client):
         "firstname": "mr",
         "lastname": "person",
         "email": "hi@xs.nl",
-        "phone": "+31068243"
+        "phone": "+31068243",
     }
 
     response = await local_client.post("/onboard/signup/", json=req)
@@ -71,26 +71,34 @@ async def admin_access(local_dsrc):
     scope = "member admin"
     utc_now = util.utc_timestamp()
 
-    access_token_data, id_token_data, access_scope, refresh_save = create_tokens(admin_id, scope, utc_now, "test_nonce",
-                                                                                 utc_now)
+    access_token_data, id_token_data, access_scope, refresh_save = create_tokens(
+        admin_id, scope, utc_now, "test_nonce", utc_now
+    )
     refresh_id = 5252626
     aesgcm, signing_key = await get_keys(local_dsrc)
-    refresh_token, access_token, id_token = finish_tokens(refresh_id, refresh_save, aesgcm, access_token_data,
-                                                          id_token_data, utc_now, signing_key, nonce="")
+    refresh_token, access_token, id_token = finish_tokens(
+        refresh_id,
+        refresh_save,
+        aesgcm,
+        access_token_data,
+        id_token_data,
+        utc_now,
+        signing_key,
+        nonce="",
+    )
     yield access_token
 
 
 @pytest.mark.asyncio
 async def test_generate_admin(local_dsrc: Source):
-
     admin_password = "admin"
-    # async with data.get_conn(local_dsrc) as conn:
-    #     setup = await data.opaquesetup.get_setup(local_dsrc, conn)
+    async with data.get_conn(local_dsrc) as conn:
+        setup = await data.opaquesetup.get_setup(local_dsrc, conn)
 
-    setup = ""
+    # setup = ""
 
     cl_req, cl_state = opq.register_client(admin_password)
-    serv_resp = opq.register(setup, cl_req, util.usp_hex('1_fakerecord'))
+    serv_resp = opq.register(setup, cl_req, util.usp_hex("0_admin"))
     cl_fin = opq.register_client_finish(cl_state, admin_password, serv_resp)
     pw_file = opq.register_finish(cl_fin)
 
@@ -102,6 +110,7 @@ async def test_generate_rand():
     x = util.random_time_hash_hex(short=True)
     print(x)
 
+
 @pytest.mark.asyncio
 async def test_fill_signedup():
     key_set_dict = {
@@ -111,14 +120,14 @@ async def test_fill_signedup():
                 "kty": "oct",
                 "k": "hpPUuT_feql5Qo-1emMMlvkd50HSoTAiGKOUNZO2KZA",
                 "alg": "A256GCM",
-                "use": "enc"
+                "use": "enc",
             },
             {
                 "kid": "54e45c5a068effb1",
                 "kty": "oct",
                 "k": "E5Nw5-kXR542pWVyNy9lXiD7W46YV4sF-njX9biUBng",
                 "alg": "A256GCM",
-                "use": "enc"
+                "use": "enc",
             },
             {
                 "kid": "2dadb3af386b4d9d",
@@ -127,8 +136,8 @@ async def test_fill_signedup():
                 "crv": "Ed448",
                 "x": "f5538Oa3cLDNVLcsZI_SLwYSZuM6Vn_5rV5iVi7IcRqoAQ9Ne5w9Nhy9uPZGVzQeZz5T0xYrx4mA",
                 "d": "JXpGIitdCa1PqlbFPY50pIunS5AiTz0OCai92WRWfC4-82r74uk-pIqKbk1Wv11dkcEP8gnACbZy",
-                "use": "sig"
-            }
+                "use": "sig",
+            },
         ]
     }
 
@@ -139,16 +148,13 @@ async def test_fill_signedup():
     print(reencrypted_key_set)
 
 
-
-
 @pytest.mark.asyncio
 async def test_onboard_confirm(local_client: AsyncClient, admin_access):
     req = {
         "email": "comcom@dsavdodeka.nl",
         "av40id": "+31068243",
-        "joined": "2022-04-03"
+        "joined": "2022-04-03",
     }
-    headers = {'Authorization': f'Bearer {admin_access}'}
+    headers = {"Authorization": f"Bearer {admin_access}"}
     response = await local_client.post("/onboard/confirm/", json=req, headers=headers)
     print(response.json())
-

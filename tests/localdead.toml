@@ -11,5 +11,5 @@ KV_HOST="localhost"
 KV_PORT=6379
 KV_PASS="redisredis"
 
+KEY_PASS="AT_av0v62Z3hQH50VYwKBks1-VSukK9xDN_Ur34mdZ4"
 MAIL_PASS=""
-KEY_PASS=""

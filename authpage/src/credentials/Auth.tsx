@@ -1,9 +1,9 @@
 import React, {useEffect, useState} from "react";
-import {clientLogin} from "./Authenticate";
-import config from "./config";
+import {clientLogin} from "../functions/authenticate";
+import config from "../config";
 import "./Auth.scss"
-import {back_post, catch_api} from "./api";
-import {new_err} from "./error";
+import {back_post, catch_api} from "../functions/api";
+import {new_err} from "../functions/error";
 
 const login_url = `${config.client_location}/lg`
 
@@ -27,7 +27,8 @@ const Auth = () => {
         // login
         let flow_id = (new URLSearchParams(window.location.search)).get("flow_id");
         if (flow_id == null) {
-            new_err("bad_auth", "Flow ID not set!", "auth_flow_missing").p()
+
+            console.log(new_err("bad_auth", "Flow ID not set!", "auth_flow_missing").j())
             setStatus("Er is iets mis met de link, probeer het nogmaals via deze: ")
             setShowLink(true)
             return
@@ -79,7 +80,7 @@ const Auth = () => {
         setShowForgot((s) => !s)
     }
 
-    const handleLoad = async () => {
+    const handleLoad = () => {
         let definedUser = (new URLSearchParams(window.location.search)).get("user");
         let redirect = (new URLSearchParams(window.location.search)).get("redirect");
         if (definedUser !== null) {
@@ -105,7 +106,7 @@ const Auth = () => {
 
     useEffect(() => {
         if (!load) {
-            handleLoad().catch()
+            handleLoad()
             setLoad(true)
         }
     }, [])

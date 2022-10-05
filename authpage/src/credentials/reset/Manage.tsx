@@ -1,9 +1,9 @@
-import React, {ChangeEvent, FormEvent, Suspense, useEffect, useState} from "react";
-import "./Register.scss";
-import {passUpdate} from "./Authenticate";
-import config from "./config";
-import {new_err} from "./error";
-const PasswordStrength = React.lazy(() => import('./PasswordStrength'));
+import React, {FormEvent, Suspense, useEffect, useState} from "react";
+import "../register/Register.scss";
+import {passUpdate} from "../../functions/authenticate";
+import config from "../../config";
+import {new_err} from "../../functions/error";
+const PasswordStrength = React.lazy(() => import('../../components/PasswordStrength'));
 
 const redirectUrl = `${config.client_location}/registered`
 
@@ -45,7 +45,7 @@ const Manage = () => {
                     if (result) {
                         window.location.assign(redirectUrl)
                     } else {
-                        new_err("bad_pass_update", "Bad pass update result!", "pass_update_false").p()
+                        console.log(new_err("bad_pass_update", "Bad pass update result!", "pass_update_false").j())
                         somethingWrong()
                     }
                 },
@@ -65,12 +65,12 @@ const Manage = () => {
         setPreStatus("The reset link is incorrect or has expired. Please try again.")
     }
 
-    const handleLoad = async () => {
+    const handleLoad = () => {
         const source_params = (new URLSearchParams(window.location.search))
         const flow_id = source_params.get("reset_id")
         const email = source_params.get("email")
         if (flow_id === null || email === null) {
-            new_err("bad_manage_load", "Flow ID or email not set!", "manage_load_missing").p()
+            console.log(new_err("bad_manage_load", "Flow ID or email not set!", "manage_load_missing").j())
             badConfirm()
         } else {
             setUrlOk(true)
@@ -83,7 +83,7 @@ const Manage = () => {
 
     useEffect(() => {
         if (!handled) {
-            handleLoad().catch();
+            handleLoad();
         }
     }, [handled]);
 

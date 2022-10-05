@@ -1,6 +1,7 @@
-import config from "./config"
+import config from "../config"
 import ky, {HTTPError, ResponsePromise} from "ky"
 import {z} from "zod";
+import {AuthPageError} from "./error";
 
 const api = ky.create({prefixUrl: config.auth_location});
 
@@ -27,4 +28,9 @@ export const catch_api = async (e: unknown): Promise<ApiError> => {
     } else {
         throw e
     }
+}
+
+export const err_api = async (e: unknown) => {
+    const err = await catch_api(e)
+    return new AuthPageError(err.error, err.error_description, err.debug_key)
 }

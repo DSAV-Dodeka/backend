@@ -1,13 +1,13 @@
 import React, {useReducer, Suspense, FormEvent, ChangeEvent, FocusEvent, useState, useEffect} from "react";
 import "./Register.scss";
-import config from "./config";
-import {clientLogin, clientRegister} from "./Authenticate";
-import {base64ToBin} from "./encode";
+import config from "../../config";
+import {clientLogin, clientRegister} from "../../functions/authenticate";
+import {base64ToBin} from "../../functions/encode";
 
 import {z} from "zod";
-import {new_err} from "./error";
+import {new_err} from "../../functions/error";
 // Imported lazily due to large library size
-const PasswordStrength = React.lazy(() => import('./PasswordStrength'));
+const PasswordStrength = React.lazy(() => import('../../components/PasswordStrength'));
 
 const registerReducer = (state: RegisterState, action: RegisterAction): RegisterState => {
     switch (action.type) {
@@ -148,7 +148,7 @@ const Register = () => {
                     if (result) {
                         window.location.assign(redirectUrl)
                     } else {
-                        new_err("bad_register", "Bad register result!", "register_false").p()
+                        console.log(new_err("bad_register", "Bad register result!", "register_false").j())
                         somethingWrong()
                     }
                 },

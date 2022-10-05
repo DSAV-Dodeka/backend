@@ -1,11 +1,12 @@
-import './index.scss'
+import '../../index.scss'
 import React from 'react'
 import {createRoot} from "react-dom/client";
-import Manage from "./Manage";
-import ContainBack from "./ContainBack";
+import ContainBack from "../../components/ContainBack";
+import Register from "./Register";
+
 
 const container = document.getElementById('root')
 const root = createRoot(container!)
 root.render(<React.StrictMode>
-    <ContainBack component={<Manage />} />
+    <ContainBack component={<Register />} />
 </React.StrictMode>)

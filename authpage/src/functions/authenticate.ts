@@ -1,6 +1,6 @@
 import {client_register_wasm, client_register_finish_wasm, client_login_wasm, client_login_finish_wasm} from "@tiptenbrink/opaquewasm";
-import config from "./config";
-import {RegisterState} from "./Register";
+import config from "../config";
+import {RegisterState} from "../credentials/register/Register";
 import {back_post, catch_api} from "./api";
 import {z} from "zod";
 

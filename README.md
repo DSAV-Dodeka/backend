@@ -3,11 +3,11 @@
 
 **Backend framework (Server)**: Python **[FastAPI](https://github.com/tiangolo/fastapi)** server running on **uvicorn** (managed by **[gunicorn](https://github.com/benoitc/gunicorn)** in production), which uses **[uvloop](https://github.com/MagicStack/uvloop)** as its async event loop.
 
-**Frontend framework (authpage)**: **[React](https://reactjs.org/)**, built using [Vite](https://vitejs.dev/) as a multi-page app and served statically by FastAPI.
+**Frontend framework (authpage)**: **[React](https://reactjs.org/)**, built using [Vite](https://vitejs.dev/) as a multi-page app (MPA) and served statically by FastAPI.
 
-**Persistent database (DB)**: **[PostgreSQL](https://www.postgresql.org/)** relationa
+**Persistent database (DB)**: **[PostgreSQL](https://www.postgresql.org/)** relational database.
 
-**In-memory key-value store (KV)**: **[Redis](https://redis.io/)**
+**In-memory key-value store (KV)**: **[Redis](https://redis.io/)**.
 
 We use the async engine of **[SQLAlchemy](https://github.com/sqlalchemy/sqlalchemy)** (only Core, no ORM, we write SQL manually) as a frontend for **[asyncpg](https://github.com/MagicStack/asyncpg)** for all DB operations. **[Alembic](https://github.com/sqlalchemy/alembic)** is used as a migration tool.
 
@@ -33,20 +33,14 @@ In addition to this, we rely heavily on the following libraries:
 
 ##### Running locally
 
-Before you can run `apiserver` locally, you must
+Before you can run `apiserver` locally, you must have a Postgres and Redis database setup. Please look at the https://github.com/DSAV-dodeka/dodeka repository for more info.
 
-* If you want to run it locally, [install Poetry](https://python-poetry.org/docs/master/). This can be complicated as it is still a somewhat fragile tool, but it is really easy to make good virtual environments with. 
-* Then, set up your IDE with a Python 3.10 Poetry virtual environment. This step can also be complicated. The best way is to simply run `poetry update` in the /server directory. It will give you a path towards the virtualenv it created, which will contain a python executable in the /bin folder (if it doesn't, run `poetry env info`). If you point your IDE to that executable as the project interpreter, everything should work.
-  * Getting poetry to run with Python 3.10 is also not easy. What usually works is to first make sure Python 3.10 is installed on your system (for example using `pyenv`) and then running `poetry env use python3.10`.
-* Next run `poetry install`, which will also install the project. Currently the `apiserver` package is in a /src folder which is nice for test isolation, but it might confuse your IDE. In that case, find something like 'project structure' configuration and set the /src folder as a 'sources folder' (or similar, might be different in your IDE).
-* Before running, you must have the environment variable APISERVER_CONFIG set to `./devenv.toml` in order to be able to run it. This can be most easily done by editing the run configuration to always set that environment variable.
+* [Install Poetry](https://python-poetry.org/docs/master/).
+* Then, set up a Python 3.10 Poetry virtual environment. This step can be complicated, as Python 3.10 might not be the default version of Python on your system. What usually works is to first make sure Python 3.10 is installed on your system (for example using `pyenv`, although I only recommend this is if you are frequently using multiple versions of Python, otherwise just uninstall your current version of Python and install version 3.10. If you're on Linux, usually a python3.10 package will exist) and then running `poetry env use python3.10` (or substitute python3.10 for the executable name of Python 3.10).
+* Then I recommend connecting your IDE to the environment. The best way is to simply run `poetry update`. It will give you a path towards the virtualenv it created, which will contain a python executable in the /bin folder (if it doesn't, run `poetry env info`). If you point your IDE to that executable as the project interpreter, everything should work.
+* Next run `poetry install`, which will also install the project. Currently, the `apiserver` package is in a /src folder which is nice for test isolation, but it might confuse your IDE. In that case, find something like 'project structure' configuration and set the /src folder as a 'sources folder' (or similar, might be different in your IDE).
+* Before running, you must have the environment variable APISERVER_CONFIG set to `./devenv.toml` in order to be able to run it. This can be most easily done by editing the run configuration to always set that environment variable. (If you ask why, this is to force you to consider to which database, etc. you are connecting.)
 * Now you can run the server either by just running the `dev.py` in src/apiserver or by running `poetry run s-dodeka`. The server will automatically reload if you change any files. It will tell you at which address you can access it.
-
-##### Production
-* First, build a Python environment with the dependencies installed by running: `docker build --tag dodeka/server-deps -f server-deps.Dockerfile .`
-* Next, build the project itself by running `docker build --tag dodeka/server .` in the main directory.
-* If you did not yet build the Redis server, first build the Redis server by running `./build.sh` in the /server/redis folder.
-* Be sure you have the database running with the `dodeka` network turned on, after which you can run `./deploy.sh` in /server/deployment. It works similar to the database and can be shut down using `./down.sh`. 
 
 ### Configuration and import structure
 
@@ -79,12 +73,6 @@ First you need to have the Poetry environment running as described earlier and e
 * This will generate a Python file in the migrations/versions directory, which you can view to see if everything looks good. It basically looks at the database, looks at the schema described in db/model.py and generates code to migrate to the described schema.
 * Then, you can run `poetry run alembic upgrade head`, which will apply the latest generated revision. If you now use your database viewer, the table will have hopefully appeared.
 * If there is a mismatch with the current revision, use `poetry run alembic stamp head` before the above 2 commmands.
-
-
-
-### Dev vs production
-
-If you are in a dev environment, you can start by running `dev.py`
 
 ### Important to keep in mind
 

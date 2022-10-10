@@ -56,7 +56,7 @@ async def store_auth_register_state(
 
 
 async def store_auth_state(dsrc: Source, auth_id: str, state: SavedState):
-    await store_json(kv_is_init(dsrc), auth_id, state.dict(), expire=1000)
+    await store_json(kv_is_init(dsrc), auth_id, state.dict(), expire=60)
 
 
 async def get_state(dsrc: Source, auth_id: str) -> SavedState:

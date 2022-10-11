@@ -29,6 +29,12 @@ In addition to this, we rely heavily on the following libraries:
 **Deployment**: Everything is designed to run easily inside a **[Docker](https://www.docker.com/)** container. The total package (Server, DB, KV) is recommended to be deployed using separate Docker containers using **[Docker Compose](https://docs.docker.com/compose/)**. We manage deployment from the **[DSAV-Dodeka/dodeka](https://github.com/DSAV-Dodeka/dodeka)** repository.
 
 
+#### Telemetry
+
+```
+APISERVER_CONFIG=./localenv.toml OTEL_RESOURCE_ATTRIBUTES=service.name=apiserver OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4318" OTEL_METRICS_EXPORTER=none poetry run opentelemetry-instrument --traces_exporter otlp_proto_http python src/apiserver/dev.py
+```
+
 ## Development
 
 ##### Running locally

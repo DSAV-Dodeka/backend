@@ -62,7 +62,7 @@ const Manage = () => {
     }
 
     const badConfirm = () => {
-        setPreStatus("The reset link is incorrect or has expired. Please try again.")
+        setPreStatus("De herstellink is incorrect of verlopen. Probeer het opnieuw!")
     }
 
     const handleLoad = () => {
@@ -88,8 +88,8 @@ const Manage = () => {
     }, [handled]);
 
     return (
-        <div>
-            <h1 className="title">Change password</h1>
+        <div className="backend_page">
+            <h1 className="title">Wachtwoord veranderen</h1>
             {urlOk && (
                 <><p className="largeText">Hallo! You can reset your password for {email} below.</p>
                 <form className="authForm" onSubmit={handleSubmit}>

@@ -2,14 +2,15 @@ import React, {useEffect, useState} from "react";
 import {back_post, err_api} from "../../functions/api"
 import {confirm_succesful, register_link} from '../../loc.json'
 import './Email.scss'
+import Back from "../../components/Back";
 import {AuthPageError} from "../../functions/error";
 
 const Email = () => {
-    const [status, setStatus] = useState("")
+    const [status, setStatus] = useState("De bevestigingslink is incorrect of verlopen. Probeer het opnieuw.")
     const [confirmed, setConfirmed] = useState(false)
 
     const badConfirm = () => {
-        setStatus("The confirmation link is incorrect or has expired. Please try again.")
+        setStatus("De bevestigingslink is incorrect of verlopen. Probeer het opnieuw.")
         setConfirmed(false)
     }
 
@@ -39,7 +40,7 @@ const Email = () => {
                 if (e.debug_key === "bad_confirm_id") {
                     badConfirm()
                 } else if (e.debug_key === "user_exists") {
-                    setStatus("You have already confirmed your email. Please be patient while we process your registration.")
+                    setStatus("Je hebt je e-mail al bevestigd, we zijn bezig met het verwerken van je registratie.")
                     setConfirmed(true)
                 } else {
                     console.log(e.j())
@@ -58,11 +59,12 @@ const Email = () => {
     }, []);
 
     return (
-        <>
+        <div className="backend_page">
+            <Back />
             <h1 className="title">Email</h1>
             <p className="largeText">{status}</p>
-            {confirmed && (<a className="regLink" href={register_link}>{register_link}</a>)}
-        </>
+            <p className="largeText">{confirmed && (<a className="regLink" href={register_link}>{register_link}</a>)}</p>
+        </div>
     )
 }
 

@@ -61,7 +61,7 @@ const Email = () => {
     return (
         <div className="backend_page">
             <Back />
-            <h1 className="title">Email</h1>
+            <h1 className="title">E-MAIL BEVESTIGEN</h1>
             <p className="largeText">{status}</p>
             <p className="largeText">{confirmed && (<a className="regLink" href={register_link}>{register_link}</a>)}</p>
         </div>

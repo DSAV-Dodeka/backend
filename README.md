@@ -1,4 +1,4 @@
-# Backend and database
+# Backend Server and authpage
 
 
 **Backend framework (Server)**: Python **[FastAPI](https://github.com/tiangolo/fastapi)** server running on **uvicorn** (managed by **[gunicorn](https://github.com/benoitc/gunicorn)** in production), which uses **[uvloop](https://github.com/MagicStack/uvloop)** as its async event loop.
@@ -17,14 +17,14 @@ This is an authorization server, authentication server and web app backend API i
 
 Client authentication uses the [OPAQUE protocol](https://datatracker.ietf.org/doc/draft-irtf-cfrg-opaque/) (password-authentication key exchange), which protects against agains pre-computation attacks upon server compromise. This makes passwords extra safe in a way that they never leave the client.
 
-Authorization is performed using [OAuth 2.1](https://datatracker.ietf.org/doc/draft-ietf-oauth-v2-1/), with much of [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html) also implemented to make it appropriate for authenticating users.
+Authorization is performed using [OAuth 2.1](https://datatracker.ietf.org/doc/draft-ietf-oauth-v2-1/), with much of [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html) also implemented to make it appropriate for authenticating users. While not technically required, OAuth tokens are generally in the form of [JSON Web Tokens (JWTs)](https://www.rfc-editor.org/rfc/rfc7519.html) and OpenID Connect does require it, so we use them here. Good 3rd-party resources can be found for [OAuth](https://www.oauth.com/) and [JWTs](https://jwt.io/introduction).
 
 In addition to this, we rely heavily on the following libraries:
 * [PyJWT](https://github.com/jpadilla/pyjwt) for signing and parsing JSON web tokens.
 * [cryptography](https://github.com/pyca/cryptography) for many cryptographic primitives, primarily for encrypting refresh tokens and handling the keys used for signing the JWTs.
 * [pydantic](https://github.com/pydantic/pydantic) for modeling and parsing all data throughout the application.
 
-
+The backend relies on some basic cryptography. It is nice to know something about secret key cryptography (AES), public key cryptography and hashing.
 
 **Deployment**: Everything is designed to run easily inside a **[Docker](https://www.docker.com/)** container. The total package (Server, DB, KV) is recommended to be deployed using separate Docker containers using **[Docker Compose](https://docs.docker.com/compose/)**. We manage deployment from the **[DSAV-Dodeka/dodeka](https://github.com/DSAV-Dodeka/dodeka)** repository.
 
@@ -37,7 +37,7 @@ APISERVER_CONFIG=./localenv.toml OTEL_RESOURCE_ATTRIBUTES=service.name=apiserver
 
 ## Development
 
-##### Running locally
+#### Running locally
 
 Before you can run `apiserver` locally, you must have a Postgres and Redis database setup. Please look at the https://github.com/DSAV-dodeka/dodeka repository for more info.
 
@@ -45,8 +45,12 @@ Before you can run `apiserver` locally, you must have a Postgres and Redis datab
 * Then, set up a Python 3.10 Poetry virtual environment. This step can be complicated, as Python 3.10 might not be the default version of Python on your system. What usually works is to first make sure Python 3.10 is installed on your system (for example using `pyenv`, although I only recommend this is if you are frequently using multiple versions of Python, otherwise just uninstall your current version of Python and install version 3.10. If you're on Linux, usually a python3.10 package will exist) and then running `poetry env use python3.10` (or substitute python3.10 for the executable name of Python 3.10).
 * Then I recommend connecting your IDE to the environment. The best way is to simply run `poetry update`. It will give you a path towards the virtualenv it created, which will contain a python executable in the /bin folder (if it doesn't, run `poetry env info`). If you point your IDE to that executable as the project interpreter, everything should work.
 * Next run `poetry install`, which will also install the project. Currently, the `apiserver` package is in a /src folder which is nice for test isolation, but it might confuse your IDE. In that case, find something like 'project structure' configuration and set the /src folder as a 'sources folder' (or similar, might be different in your IDE).
-* Before running, you must have the environment variable APISERVER_CONFIG set to `./devenv.toml` in order to be able to run it. This can be most easily done by editing the run configuration to always set that environment variable. (If you ask why, this is to force you to consider to which database, etc. you are connecting.)
+* Before running, you must have the environment variable APISERVER_CONFIG set to `./devenv.toml` in order to be able to run it. This can be most easily done by editing the run configuration of your IDE to always set that environment variable. (If you ask why, this is to force you to consider to which database, etc. you are connecting.) There are multiple other ways to set it. If you are on Linux, you can run `export APISERVER_CONFIG=./devenv.toml` if you run it from the terminal. On Windows, you can edit your system environment variables and add it there. Do note that this will set it everywhere and that might lead to issues, so if possible set it in the run configuration!
 * Now you can run the server either by just running the `dev.py` in src/apiserver or by running `poetry run s-dodeka`. The server will automatically reload if you change any files. It will tell you at which address you can access it.
+
+#### Running for the first time
+
+If you are running the server for the first time and/or the database is empty, be sure to set RECREATE="yes" in the env config file (i.e. `devenv.toml`). Be sure to set it back to "no" after doing this once, or otherwise it recreate it each time.
 
 ### Configuration and import structure
 

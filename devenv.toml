@@ -11,6 +11,14 @@ KV_HOST="localhost"
 KV_PORT=6379
 KV_PASS="redisredis"
 
+# AES key for decrypting the key set stored in the database
+# This key set contains the refresh token keys and JWT signing keys
 KEY_PASS="AT_av0v62Z3hQH50VYwKBks1-VSukK9xDN_Ur34mdZ4"
 
+# Webmail API key to connect to SMTP server
+# USE WITH CAUTION, as actual emails are sent
 MAIL_PASS=""
+
+# Set to 'yes' to force the backend to delete the database and build a new one from scratch
+# USE WITH CAUTION
+RECREATE="no"

@@ -28,7 +28,7 @@ async def get_newest_pem(dsrc: Source, conn: AsyncConnection) -> str:
 
 
 async def insert_key(
-    dsrc: Source, conn: AsyncConnection, kid: str, iat: str, use: str
+    dsrc: Source, conn: AsyncConnection, kid: str, iat: int, use: str
 ) -> int:
     row = {KEY_ID: kid, KEY_ISSUED: iat, KEY_USE: use}
     return await insert(dsrc, conn, KEY_TABLE, row)

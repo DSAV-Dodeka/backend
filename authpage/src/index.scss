@@ -5,6 +5,7 @@ html {
 }
 
 body {
+  background-color: $dodeka_blauw90p;
   margin: 0px;
   padding: 0px;
   
@@ -21,8 +22,7 @@ p {
 }
 
 .backend_page {
-  background-color: $dodeka_blauw90p;
-  height: 100vh;
+  min-height: 100vh;
   width: 100%;
 }
 
@@ -119,18 +119,4 @@ $end: 5;
 
 .form .formPassword {
   margin-bottom: 0.5rem !important;
-}
-
-// .formContents label {
-//   color: white;
-//   font-size: $font_small;
-//   line-height: $line_height_small;
-// }
-
-// .formContents input[disabled] {
-//   color: #939393;
-// }
-
-.form .submitted:invalid {
-  outline: 0.2rem solid #CB4B3D;
 }

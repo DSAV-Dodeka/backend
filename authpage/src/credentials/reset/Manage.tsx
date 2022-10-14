@@ -4,6 +4,7 @@ import "../register/Register.scss";
 import {passUpdate} from "../../functions/authenticate";
 import config from "../../config";
 import {new_err} from "../../functions/error";
+import Back from "../../components/Back";
 const PasswordStrength = React.lazy(() => import('../../components/PasswordStrength'));
 
 const redirectUrl = `${config.client_location}/registered`
@@ -26,11 +27,11 @@ const Manage = () => {
 
     const formIsValid = () => {
         if (passScore < 2) {
-            setStatus("Je wachtwoord is te zwak, maak het langer of onregelmatiger")
+            setStatus("Je wachtwoord is te zwak, maak het langer of onregelmatiger.")
             return false;
         }
         else if (password != passwordConfirm) {
-            setStatus("De wachtwoorden zijn niet gelijk")
+            setStatus("De wachtwoorden zijn niet gelijk.")
             return false;
         }
         setStatus("")
@@ -90,6 +91,7 @@ const Manage = () => {
 
     return (
         <div className="backend_page">
+            <Back />
             <h1 className="title">Wachtwoord veranderen</h1>
             {urlOk && (
                 <><p className="largeText">Wijzig hieronder je wachtwoord voor je account met e-mail: {email}.</p>

@@ -1,4 +1,5 @@
 import React, {FormEvent, Suspense, useEffect, useState} from "react";
+import "../../index.scss";
 import "../register/Register.scss";
 import {passUpdate} from "../../functions/authenticate";
 import config from "../../config";
@@ -91,18 +92,16 @@ const Manage = () => {
         <div className="backend_page">
             <h1 className="title">Wachtwoord veranderen</h1>
             {urlOk && (
-                <><p className="largeText">Hallo! You can reset your password for {email} below.</p>
-                <form className="authForm" onSubmit={handleSubmit}>
-                    <div className="formContents">
-                        <input required className={submitted}  id="password" type="password" placeholder="Nieuw wachtwoord" name="password" value={password}
-                               onChange={e => setPassword(e.target.value)}/>
-                        {/** The Suspense is used because the library used for loading is quite big, so it is loaded in the background after page load **/}
-                        <Suspense fallback={<div className="passBar1">""</div>}><PasswordStrength password={password} passScore={passScore} setPass={setPassScore}/></Suspense>
-                        <input className={submitted} required id="passwordConfirm" type="password" placeholder="Herhaal wachtwoord" name="passwordConfirm" value={passwordConfirm}
-                               onChange={e => setPasswordConfirm(e.target.value)}/>
-                    </div>
-                    <button className="authButton" id="submit_button" onClick={handleSubmitClick} type="submit">Opnieuw instellen</button><br />
+                <><p className="largeText">Wijzig hieronder je wachtwoord voor je account met e-mail: {email}.</p>
+                <form className="form" onSubmit={handleSubmit}>
+                    <input required className={"formPassword " + submitted}  id="password" type="password" placeholder="Nieuw wachtwoord" name="password" value={password}
+                        onChange={e => setPassword(e.target.value)}/>
+                    {/** The Suspense is used because the library used for loading is quite big, so it is loaded in the background after page load **/}
+                    <Suspense fallback={<div className="passBar1">""</div>}><PasswordStrength password={password} passScore={passScore} setPass={setPassScore}/></Suspense>
+                    <input className={submitted} required id="passwordConfirm" type="password" placeholder="Herhaal wachtwoord" name="passwordConfirm" value={passwordConfirm}
+                    onChange={e => setPasswordConfirm(e.target.value)}/>
                     <p className="formStatus">{status}</p>
+                    <button className="authButton" id="submit_button" onClick={handleSubmitClick} type="submit">Opnieuw instellen</button><br />
                 </form></>
             )}
             {!urlOk && (

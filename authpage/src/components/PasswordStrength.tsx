@@ -14,7 +14,7 @@ zxcvbnOptions.setOptions({
 })
 
 const mapper = (score: number): string => {
-    return ['weak', 'weak', 'okay', 'good', 'strong'].at(score) || 'weak'
+    return ['zwak', 'zwak', 'oké', 'goed', 'sterk'].at(score) || 'zwak'
 }
 
 const PasswordStrength: React.FC<Props> = (props) => {
@@ -24,7 +24,7 @@ const PasswordStrength: React.FC<Props> = (props) => {
     });
 
     return (
-        <div className={"passBar" + (props.passScore + 1)}>Your password is <strong>{mapper(props.passScore)}</strong></div>
+        <div className={"passBar" + (props.passScore + 1)}>Je wachtwoord is <strong>{mapper(props.passScore)}</strong></div>
     )
 }
 

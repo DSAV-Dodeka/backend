@@ -103,6 +103,24 @@ button:hover{
   line-height: $line_height_medium;
 }
 
+$colors: #CB4B3D, #AC6611, #807904, #4C8530, #008A5F;
+
+$start: 1;
+$end: 5;
+
+@for $i from $start through $end {
+    .passBar#{$i} {
+        color: nth($colors, $i);
+        font-size: $font_small;
+        line-height: $line_height_small;
+        margin-bottom: 0.5rem;
+    }
+}
+
+.form .formPassword {
+  margin-bottom: 0.5rem !important;
+}
+
 // .formContents label {
 //   color: white;
 //   font-size: $font_small;
@@ -113,6 +131,6 @@ button:hover{
 //   color: #939393;
 // }
 
-// .formContents .submitted:invalid {
-//   outline: 0.2rem solid red;
-// }
+.form .submitted:invalid {
+  outline: 0.2rem solid #CB4B3D;
+}

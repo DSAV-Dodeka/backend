@@ -1,5 +1,6 @@
 import React from "react";
 import config from "../config";
+import "./Back.scss";
 
 const Back = () => {
 
@@ -8,8 +9,9 @@ const Back = () => {
     }
 
     return (
-        <div className="backButton" onClick={handleClick}>
-            <svg width="100%" height="100%" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" fill = "#FFFFFF"><path d="M19 7v6c0 1.103-.896 2-2 2H3v-3h13V8H5v2L1 6.5 5 3v2h12a2 2 0 0 1 2 2z"/></svg>
+        <div className="back" onClick={handleClick}>
+            <svg id="" xmlns="http://www.w3.org/2000/svg" className="backArrow" viewBox="0 0 24 24"><path d="M13.025 1l-2.847 2.828 6.176 6.176h-16.354v3.992h16.354l-6.176 6.176 2.847 2.828 10.975-11z" /></svg>
+            <p>Terug</p>
         </div>
     )
 }

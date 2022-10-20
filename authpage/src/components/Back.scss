@@ -1,0 +1,41 @@
+@import "../variables";
+
+.back {
+    position: absolute;
+    top: 2rem;
+    left: 2rem;
+    display: flex;
+    cursor: pointer;
+    @include respond(mobile) {
+        top: 1rem;
+        left: 1rem;
+    }
+}
+
+.back p {
+    margin: 0;
+    margin-left: 1rem;
+    display: inline;
+    font-size: $font_medium;
+    line-height: 2rem;
+    vertical-align: middle;
+    color: white;
+    @include respond(mobile) {
+        font-size: $font_small;
+        margin-left: 0.5rem;
+        line-height: 1.5rem;
+    }
+}
+
+.backArrow {
+    display: inline;
+    transform: rotate(180deg);
+    fill: white;
+    height: 2rem;
+    line-height: 2rem;
+    vertical-align: middle;
+    @include respond(mobile) {
+        height: 1.5rem;
+        line-height: 1.5rem;
+    }
+}

@@ -1,99 +1,68 @@
 @import "variables";
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+html {
+  font-family: arboria, sans-serif;
 }
 
-body, input, textarea, button {
-  font-family: 'Fira Sans', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+body {
+  background-color: $dodeka_blauw90p;
+  margin: 0px;
+  padding: 0px;
+  
+}
+
+p {
+  margin: 0;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0px;
+  padding: 0px;
+}
+
+.backend_page {
+  min-height: 100vh;
+  width: 100%;
 }
 
 .title {
   text-align: center;
-  font-size: 4em;
-  margin: 0.8em 0 0;
+  font-size: $font_large;
   color: #ffffff;
+  padding-top: 4rem;
 }
 
-a {
-  color: $dodeka_rood;
-}
-
-.largeText {
-  text-align: center;
-  font-size: 1.3em;
-  margin: 0.6em 0 0;
-  color: #ffffff;
-}
-
-.authForm {
-  width: 80%;
-  background-color: $dodeka_blauw90p;
-  border-radius: 0.75rem;
-  margin: 3rem auto;
-  padding: 2rem;
-  @include respond(mobile) {
-    width: auto;
-    margin-left: 1rem;
-    margin-right: 1rem;
-    padding: 1rem;
-  }
-}
-
-.formContents {
-  color: white;
-  display: block;
-  width: 55%;
-  margin-left: auto;
-  margin-right: auto;
-  @include respond(mobile) {
-    width: auto;
-  }
-}
-
-.formContents input {
+.form_container {
   width: 100%;
-  margin-left: auto;
-  margin-right: auto;
+}
+
+.form {
+  width: 80%;
+  max-width: 32rem;
+  margin: auto;
+  margin-top: 4rem;
+}
+
+.form input {
+  width: 100%;
   display: block;
   border-style: none;
   background-color: white;
   color: $dodeka_blauw;
-  padding: 0.5rem;
+  padding: 0.75rem;
   border-radius: 0.75rem;
   font-size: $font_medium;
   line-height: $line_height_medium;
-  margin-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
 }
 
-.formContents.password {
-  margin-bottom: 0;
-}
-
-.formContents label {
-  color: white;
-  font-size: $font_small;
-  line-height: $line_height_small;
-}
-
-.formContents input:focus {
+.form input:focus {
   outline: none;
 }
 
-.formContents input[disabled] {
-  color: #939393;
-}
-
-.formContents .submitted:invalid {
-  outline: 0.2rem solid red;
-}
-
 button {
-  margin-left: 25%;
-  width: 50%;
+  width: 100%;
   background-color: $dodeka_rood;
   color: white;
   border-radius: 0.75rem;
@@ -101,7 +70,6 @@ button {
   padding: 1rem;
   font-size: $font_medium;
   font-weight: $bold;
-  margin-top: 2rem;
   cursor: pointer;
 }
 
@@ -114,38 +82,41 @@ button:hover{
   font-size: $font_small;
   line-height: $line_height_small;
   color: $dodeka_rood;
-  text-align: center;
-  margin-bottom: 0;
+  margin-bottom: 0.5rem;
 }
 
-body {
-  background-color: #001f48;
-  margin: 0;
+.formStatus a {
+  color: white;
+  text-decoration: none;
 }
 
-.container {
-  display: flex;
-  max-width: 63rem;
-  margin: 0 auto 0;
-  flex-direction: row;
-}
-
-.containerC {
-  width: 5rem;
-}
-
-.page {
-  display: flex;
-  max-width: 53rem;
-  margin: 0;
-  flex-grow: 1;
-  padding: 0 1rem 0;
-  flex-direction: column;
-  height: 100vh;
-}
-
-.backButton svg {
-  margin-top: 1rem;
+.largeText {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 80%;
   display: block;
-  cursor: pointer;
+  color: white;
+  font-size: $font_medium;
+  line-height: $line_height_medium;
+  padding-top: 1.5rem;
+  text-align: center;
+  line-height: $line_height_medium;
+}
+
+$colors: #CB4B3D, #AC6611, #807904, #4C8530, #008A5F;
+
+$start: 1;
+$end: 5;
+
+@for $i from $start through $end {
+    .passBar#{$i} {
+        color: nth($colors, $i);
+        font-size: $font_small;
+        line-height: $line_height_small;
+        margin-bottom: 0.5rem;
+    }
+}
+
+.form .formPassword {
+  margin-bottom: 0.5rem !important;
 }

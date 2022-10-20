@@ -1,8 +1,10 @@
 import React, {FormEvent, Suspense, useEffect, useState} from "react";
+import "../../index.scss";
 import "../register/Register.scss";
 import {passUpdate} from "../../functions/authenticate";
 import config from "../../config";
 import {new_err} from "../../functions/error";
+import Back from "../../components/Back";
 const PasswordStrength = React.lazy(() => import('../../components/PasswordStrength'));
 
 const redirectUrl = `${config.client_location}/registered`
@@ -25,11 +27,11 @@ const Manage = () => {
 
     const formIsValid = () => {
         if (passScore < 2) {
-            setStatus("Je wachtwoord is te zwak, maak het langer of onregelmatiger")
+            setStatus("Je wachtwoord is te zwak, maak het langer of onregelmatiger.")
             return false;
         }
         else if (password != passwordConfirm) {
-            setStatus("De wachtwoorden zijn niet gelijk")
+            setStatus("De wachtwoorden zijn niet gelijk.")
             return false;
         }
         setStatus("")
@@ -62,7 +64,7 @@ const Manage = () => {
     }
 
     const badConfirm = () => {
-        setPreStatus("The reset link is incorrect or has expired. Please try again.")
+        setPreStatus("De herstellink is incorrect of verlopen. Probeer het opnieuw!")
     }
 
     const handleLoad = () => {
@@ -88,21 +90,20 @@ const Manage = () => {
     }, [handled]);
 
     return (
-        <div>
-            <h1 className="title">Change password</h1>
+        <div className="backend_page">
+            <Back />
+            <h1 className="title">Wachtwoord veranderen</h1>
             {urlOk && (
-                <><p className="largeText">Hallo! You can reset your password for {email} below.</p>
-                <form className="authForm" onSubmit={handleSubmit}>
-                    <div className="formContents">
-                        <input required className={submitted}  id="password" type="password" placeholder="Nieuw wachtwoord" name="password" value={password}
-                               onChange={e => setPassword(e.target.value)}/>
-                        {/** The Suspense is used because the library used for loading is quite big, so it is loaded in the background after page load **/}
-                        <Suspense fallback={<div className="passBar1">""</div>}><PasswordStrength password={password} passScore={passScore} setPass={setPassScore}/></Suspense>
-                        <input className={submitted} required id="passwordConfirm" type="password" placeholder="Herhaal wachtwoord" name="passwordConfirm" value={passwordConfirm}
-                               onChange={e => setPasswordConfirm(e.target.value)}/>
-                    </div>
-                    <button className="authButton" id="submit_button" onClick={handleSubmitClick} type="submit">Opnieuw instellen</button><br />
+                <><p className="largeText">Wijzig hieronder je wachtwoord voor je account met e-mail: {email}.</p>
+                <form className="form" onSubmit={handleSubmit}>
+                    <input required className={"formPassword " + submitted}  id="password" type="password" placeholder="Nieuw wachtwoord" name="password" value={password}
+                        onChange={e => setPassword(e.target.value)}/>
+                    {/** The Suspense is used because the library used for loading is quite big, so it is loaded in the background after page load **/}
+                    <Suspense fallback={<div className="passBar1">""</div>}><PasswordStrength password={password} passScore={passScore} setPass={setPassScore}/></Suspense>
+                    <input className={submitted} required id="passwordConfirm" type="password" placeholder="Herhaal wachtwoord" name="passwordConfirm" value={passwordConfirm}
+                    onChange={e => setPasswordConfirm(e.target.value)}/>
                     <p className="formStatus">{status}</p>
+                    <button className="authButton" id="submit_button" onClick={handleSubmitClick} type="submit">Opnieuw instellen</button><br />
                 </form></>
             )}
             {!urlOk && (

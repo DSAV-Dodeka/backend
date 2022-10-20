@@ -1,9 +1,10 @@
 import React, {useReducer, Suspense, FormEvent, ChangeEvent, FocusEvent, useState, useEffect} from "react";
 import "./Register.scss";
+import "../../index.scss";
 import config from "../../config";
 import {clientLogin, clientRegister} from "../../functions/authenticate";
 import {base64ToBin} from "../../functions/encode";
-
+import Back from "../../components/Back";
 import {z} from "zod";
 import {new_err} from "../../functions/error";
 // Imported lazily due to large library size
@@ -128,11 +129,11 @@ const Register = () => {
 
     const formIsValid = () => {
         if (passScore < 2) {
-            setStatus("Je wachtwoord is te zwak, maak het langer of onregelmatiger")
+            setStatus("Je wachtwoord is te zwak, maak het langer of onregelmatiger.")
             return false;
         }
         else if (state.password != state.password_confirm) {
-            setStatus("De wachtwoorden zijn niet gelijk")
+            setStatus("De wachtwoorden zijn niet gelijk.")
             return false;
         }
         setStatus("")
@@ -180,14 +181,14 @@ const Register = () => {
     }
 
     return (
-        <>
+        <div className="backend_page">
+            <Back />
             <h1 className="title">Register</h1>
             {!infoOk && handled &&
-            <p className="largeText">The link to this registration form is broken, please retry or ask for a new link!</p>
+            <p className="largeText">Deze link voor het registratieformulier werkt niet, probeer het opnieuw of vraag het bestuur om een nieuwe link!</p>
             }
             {infoOk &&
-            <form className="authForm" onSubmit={handleSubmit}>
-                <div className="formContents">
+            <form className="form" onSubmit={handleSubmit}>
                     <input disabled className={submitted} required id="name" type="text" placeholder="Voornaam" name="name" value={state.firstname}
                            onChange={handleFormChange}/>
                     <input disabled className={submitted} required id="surname" type="text" placeholder="Achternaam" name="surname" value={state.lastname}
@@ -199,7 +200,7 @@ const Register = () => {
                     <p>Staat hierboven een foutje? Laat het weten aan het bestuur en ze zullen je een nieuwe e-mail sturen!</p>
                     <input className={submitted} required id="name" type="text" placeholder="Roepnaam" name="callname" value={state.callname}
                            onChange={handleFormChange}/>
-                    <input required className={"password " + submitted}  id="password" type="password" placeholder="Wachtwoord" name="password" value={state.password}
+                    <input required className={"formPassword " + submitted}  id="password" type="password" placeholder="Wachtwoord" name="password" value={state.password}
                            onChange={handleFormChange}/>
                     {/** The Suspense is used because the library used for loading is quite big, so it is loaded in the background after page load **/}
                     <Suspense fallback={<div className="passBar1">""</div>}><PasswordStrength password={state.password} passScore={passScore} setPass={setPassScore}/></Suspense>
@@ -208,7 +209,7 @@ const Register = () => {
                     <input className={submitted} required id="date_of_birth" type="text" placeholder="Geboortedatum" onFocus={handleFocus} onBlur={handleBlur} name="date_of_birth" value={state.date_of_birth}
                             onChange={handleFormChange} />
                     <div className="checkbox">
-                        <label >Leden mogen mijn verjaardag zien</label>
+                        <label >Leden mogen mijn verjaardag en leeftijd zien</label>
                         <input className={submitted} id="birthday_check" type="checkbox" name="birthday_check"
                                 onChange={handleCheckboxChange}/>
                     </div>
@@ -228,18 +229,12 @@ const Register = () => {
                             <option>Anders, namelijk:</option>
                         </select>
                     </div>
-                    <input className={"" + (state.eduinstitution === "Anders, namelijk:" ? "" : " inputHidden")} id="eduinstitution_other" type="text" placeholder="Onderwijsinstelling" name="eduinstitution_other" value={state.eduinstitution_other}
+                    <input className={"" + (state.student && state.eduinstitution === "Anders, namelijk:" ? "" : " inputHidden")} id="eduinstitution_other" type="text" placeholder="Onderwijsinstelling" name="eduinstitution_other" value={state.eduinstitution_other}
                             onChange={handleFormChange} />
-                    <div className="checkbox">
-                        <label >Ik accepteer het privacybeleid</label>
-                        <input className={submitted} required id="privacy" type="checkbox" name="privacy"
-                                onChange={handleCheckboxChange}/>
-                    </div>
-                </div>
                 <button className="authButton" id="submit_button" onClick={handleSubmitClick} type="submit">Registreer</button><br />
                 <p className="formStatus">{status}</p>
             </form>}
-        </>
+        </div>
     )
 }
 

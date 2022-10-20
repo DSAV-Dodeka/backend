@@ -1,9 +1,11 @@
 import React, {useEffect, useState} from "react";
 import {clientLogin} from "../functions/authenticate";
 import config from "../config";
+import "../index.scss";
 import "./Auth.scss"
 import {back_post, catch_api} from "../functions/api";
 import {new_err} from "../functions/error";
+import Back from "../components/Back";
 
 const login_url = `${config.client_location}/lg`
 
@@ -16,7 +18,7 @@ const Auth = () => {
     const [showForgot, setShowForgot] = useState(false)
     const [forgotEmail, setForgotEmail] = useState("")
     const [forgotOk, setForgotOk] = useState(false)
-    const [forgotStatus, setForgotStatus] = useState("")
+    const [forgotStatus, setForgotStatus] = useState("\u00A0")
     const [definedUser, setDefinedUser] = useState(false)
     const [redirect, setRedirect] = useState(`${config.auth_location}/oauth/callback`)
     const [load, setLoad] = useState(false)
@@ -29,7 +31,7 @@ const Auth = () => {
         if (flow_id == null) {
 
             console.log(new_err("bad_auth", "Flow ID not set!", "auth_flow_missing").j())
-            setStatus("Er is iets mis met de link, probeer het nogmaals via deze: ")
+            setStatus("Er is iets mis met de link, probeer het nogmaals via deze ")
             setShowLink(true)
             return
         }
@@ -37,7 +39,7 @@ const Auth = () => {
 
         if (code === undefined || code == null) {
             console.log("No code received!")
-            setStatus("Er is iets misgegaan! Is je wachtwoord correct?")
+            setStatus("Er is iets misgegaan! Controleer je e-mail en wachtwoord en probeer het opnieuw.")
             setShowLink(false)
             return
         }
@@ -45,7 +47,7 @@ const Auth = () => {
 
         // Is set to zero if not valid on load, see below
         if (redirect === "0") {
-            setStatus("Er is iets mis met de link, probeer het nogmaals via deze: ")
+            setStatus("Er is iets mis met de link, probeer het nogmaals via deze ")
             setShowLink(true)
             return
         } else {
@@ -112,33 +114,33 @@ const Auth = () => {
     }, [])
 
     return (
-        <>
-            <h1 className="title">Login</h1>
-            <form className="authForm" onSubmit={handleSubmit}>
-                <div className="formContents">
-                    <input disabled={definedUser} id="username" placeholder="Email" type="text" value={username}
-                           onChange={e => setUsername(e.target.value)}/>
-                    <input type="password" placeholder="Password" value={password}
+        <div className="backend_page">
+            <Back />
+            <div className="form_container">
+                <h1 className="title">INLOGGEN</h1>
+                {showForgot ? 
+                    <form className="form" onSubmit={handleSubmitForgot}>
+                        <label className="forgotLabel" htmlFor="forgotEmail">Vul je e-mail hieronder in om een mail te ontvangen waarmee je je wachtwoord opnieuw in kunt stellen.</label>
+                        <input id="forgotEmail" placeholder="E-mail" type="text" value={forgotEmail}
+                            onChange={e => setForgotEmail(e.target.value)}/>
+                        <p className={"formStatus " + (forgotOk ? "okForgot" : "badForgot")}>{forgotStatus} </p>
+                        <button id="forgot_submit_button" type="submit">Verzenden</button>
+                        <button onClick={handleForgot} className="forgotPassword">Inloggen?</button>
+                        
+                    </form> :
+                    <form className="form" onSubmit={handleSubmit}>
+                        <input disabled={definedUser} id="username" placeholder="E-mail" type="text" value={username}
+                            onChange={e => setUsername(e.target.value)}/>
+                        <input type="password" placeholder="Wachtwoord" value={password}
                            onChange={e => setPassword(e.target.value)} />
-                    <button id="submit_button" type="submit">Inloggen</button><br />
-                </div>
-                <p className="formStatus">{status}{showLink && <a href={login_url}>login</a>}</p>
-            </form>
-            <br/><button onClick={handleForgot} className="forgotPassword">Wachtwoord vergeten?</button>
-            {showForgot && (
-                <div>
-                    <form className="forgotForm" onSubmit={handleSubmitForgot}>
-                        <div className="formContents ">
-                            <label htmlFor="forgotEmail">Vul je email hieronder in om je wachtwoord opnieuw in te stellen.</label>
-                            <input id="forgotEmail" placeholder="Email" type="text" value={forgotEmail}
-                                   onChange={e => setForgotEmail(e.target.value)}/>
-                            <button id="forgot_submit_button" type="submit">Verzenden</button>
-                            <p className={"formStatus " + (forgotOk ? "okForgot" : "badForgot")}>{forgotStatus}</p>
-                        </div>
+                        <p className="formStatus">{status}{showLink && <a href={login_url}>link</a>}</p>
+                        <button id="submit_button" type="submit">Inloggen</button><br />                        
+                        <button onClick={handleForgot} className="forgotPassword">Wachtwoord vergeten?</button>
                     </form>
-                </div>
-            )}
-        </>
+                }
+            </div>
+            
+        </div>
     )
 }
 

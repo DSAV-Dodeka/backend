@@ -209,7 +209,7 @@ const Register = () => {
                     <input className={submitted} required id="date_of_birth" type="text" placeholder="Geboortedatum" onFocus={handleFocus} onBlur={handleBlur} name="date_of_birth" value={state.date_of_birth}
                             onChange={handleFormChange} />
                     <div className="checkbox">
-                        <label >Leden mogen mijn verjaardag zien</label>
+                        <label >Leden mogen mijn verjaardag en leeftijd zien</label>
                         <input className={submitted} id="birthday_check" type="checkbox" name="birthday_check"
                                 onChange={handleCheckboxChange}/>
                     </div>

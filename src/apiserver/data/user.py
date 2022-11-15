@@ -15,6 +15,7 @@ from apiserver.data.use import (
     fetch_column_by_unique,
     update_column_by_unique,
     upsert_by_unique,
+    select_where,
 )
 from apiserver.db import USER_TABLE, USERDATA_TABLE
 from apiserver.db.model import (
@@ -24,6 +25,7 @@ from apiserver.db.model import (
     USER_REGISTERED,
     UD_EMAIL,
     USER_EMAIL,
+    UD_ACTIVE,
 )
 from apiserver.db.ops import DbError
 

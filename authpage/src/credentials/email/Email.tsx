@@ -14,14 +14,14 @@ const Email = () => {
         setConfirmed(false)
     }
 
-    const handleRedirect = async () => {
+    const handleRedirect = async (signal: AbortSignal) => {
         const source_params = (new URLSearchParams(window.location.search))
         const confirm_id = source_params.get("confirm_id")
         if (confirm_id === null) {
             throw new AuthPageError("bad_confirm", "No confirm_id has been set, so email cannot be confirmed!", "no_confirm_id")
         } else {
             try {
-                await back_post("onboard/email/", {confirm_id})
+                await back_post("onboard/email/", {confirm_id}, {signal})
                 return
             } catch (e) {
                 throw await err_api(e)
@@ -32,7 +32,7 @@ const Email = () => {
     useEffect(() => {
         const ac = new AbortController()
 
-        handleRedirect().then(() => {
+        handleRedirect(ac.signal).then(() => {
             setStatus(confirm_succesful)
             setConfirmed(true)
         }).catch((e) => {

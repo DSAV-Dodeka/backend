@@ -198,7 +198,7 @@ const Register = () => {
                     <input disabled className={submitted} required id="phone" type="text" placeholder="Telefoonnummer" name="phone" value={state.phone}
                            onChange={handleFormChange}/>
                     <p>Staat hierboven een foutje? Laat het weten aan het bestuur en ze zullen je een nieuwe e-mail sturen!</p>
-                    <input className={submitted} required id="name" type="text" placeholder="Roepnaam" name="callname" value={state.callname}
+                    <input className={submitted} required id="callname" type="text" placeholder="Roepnaam" name="callname" value={state.callname}
                            onChange={handleFormChange}/>
                     <input required className={"formPassword " + submitted}  id="password" type="password" placeholder="Wachtwoord" name="password" value={state.password}
                            onChange={handleFormChange}/>

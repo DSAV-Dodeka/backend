@@ -1,12 +1,12 @@
 import config from "../config"
-import ky, {HTTPError, ResponsePromise} from "ky"
+import ky, {HTTPError, Options, ResponsePromise} from "ky"
 import {z} from "zod";
 import {AuthPageError} from "./error";
 
 const api = ky.create({prefixUrl: config.auth_location});
 
-export const back_post = async (endpoint: string, json: Object) => {
-    return await api.post(endpoint, {json: json}).json()
+export const back_post = async (endpoint: string, json: Object, options?: Options) => {
+    return await api.post(endpoint, {json: json, ...options}).json()
 }
 
 const ReturnedError = z.object({

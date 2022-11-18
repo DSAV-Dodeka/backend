@@ -29,11 +29,12 @@ from apiserver.utilities.crypto import encrypt_dict, decrypt_dict
 from apiserver.define.entities import (
     SavedRefreshToken,
     RefreshToken,
-    AccessToken,
+    SavedAccessToken,
     IdToken,
     IdInfo,
     UserData,
     PEMKey,
+    AccessToken,
 )
 
 __all__ = [
@@ -47,6 +48,7 @@ __all__ = [
     "verify_refresh",
     "build_refresh_save",
     "id_info_from_ud",
+    "get_kid",
 ]
 
 logger = logging.getLogger(LOGGER_NAME)
@@ -211,7 +213,7 @@ def finish_tokens(
     refresh_id: int,
     refresh_save: SavedRefreshToken,
     aesgcm: AESGCM,
-    access_token_data: AccessToken,
+    access_token_data: SavedAccessToken,
     id_token_data: IdToken,
     utc_now: int,
     signing_key: PEMKey,
@@ -233,7 +235,7 @@ def id_access_tokens(
     sub, iss, aud_access, aud_id, scope, auth_time, id_nonce, id_info: IdInfo
 ):
     """Create ID and access token objects."""
-    access_core = AccessToken(sub=sub, iss=iss, aud=aud_access, scope=scope)
+    access_core = SavedAccessToken(sub=sub, iss=iss, aud=aud_access, scope=scope)
     id_core = IdToken(
         **id_info.dict(),
         sub=sub,
@@ -269,7 +271,7 @@ def finish_encode_token(token_val: dict, utc_now: int, exp: int, key: PEMKey):
 
 def decode_refresh(rt: SavedRefreshToken):
     saved_access_dict = util.dec_dict(util.dec_b64url(rt.access_value))
-    saved_access = AccessToken.parse_obj(saved_access_dict)
+    saved_access = SavedAccessToken.parse_obj(saved_access_dict)
     saved_id_token_dict = util.dec_dict(util.dec_b64url(rt.id_token_value))
     saved_id_token = IdToken.parse_obj(saved_id_token_dict)
 

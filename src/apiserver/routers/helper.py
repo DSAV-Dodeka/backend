@@ -20,7 +20,7 @@ async def handle_auth(authorization: str, dsrc: Source) -> AccessToken:
         )
 
 
-async def require_admin(authorization: str, dsrc: Source):
+async def require_admin(authorization: str, dsrc: Source) -> bool:
     acc = await handle_auth(authorization, dsrc)
     scope_set = set(acc.scope.split())
     if "admin" not in scope_set:
@@ -30,9 +30,11 @@ async def require_admin(authorization: str, dsrc: Source):
             err_desc="Insufficient permissions to access this resource.",
             debug_key="low_perms",
         )
+    else:
+        return True
 
 
-async def require_user(authorization: str, dsrc: Source, username: str):
+async def require_user(authorization: str, dsrc: Source, username: str) -> AccessToken:
     acc = await handle_auth(authorization, dsrc)
     if acc.sub != username:
         reason = "Resource not available to this subject."
@@ -40,3 +42,5 @@ async def require_user(authorization: str, dsrc: Source, username: str):
         raise ErrorResponse(
             403, err_type="wrong_subject", err_desc=reason, debug_key="bad_sub"
         )
+    else:
+        return acc

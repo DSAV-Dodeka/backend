@@ -216,7 +216,7 @@ python-versions = "*"
 
 [[package]]
 name = "exceptiongroup"
-version = "1.0.3"
+version = "1.0.4"
 description = "Backport of PEP 654 (exception groups)"
 category = "dev"
 optional = false
@@ -257,17 +257,17 @@ testing = ["covdefaults (>=2.2)", "coverage (>=6.4.2)", "pytest (>=7.1.2)", "pyt
 
 [[package]]
 name = "googleapis-common-protos"
-version = "1.56.4"
+version = "1.57.0"
 description = "Common protobufs used in Google APIs"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 
 [package.dependencies]
-protobuf = ">=3.15.0,<5.0.0dev"
+protobuf = ">=3.19.5,<3.20.0 || >3.20.0,<3.20.1 || >3.20.1,<4.21.1 || >4.21.1,<4.21.2 || >4.21.2,<4.21.3 || >4.21.3,<4.21.4 || >4.21.4,<4.21.5 || >4.21.5,<5.0.0dev"
 
 [package.extras]
-grpc = ["grpcio (>=1.0.0,<2.0.0dev)"]
+grpc = ["grpcio (>=1.44.0,<2.0.0dev)"]
 
 [[package]]
 name = "greenlet"
@@ -412,7 +412,7 @@ i18n = ["Babel (>=2.7)"]
 
 [[package]]
 name = "mako"
-version = "1.2.3"
+version = "1.2.4"
 description = "A super-fast templating language that borrows the best ideas from the existing templating languages."
 category = "dev"
 optional = false
@@ -473,11 +473,11 @@ setuptools = "*"
 
 [[package]]
 name = "opaquepy"
-version = "0.3.2"
+version = "0.3.3"
 description = "Python bindings for opaque-ke."
 category = "main"
 optional = false
-python-versions = ">=3.9, <3.11"
+python-versions = ">=3.9, <3.12"
 
 [[package]]
 name = "opentelemetry-api"
@@ -1582,8 +1582,8 @@ distlib = [
     {file = "distlib-0.3.6.tar.gz", hash = "sha256:14bad2d9b04d3a36127ac97f30b12a19268f211063d8f8ee4f47108896e11b46"},
 ]
 exceptiongroup = [
-    {file = "exceptiongroup-1.0.3-py3-none-any.whl", hash = "sha256:6002703c7d31fb9950ddc8780840f67880c440895dc1151dd551553aa1246e4a"},
-    {file = "exceptiongroup-1.0.3.tar.gz", hash = "sha256:76cac74b5207c5997678a1c7105cb6f14213c9c63c096a38cfcb529d83ce5c02"},
+    {file = "exceptiongroup-1.0.4-py3-none-any.whl", hash = "sha256:542adf9dea4055530d6e1279602fa5cb11dab2395fa650b8674eaec35fc4a828"},
+    {file = "exceptiongroup-1.0.4.tar.gz", hash = "sha256:bd14967b79cd9bdb54d97323216f8fdf533e278df937aa2a90089e7d6e06e5ec"},
 ]
 fastapi = [
     {file = "fastapi-0.87.0-py3-none-any.whl", hash = "sha256:254453a2e22f64e2a1b4e1d8baf67d239e55b6c8165c079d25746a5220c81bb4"},
@@ -1594,8 +1594,8 @@ filelock = [
     {file = "filelock-3.8.0.tar.gz", hash = "sha256:55447caa666f2198c5b6b13a26d2084d26fa5b115c00d065664b2124680c4edc"},
 ]
 googleapis-common-protos = [
-    {file = "googleapis-common-protos-1.56.4.tar.gz", hash = "sha256:c25873c47279387cfdcbdafa36149887901d36202cb645a0e4f29686bf6e4417"},
-    {file = "googleapis_common_protos-1.56.4-py2.py3-none-any.whl", hash = "sha256:8eb2cbc91b69feaf23e32452a7ae60e791e09967d81d4fcc7fc388182d1bd394"},
+    {file = "googleapis-common-protos-1.57.0.tar.gz", hash = "sha256:27a849d6205838fb6cc3c1c21cb9800707a661bb21c6ce7fb13e99eb1f8a0c46"},
+    {file = "googleapis_common_protos-1.57.0-py2.py3-none-any.whl", hash = "sha256:a9f4a1d7f6d9809657b7f1316a1aa527f6664891531bcfcc13b6696e685f443c"},
 ]
 greenlet = [
     {file = "greenlet-2.0.1-cp27-cp27m-macosx_10_14_x86_64.whl", hash = "sha256:9ed358312e63bf683b9ef22c8e442ef6c5c02973f0c2a939ec1d7b50c974015c"},
@@ -1782,8 +1782,8 @@ jinja2 = [
     {file = "Jinja2-3.1.2.tar.gz", hash = "sha256:31351a702a408a9e7595a8fc6150fc3f43bb6bf7e319770cbc0db9df9437e852"},
 ]
 mako = [
-    {file = "Mako-1.2.3-py3-none-any.whl", hash = "sha256:c413a086e38cd885088d5e165305ee8eed04e8b3f8f62df343480da0a385735f"},
-    {file = "Mako-1.2.3.tar.gz", hash = "sha256:7fde96466fcfeedb0eed94f187f20b23d85e4cb41444be0e542e2c8c65c396cd"},
+    {file = "Mako-1.2.4-py3-none-any.whl", hash = "sha256:c97c79c018b9165ac9922ae4f32da095ffd3c4e6872b45eded42926deea46818"},
+    {file = "Mako-1.2.4.tar.gz", hash = "sha256:d60a3903dc3bb01a18ad6a89cdbe2e4eadc69c0bc8ef1e3773ba53d44c3f7a34"},
 ]
 markupsafe = [
     {file = "MarkupSafe-2.1.1-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:86b1f75c4e7c2ac2ccdaec2b9022845dbb81880ca318bb7a0a01fbf7813e3812"},
@@ -1862,14 +1862,16 @@ nodeenv = [
     {file = "nodeenv-1.7.0.tar.gz", hash = "sha256:e0e7f7dfb85fc5394c6fe1e8fa98131a2473e04311a45afb6508f7cf1836fa2b"},
 ]
 opaquepy = [
-    {file = "opaquepy-0.3.2-cp310-cp310-macosx_10_7_x86_64.whl", hash = "sha256:0bf8556882f45fa3d93447c2d9fc836b7c8d65372236846a8231b2c250dd496d"},
-    {file = "opaquepy-0.3.2-cp310-cp310-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:af6801c9a52a90ebc683aaf53420ee5ef4c78162242ff439f4bd2857327968ea"},
-    {file = "opaquepy-0.3.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:fd18fcbf2e187f4fb2c7944509870dd4bcc6f98bef3d97297fd17c069e39da6f"},
-    {file = "opaquepy-0.3.2-cp310-none-win_amd64.whl", hash = "sha256:a33cc38ea81979439ecbc7bbdab1078a09bb386a08f3c8394beb4fba85255f9d"},
-    {file = "opaquepy-0.3.2-cp39-cp39-macosx_10_7_x86_64.whl", hash = "sha256:5e656661840c9b81dd8a060e2e5d07576772e16f41e7f34090df1bddbb87a869"},
-    {file = "opaquepy-0.3.2-cp39-cp39-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:d71c45b5d410b264f98bae098cdaa8d11f180251d51ddf37eae71717e941d929"},
-    {file = "opaquepy-0.3.2-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:94ec9ce3054efbc85b87bbfa4b101383062efffb8daf0cce912c55c8ee47446c"},
-    {file = "opaquepy-0.3.2-cp39-none-win_amd64.whl", hash = "sha256:e65cca40a34019913a4e4bc672d908d71b89dbaceada6d138ffd9db52063ec45"},
+    {file = "opaquepy-0.3.3-cp310-cp310-macosx_10_7_x86_64.whl", hash = "sha256:d21b820733eee1b08d3067742bc4f868aad69483229ea65968919632bd67823a"},
+    {file = "opaquepy-0.3.3-cp310-cp310-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:14bc1c19fcd59eed6e5f90073743065880914bf21e57065705e8c2e8c29917c4"},
+    {file = "opaquepy-0.3.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f7ce49404ac7ad3281d7446eb1d729cd7ba8c182b17cc3bac68a81a7809e5896"},
+    {file = "opaquepy-0.3.3-cp311-cp311-macosx_10_7_x86_64.whl", hash = "sha256:42e6d1306f3f55f7f4c302237b10a765072ea21116b0281838a21f16c1c8436b"},
+    {file = "opaquepy-0.3.3-cp311-cp311-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:5b95d666748adc82ac85957f9c3e93d7921b50f2e5a8d1434d1e9a7bb9947b74"},
+    {file = "opaquepy-0.3.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a5a98dd85bd37ddbf659f52d7085e25c8789b819fa5a989a0a865e9d1e2109a3"},
+    {file = "opaquepy-0.3.3-cp311-none-win_amd64.whl", hash = "sha256:a86738160c3464c6ff4f48f34499a8d988a6330f1aae582474c7e4979086c0f9"},
+    {file = "opaquepy-0.3.3-cp39-cp39-macosx_10_7_x86_64.whl", hash = "sha256:2e0433b14fbc38c7e737514465206bea95758439cfd90fe7c921e79895f4ca0f"},
+    {file = "opaquepy-0.3.3-cp39-cp39-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:244c8f2add01d6617c4ca7f1b0e415da1f62e18bb76cc611e33f542220acd82c"},
+    {file = "opaquepy-0.3.3-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0c43e279c08147eef993c3177c1834c2cd86981f369287814e4422ce8d03b8b5"},
 ]
 opentelemetry-api = [
     {file = "opentelemetry_api-1.13.0-py3-none-any.whl", hash = "sha256:2db1e8713f48a119bae457cd22304a7919d5e57190a380485c442c4f731a46dd"},

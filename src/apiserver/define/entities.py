@@ -54,6 +54,15 @@ class AccessToken(BaseModel):
     iss: str
     aud: list[str]
     scope: str
+    iat: int
+    exp: int
+
+
+class SavedAccessToken(BaseModel):
+    sub: str
+    iss: str
+    aud: list[str]
+    scope: str
 
 
 class IdInfo(BaseModel):

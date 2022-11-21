@@ -11,5 +11,4 @@ logger = logging.getLogger(LOGGER_NAME)
 
 @router.get("/")
 async def read_root():
-    logger.debug("hi")
     return {"Hallo": "Atleten"}

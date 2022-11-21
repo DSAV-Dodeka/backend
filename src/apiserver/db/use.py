@@ -47,6 +47,10 @@ def all_rows(res: CursorResult) -> list[dict]:
     return [dict(row) for row in rows]
 
 
+def row_cnt(res: CursorResult) -> int:
+    return res.rowcount
+
+
 class PostgresOperations(DbOperations):
     """
     The DatabaseOperations class provides an easily referencable object that can be mocked.
@@ -145,7 +149,7 @@ class PostgresOperations(DbOperations):
         )
 
         res = await execute_catch_conn(conn, query, params=row)
-        return res.rowcount
+        return row_cnt(res)
 
     @classmethod
     async def update_column_by_unique(
@@ -167,7 +171,7 @@ class PostgresOperations(DbOperations):
         res = await execute_catch_conn(
             conn, query, params={"set": set_value, "val": value}
         )
-        return res.rowcount
+        return row_cnt(res)
 
     @classmethod
     async def insert(cls, conn: AsyncConnection, table: str, row: dict) -> int:
@@ -178,7 +182,7 @@ class PostgresOperations(DbOperations):
         query = text(f"INSERT INTO {table} ({row_keys}) VALUES ({row_keys_vars});")
 
         res: CursorResult = await execute_catch_conn(conn, query, params=row)
-        return res.rowcount
+        return row_cnt(res)
 
     @classmethod
     async def insert_return_col(
@@ -199,7 +203,7 @@ class PostgresOperations(DbOperations):
     async def delete_by_id(cls, conn: AsyncConnection, table: str, id_int: int) -> int:
         query = text(f"DELETE FROM {table} WHERE id = :id;")
         res: CursorResult = await conn.execute(query, parameters={"id": id_int})
-        return res.rowcount
+        return row_cnt(res)
 
     @classmethod
     async def delete_by_column(
@@ -207,4 +211,4 @@ class PostgresOperations(DbOperations):
     ) -> int:
         query = text(f"DELETE FROM {table} WHERE {column} = :{column};")
         res: CursorResult = await conn.execute(query, parameters={column: column_val})
-        return res.rowcount
+        return row_cnt(res)

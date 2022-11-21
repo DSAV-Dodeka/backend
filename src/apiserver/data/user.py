@@ -16,6 +16,7 @@ from apiserver.data.use import (
     update_column_by_unique,
     upsert_by_unique,
     select_where,
+    delete_by_column,
 )
 from apiserver.db import USER_TABLE, USERDATA_TABLE
 from apiserver.db.model import (
@@ -192,3 +193,7 @@ async def update_user_email(
 async def get_all_userdata(dsrc: Source, conn: AsyncConnection) -> list[UserData]:
     all_userdata = await select_where(dsrc, conn, USERDATA_TABLE, UD_ACTIVE, True)
     return [parse_userdata(ud_dct) for ud_dct in all_userdata]
+
+
+async def delete_user(dsrc: Source, conn: AsyncConnection, user_id: str):
+    await delete_by_column(dsrc, conn, USER_TABLE, USER_ID, user_id)

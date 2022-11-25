@@ -37,6 +37,7 @@ import apiserver.routers.profile as profile
 import apiserver.routers.onboard as onboard
 import apiserver.routers.update as update
 import apiserver.routers.admin as admin
+import apiserver.routers.users as users
 
 log_path = Path("/home/erag/files/gitp/dodekabackend/test.log")
 
@@ -98,6 +99,7 @@ def create_app() -> tuple[FastAPI, Logger]:
     new_app.include_router(onboard.router)
     new_app.include_router(update.router)
     new_app.include_router(admin.router)
+    new_app.include_router(users.router)
     new_app.add_exception_handler(ErrorResponse, handler=error_response_handler)
     # TODO change logger behavior in tests
 

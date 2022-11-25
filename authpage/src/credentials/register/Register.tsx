@@ -1,4 +1,13 @@
-import React, {useReducer, Suspense, FormEvent, ChangeEvent, FocusEvent, useState, useEffect} from "react";
+import React, {
+    useReducer,
+    Suspense,
+    FormEvent,
+    ChangeEvent,
+    FocusEvent,
+    useState,
+    useEffect,
+    MouseEvent
+} from "react";
 import "./Register.scss";
 import "../../index.scss";
 import config from "../../config";
@@ -69,6 +78,11 @@ const handleFocus = (event: FocusEvent<HTMLInputElement>) => {
 
 const handleBlur = (event: FocusEvent<HTMLInputElement>) => {
     event.target.type = 'text';
+}
+
+// iOS doesn't focus on click
+const forceFocus = (event: MouseEvent<HTMLInputElement>) => {
+    event.currentTarget.focus()
 }
 
 const RegisterInfo = z.object({
@@ -206,7 +220,7 @@ const Register = () => {
                     <Suspense fallback={<div className="passBar1">""</div>}><PasswordStrength password={state.password} passScore={passScore} setPass={setPassScore}/></Suspense>
                     <input className={submitted} required id="password_confirm" type="password" placeholder="Herhaal wachtwoord" name="password_confirm" value={state.password_confirm}
                            onChange={handleFormChange}/>
-                    <input className={submitted} required id="date_of_birth" type="text" placeholder="Geboortedatum" onFocus={handleFocus} onBlur={handleBlur} name="date_of_birth" value={state.date_of_birth}
+                    <input className={submitted} required id="date_of_birth" type="text" placeholder="Geboortedatum" onClick={forceFocus} onFocus={handleFocus} onBlur={handleBlur} name="date_of_birth" value={state.date_of_birth}
                             onChange={handleFormChange} />
                     <div className="checkbox">
                         <label >Leden mogen mijn verjaardag en leeftijd zien</label>

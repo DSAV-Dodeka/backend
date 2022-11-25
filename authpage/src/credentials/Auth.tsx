@@ -14,6 +14,7 @@ const Auth = () => {
     const [password, setPassword] = useState("")
     // \u00A0 = &nbsp;
     const [status, setStatus] = useState("\u00A0")
+    const [info, setInfo] = useState("\u00A0")
     const [showLink, setShowLink] = useState(false)
     const [showForgot, setShowForgot] = useState(false)
     const [forgotEmail, setForgotEmail] = useState("")
@@ -85,10 +86,10 @@ const Auth = () => {
     const handleLoad = () => {
         let definedUser = (new URLSearchParams(window.location.search)).get("user");
         let redirect = (new URLSearchParams(window.location.search)).get("redirect");
+        let extra = (new URLSearchParams(window.location.search)).get("extra");
         if (definedUser !== null) {
             setUsername(definedUser)
             setDefinedUser(true)
-
         }
 
         // So 'client:email/update/' is an example of a redirect that will lead to the /email/update/ of the frontend
@@ -96,11 +97,16 @@ const Auth = () => {
             console.log(redirect)
             setRedirect("0")
             const splitRedirect = redirect.split(':')
-            if (config.allowed_redirects.includes(splitRedirect[1])) {
-                if (splitRedirect[0] === "client") {
-                    setRedirect(`${config.client_location}/${splitRedirect[1]}`)
-                } else if (splitRedirect[0] === "server") {
-                    setRedirect(`${config.auth_location}/${splitRedirect[1]}`)
+            const side = splitRedirect[0]
+            const endpoint = splitRedirect[1]
+
+            if (redirect in config.allowed_redirects) {
+                const writeInfo = config.allowed_redirects[redirect]
+                setInfo(writeInfo(extra == null ? "" : extra))
+                if (side === "client") {
+                    setRedirect(`${config.client_location}/${endpoint}`)
+                } else if (side === "server") {
+                    //setRedirect(`${config.auth_location}/${endpoint}`)
                 }
             }
         }
@@ -118,7 +124,8 @@ const Auth = () => {
             <Back />
             <div className="form_container">
                 <h1 className="title">INLOGGEN</h1>
-                {showForgot ? 
+                <p className="largeText">{info}</p>
+                {showForgot ?
                     <form className="form" onSubmit={handleSubmitForgot}>
                         <label className="forgotLabel" htmlFor="forgotEmail">Vul je e-mail hieronder in om een mail te ontvangen waarmee je je wachtwoord opnieuw in kunt stellen.</label>
                         <input id="forgotEmail" placeholder="E-mail" type="text" value={forgotEmail}

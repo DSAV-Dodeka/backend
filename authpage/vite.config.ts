@@ -13,6 +13,7 @@ export default defineConfig({
       topLevelAwait()
   ],
   build: {
+    target: "es2016",
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),

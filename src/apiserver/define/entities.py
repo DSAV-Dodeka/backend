@@ -107,6 +107,12 @@ class UserData(BaseModel):
     registered: bool
 
 
+class BirthdayData(BaseModel):
+    firstname: str
+    lastname: str
+    birthdate: date = date.min
+
+
 class JWKSRow(BaseModel):
     id: int
     encrypted_value: str

@@ -5,7 +5,7 @@ from datetime import date
 from sqlalchemy.engine import CursorResult, Row
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncTransaction
 
-from apiserver.define.entities import User, SignedUp, UserData
+from apiserver.define.entities import User, SignedUp, UserData, BirthdayData
 from apiserver.utilities import usp_hex
 from apiserver.data.source import Source, DataError, NoDataError
 from apiserver.data.use import (
@@ -43,6 +43,12 @@ def parse_userdata(user_dict: Optional[dict]) -> UserData:
     if user_dict is None:
         raise NoDataError("UserData does not exist.", "userdata_empty")
     return UserData.parse_obj(user_dict)
+
+
+def parse_birthday_data(birthday_dict: Optional[dict]) -> BirthdayData:
+    if birthday_dict is None:
+        raise NoDataError("BirthdayData does not exist.", "birthday_data_empty")
+    return BirthdayData.parse_obj(birthday_dict)
 
 
 async def user_exists(dsrc: Source, conn: AsyncConnection, user_email: str) -> bool:
@@ -200,6 +206,12 @@ async def update_user_email(
 async def get_all_userdata(dsrc: Source, conn: AsyncConnection) -> list[UserData]:
     all_userdata = await select_where(dsrc, conn, USERDATA_TABLE, UD_ACTIVE, True)
     return [parse_userdata(ud_dct) for ud_dct in all_userdata]
+
+
+async def get_all_birthdays(dsrc: Source, conn: AsyncConnection) -> list[BirthdayData]:
+    # Does this get the birthdays, or all the data? I only want the birthdays and names...
+    all_birthdays = await select_where(dsrc, conn, USERDATA_TABLE, UD_ACTIVE, True)
+    return [parse_birthday_data(ud_dct) for ud_dct in all_birthdays]
 
 
 async def delete_user(dsrc: Source, conn: AsyncConnection, user_id: str):

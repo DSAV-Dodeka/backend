@@ -217,3 +217,7 @@ class UpdateEmailCheck(BaseModel):
 class ChangedEmailResponse(BaseModel):
     old_email: str
     new_email: str
+
+
+class DeleteAccount(BaseModel):
+    user_id: str

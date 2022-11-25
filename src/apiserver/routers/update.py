@@ -21,6 +21,7 @@ from apiserver.define import (
     UpdateEmailCheck,
     ChangedEmailResponse,
     UpdateEmailState,
+    DeleteAccount,
 )
 from apiserver.env import Config
 from apiserver.routers.helper import require_user
@@ -79,20 +80,19 @@ async def request_password_change(
     request: Request,
     background_tasks: BackgroundTasks,
 ):
+    """Initiated from authpage. Sends out e-mail with reset link."""
     dsrc: Source = request.app.state.dsrc
     async with data.get_conn(dsrc) as conn:
-        is_registered = await data.user.userdata_registered_by_email(
-            dsrc, conn, change_pass.email
-        )
-    logger.debug(f"Reset requested - is_registered={is_registered}")
+        ud = await data.user.get_userdata_by_email(dsrc, conn, change_pass.email)
+    logger.debug(f"Reset requested - is_registered={ud.registered}")
     flow_id = util.random_time_hash_hex()
     params = {"reset_id": flow_id, "email": change_pass.email}
     reset_url = f"{credentials_url}reset/?{urlencode(params)}"
 
-    await data.kv.store_string(dsrc, change_pass.email, flow_id, 1000)
+    await data.kv.store_string(dsrc, flow_id, change_pass.email, 1000)
 
     config: Config = request.app.state.config
-    if is_registered:
+    if ud.registered:
         send_reset_email(
             background_tasks, change_pass.email, config.MAIL_PASS, reset_url
         )
@@ -103,7 +103,7 @@ async def update_password_start(update_pass: UpdatePasswordRequest, request: Req
     dsrc: Source = request.app.state.dsrc
 
     try:
-        stored_flow_id = await data.kv.get_string(dsrc, update_pass.email)
+        stored_email = await data.kv.get_string(dsrc, update_pass.flow_id)
     except NoDataError as e:
         logger.debug(e.message)
         reason = "No reset has been requested for this user."
@@ -111,11 +111,14 @@ async def update_password_start(update_pass: UpdatePasswordRequest, request: Req
             400, err_type="invalid_reset", err_desc=reason, debug_key="no_user_reset"
         )
 
-    if stored_flow_id != update_pass.flow_id:
-        reason = "No reset request matches this flow_id."
+    if stored_email != update_pass.email:
+        reason = "Emails do not match for this reset!"
         logger.debug(reason)
         raise ErrorResponse(
-            400, err_type="invalid_reset", err_desc=reason, debug_key="no_flow_reset"
+            400,
+            err_type="invalid_reset",
+            err_desc=reason,
+            debug_key="reset_no_email_match",
         )
 
     async with data.get_conn(dsrc) as conn:
@@ -172,6 +175,7 @@ async def update_email(
         "flow_id": flow_id,
         "user": old_email,
         "redirect": "client:account/email/",
+        "extra": new_email.new_email,
     }
     reset_url = f"{credentials_url}?{urlencode(params)}"
 
@@ -185,7 +189,6 @@ async def update_email(
     )
 
     await data.kv.store_update_email(dsrc, flow_id, state)
-    await data.kv.store_string(dsrc, user_id, flow_id, 1000)
 
 
 @router.post("/update/email/check/")
@@ -216,29 +219,44 @@ async def update_email_check(update_check: UpdateEmailCheck, request: Request):
     )
 
 
-@router.post("/update/delete/")
-async def delete_account(request: Request):
+@router.post("/update/delete/url/")
+async def delete_account(
+    delete_acc: DeleteAccount,
+    request: Request,
+    authorization: str = Security(auth_header),
+):
     dsrc: Source = request.app.state.dsrc
-
-    flow_user = await authentication.check_password(dsrc, update_check.code)
+    user_id = delete_acc.user_id
+    await require_user(authorization, dsrc, user_id)
 
     try:
-        stored_email = await data.kv.get_update_email(dsrc, update_check.flow_id)
-    except NoDataError as e:
-        reason = "Update request has expired, please try again!"
-        logger.debug(reason + f" {flow_user.user_id}")
-        return ErrorResponse(status_code=400, err_type="bad_update", err_desc=reason)
-    user_id = stored_email.user_id
-
-    async with data.get_conn(dsrc) as conn:
-        await data.refreshtoken.delete_by_user_id(dsrc, conn, flow_user.user_id)
-
-        count_ud = await data.user.update_user_email(
-            dsrc, conn, user_id, stored_email.new_email
+        async with data.get_conn(dsrc) as conn:
+            ud = await data.user.get_userdata_by_id(dsrc, conn, user_id)
+    except NoDataError:
+        return ErrorResponse(
+            400, "bad_update", "User no longer exists.", "update_user_empty"
         )
-        if count_ud != 1:
-            raise DataError("Internal data error.", "user_data_error")
+    if not ud.registered:
+        return ErrorResponse(
+            status_code=400,
+            err_type="bad_delete",
+            err_desc="User not registered",
+            debug_key="delete_not_registered",
+        )
 
-    return ChangedEmailResponse(
-        old_email=stored_email.old_email, new_email=stored_email.new_email
-    )
+    flow_id = util.random_time_hash_hex(user_id)
+    params = {
+        "flow_id": flow_id,
+        "user": ud.email,
+        "redirect": "client:account/delete/",
+    }
+    delete_url = f"{credentials_url}?{urlencode(params)}"
+
+    await data.kv.store_string(dsrc, flow_id, user_id, 1000)
+
+    return delete_url
+
+
+@router.post("/update/delete/check/")
+async def delete_account(request: Request):
+    dsrc: Source = request.app.state.dsrc

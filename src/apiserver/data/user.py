@@ -30,7 +30,7 @@ from apiserver.db.model import (
 )
 from apiserver.db.ops import DbError
 
-__all__ = ["get_user_by_id", "user_exists", "userdata_registered_by_email"]
+__all__ = ["get_user_by_id", "user_exists", "get_userdata_by_email"]
 
 
 def parse_user(user_dict: Optional[dict]) -> User:
@@ -63,6 +63,13 @@ async def get_userdata_by_id(
     return parse_userdata(userdata_row)
 
 
+async def get_userdata_by_email(
+    dsrc: Source, conn: AsyncConnection, email: str
+) -> UserData:
+    userdata_row = await retrieve_by_unique(dsrc, conn, USERDATA_TABLE, UD_EMAIL, email)
+    return parse_userdata(userdata_row)
+
+
 async def get_userdata_by_register_id(
     dsrc: Source, conn: AsyncConnection, register_id: str
 ) -> UserData:
@@ -72,13 +79,13 @@ async def get_userdata_by_register_id(
     return parse_userdata(userdata_row)
 
 
-async def userdata_registered_by_email(
-    dsrc: Source, conn: AsyncConnection, email: str
-) -> bool:
-    result = await fetch_column_by_unique(
-        dsrc, conn, USERDATA_TABLE, USER_REGISTERED, UD_EMAIL, email
-    )
-    return result if result is True else False
+# async def userdata_registered_by_email(
+#     dsrc: Source, conn: AsyncConnection, email: str
+# ) -> bool:
+#     result = await fetch_column_by_unique(
+#         dsrc, conn, USERDATA_TABLE, USER_REGISTERED, UD_EMAIL, email
+#     )
+#     return result if result is True else False
 
 
 async def get_user_by_email(

@@ -7,13 +7,13 @@ authors = ["Tip ten Brink <75669206+tiptenbrink@users.noreply.github.com>"]
 [tool.poetry.dependencies]
 python = ">=3.10, <3.11"
 tomli = "2.0.1"
-fastapi = "0.87.0"
-uvicorn = { extras = ["standard"], version = "^0.19.0" }
+fastapi = "0.88.0"
+uvicorn = { extras = ["standard"], version = "^0.20.0" }
 asyncpg = "^0.27.0"
 gunicorn = "^20.1.0"
-redis = "^4.3.1"
+redis = "^4.3.5"
 PyJWT = "2.6.0"
-cryptography = "38.0.3"
+cryptography = "38.0.4"
 pydantic = "^1.10.1"
 jinja2 = "^3.1.2"
 anyio = "^3.6.1"
@@ -29,7 +29,7 @@ asyncio_mode = "strict"
 s-api = "apiserver.dev:run"
 
 [tool.poetry.group.dev.dependencies]
-sqlalchemy = { extras = ["mypy"], version = "^1.4.41" }
+sqlalchemy = { extras = ["mypy", "asyncio"], version = "^1.4.41" }
 pytest = "^7.0.1"
 pytest-asyncio = "^0.19.0"
 pytest-mock = "^3.7.0"
@@ -42,29 +42,6 @@ mypy = "^0.981"
 types-redis = "^4.3.21"
 sqlalchemy-stubs = "^0.4"
 faker = "^15.3.3"
-opentelemetry-distro = "0.34b0"
-opentelemetry-api                        = "1.13.0"
-opentelemetry-exporter-otlp-proto-http   = "1.13.0"
-opentelemetry-instrumentation            = "0.34b0"
-opentelemetry-instrumentation-asgi       = "0.34b0"
-opentelemetry-instrumentation-asyncpg    = "0.34b0"
-opentelemetry-instrumentation-dbapi      = "0.34b0"
-opentelemetry-instrumentation-fastapi    = "0.34b0"
-opentelemetry-instrumentation-httpx      = "0.34b0"
-opentelemetry-instrumentation-jinja2     = "0.34b0"
-opentelemetry-instrumentation-logging    = "0.34b0"
-opentelemetry-instrumentation-redis      = "0.34b0"
-opentelemetry-instrumentation-requests   = "0.34b0"
-opentelemetry-instrumentation-sqlalchemy = "0.34b0"
-opentelemetry-instrumentation-sqlite3    = "0.34b0"
-opentelemetry-instrumentation-urllib     = "0.34b0"
-opentelemetry-instrumentation-urllib3    = "0.34b0"
-opentelemetry-instrumentation-wsgi       = "0.34b0"
-opentelemetry-proto                      = "1.13.0"
-opentelemetry-sdk                        = "1.13.0"
-opentelemetry-semantic-conventions       = "0.34b0"
-opentelemetry-util-http                  = "0.34b0"
-opentelemetry-exporter-otlp = "^1.13.0"
 
 [tool.black]
 target-version = ['py310']

@@ -12,18 +12,20 @@ from apiserver.data.use import (
     retrieve_by_unique,
     insert_return_col,
     exists_by_unique,
-    fetch_column_by_unique,
     update_column_by_unique,
     upsert_by_unique,
     select_where,
     delete_by_column,
+    select_some_where,
 )
 from apiserver.db import USER_TABLE, USERDATA_TABLE
 from apiserver.db.model import (
     USER_ID,
     PASSWORD,
     REGISTER_ID,
-    USER_REGISTERED,
+    UD_FIRSTNAME,
+    UD_LASTNAME,
+    BIRTHDATE,
     UD_EMAIL,
     USER_EMAIL,
     UD_ACTIVE,
@@ -209,8 +211,14 @@ async def get_all_userdata(dsrc: Source, conn: AsyncConnection) -> list[UserData
 
 
 async def get_all_birthdays(dsrc: Source, conn: AsyncConnection) -> list[BirthdayData]:
-    # Does this get the birthdays, or all the data? I only want the birthdays and names...
-    all_birthdays = await select_where(dsrc, conn, USERDATA_TABLE, UD_ACTIVE, True)
+    all_birthdays = await select_some_where(
+        dsrc,
+        conn,
+        USERDATA_TABLE,
+        {UD_FIRSTNAME, UD_LASTNAME, BIRTHDATE},
+        UD_ACTIVE,
+        True,
+    )
     return [parse_birthday_data(ud_dct) for ud_dct in all_birthdays]
 
 

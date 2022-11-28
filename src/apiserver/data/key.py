@@ -14,7 +14,7 @@ from apiserver.db.model import JWK_VALUE, KEY_ID, KEY_ISSUED, KEY_USE
 
 async def get_newest_symmetric(dsrc: Source, conn: AsyncConnection) -> tuple[str, str]:
     results = await get_largest_where(
-        dsrc, conn, KEY_TABLE, KEY_ID, KEY_USE, "enc", KEY_ISSUED, 2
+        dsrc, conn, KEY_TABLE, {KEY_ID}, KEY_USE, "enc", KEY_ISSUED, 2
     )
     return results[0], results[1]
 
@@ -22,7 +22,7 @@ async def get_newest_symmetric(dsrc: Source, conn: AsyncConnection) -> tuple[str
 async def get_newest_pem(dsrc: Source, conn: AsyncConnection) -> str:
     return (
         await get_largest_where(
-            dsrc, conn, KEY_TABLE, KEY_ID, KEY_USE, "sig", KEY_ISSUED, 1
+            dsrc, conn, KEY_TABLE, {KEY_ID}, KEY_USE, "sig", KEY_ISSUED, 1
         )
     )[0]
 

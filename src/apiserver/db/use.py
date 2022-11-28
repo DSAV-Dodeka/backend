@@ -4,6 +4,7 @@ from sqlalchemy import text
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncTransaction, AsyncConnection
+from sqlalchemy.sql.elements import TextClause
 
 from apiserver.db.ops import DbOperations, DbError
 
@@ -22,6 +23,10 @@ def _row_keys_vars_set(row: dict):
     row_keys_vars = ", ".join(row_keys_vars)
     row_keys_set = ", ".join(row_keys_set)
     return row_keys, row_keys_vars, row_keys_set
+
+
+def select_set(columns: set[str]):
+    return ", ".join(columns)
 
 
 async def execute_catch_conn(
@@ -66,6 +71,7 @@ class PostgresOperations(DbOperations):
     async def retrieve_by_id(
         cls, conn: AsyncConnection, table: str, id_int: int
     ) -> Optional[dict]:
+        """Ensure `table` is never user-defined."""
         query = text(f"SELECT * FROM {table} WHERE id = :id;")
         res: CursorResult = await conn.execute(query, parameters={"id": id_int})
         return first_or_none(res)
@@ -74,30 +80,31 @@ class PostgresOperations(DbOperations):
     async def retrieve_by_unique(
         cls, conn: AsyncConnection, table: str, unique_column: str, value
     ) -> Optional[dict]:
+        """Ensure `table` and `unique_column` are never user-defined."""
         query = text(f"SELECT * FROM {table} WHERE {unique_column} = :val;")
         res: CursorResult = await conn.execute(query, parameters={"val": value})
         return first_or_none(res)
 
     @classmethod
-    async def fetch_column_by_unique(
+    async def select_some_where(
         cls,
         conn: AsyncConnection,
         table: str,
-        fetch_column: str,
-        unique_column: str,
-        value,
-    ) -> Optional[Any]:
-        """Ensure `unique_column` and `table` are never user-defined."""
-        query = text(
-            f"SELECT {fetch_column} FROM {table} WHERE {unique_column} = :val;"
-        )
-        return await conn.scalar(query, parameters={"val": value})
+        sel_col: set[str],
+        where_col: str,
+        where_value,
+    ) -> list[dict]:
+        """Ensure `table`, `where_col` and `sel_col` are never user-defined."""
+        some = select_set(sel_col)
+        query = text(f"SELECT {some} FROM {table} WHERE {where_col} = :val;")
+        res = await conn.execute(query, parameters={"val": where_value})
+        return all_rows(res)
 
     @classmethod
     async def select_where(
         cls, conn: AsyncConnection, table: str, column, value
     ) -> list[dict]:
-        """Ensure `table` is never user-defined."""
+        """Ensure `table` and `column` are never user-defined."""
         query = text(f"SELECT * FROM {table} WHERE {column} = :val;")
         res = await conn.execute(query, parameters={"val": value})
         return all_rows(res)
@@ -107,14 +114,17 @@ class PostgresOperations(DbOperations):
         cls,
         conn: AsyncConnection,
         table: str,
-        res_col: str,
+        sel_col: set[str],
         where_col: str,
         where_val,
         order_col: str,
         num: int,
     ) -> list[Any]:
+        """Ensure `table`, `sel_col`, `where_col`, `order_col` and `num` are never user-defined.
+        """
+        some = select_set(sel_col)
         query = text(
-            f"SELECT {res_col} FROM {table} where {where_col} = :where_val ORDER BY"
+            f"SELECT {some} FROM {table} where {where_col} = :where_val ORDER BY"
             f" {order_col} DESC LIMIT {num};"
         )
         res: CursorResult = await conn.execute(
@@ -201,6 +211,7 @@ class PostgresOperations(DbOperations):
 
     @classmethod
     async def delete_by_id(cls, conn: AsyncConnection, table: str, id_int: int) -> int:
+        """Ensure `table` is never user-defined."""
         query = text(f"DELETE FROM {table} WHERE id = :id;")
         res: CursorResult = await conn.execute(query, parameters={"id": id_int})
         return row_cnt(res)
@@ -209,6 +220,7 @@ class PostgresOperations(DbOperations):
     async def delete_by_column(
         cls, conn: AsyncConnection, table: str, column: str, column_val
     ) -> int:
+        """Ensure `table`, `column` and `column_val` are never user-defined."""
         query = text(f"DELETE FROM {table} WHERE {column} = :{column};")
         res: CursorResult = await conn.execute(query, parameters={column: column_val})
         return row_cnt(res)

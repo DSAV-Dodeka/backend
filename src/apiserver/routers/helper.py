@@ -44,3 +44,17 @@ async def require_user(authorization: str, dsrc: Source, username: str) -> Acces
         )
     else:
         return acc
+
+
+async def require_member(authorization: str, dsrc: Source) -> bool:
+    acc = await handle_auth(authorization, dsrc)
+    scope_set = set(acc.scope.split())
+    if "member" not in scope_set:
+        raise ErrorResponse(
+            403,
+            err_type="insufficient_perms",
+            err_desc="Insufficient permissions to access this resource.",
+            debug_key="low_perms",
+        )
+    else:
+        return True

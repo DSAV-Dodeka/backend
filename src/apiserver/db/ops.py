@@ -32,14 +32,14 @@ class DbOperations(ABC):
 
     @classmethod
     @abstractmethod
-    async def fetch_column_by_unique(
+    async def select_some_where(
         cls,
         conn: AsyncConnection,
         table: str,
-        fetch_column: str,
-        unique_column: str,
-        value,
-    ) -> Optional[Any]:
+        sel_col: set[str],
+        where_col: str,
+        where_value,
+    ) -> list[dict]:
         ...
 
     @classmethod
@@ -55,7 +55,7 @@ class DbOperations(ABC):
         cls,
         conn: AsyncConnection,
         table: str,
-        res_col: str,
+        sel_col: set[str],
         where_col: str,
         where_val,
         order_col: str,

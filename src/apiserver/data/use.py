@@ -116,6 +116,6 @@ async def delete_by_id(dsrc: Source, conn: AsyncConnection, table: str, id_int: 
 
 async def delete_by_column(
     dsrc: Source, conn: AsyncConnection, table: str, column: str, column_val
-):
+) -> int:
     """Ensure `table`, `column` and `column_val` are never user-defined."""
     return await dsrc.gateway.ops.delete_by_column(conn, table, column, column_val)

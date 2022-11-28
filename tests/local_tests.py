@@ -112,6 +112,12 @@ async def test_generate_rand():
 
 
 @pytest.mark.asyncio
+async def test_delete(local_dsrc: Source):
+    async with data.get_conn(local_dsrc) as conn:
+        await data.user.delete_user(local_dsrc, conn, "4_t_tb")
+
+
+@pytest.mark.asyncio
 async def test_fill_signedup():
     key_set_dict = {
         "keys": [

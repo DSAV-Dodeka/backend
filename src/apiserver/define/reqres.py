@@ -221,3 +221,12 @@ class ChangedEmailResponse(BaseModel):
 
 class DeleteAccount(BaseModel):
     user_id: str
+
+
+class DeleteUrlResponse(BaseModel):
+    delete_url: str
+
+
+class DeleteAccountCheck(BaseModel):
+    flow_id: str
+    code: str

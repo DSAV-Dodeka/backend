@@ -22,8 +22,9 @@ from apiserver.kv import (
     pop_json,
     store_json_perm,
     store_json_multi,
+    store_kv_perm,
+    pop_kv,
 )
-from apiserver.kv.kv import store_kv_perm
 
 
 def kv_is_init(dsrc: Source) -> Redis:
@@ -120,8 +121,7 @@ async def store_string(dsrc: Source, key: str, value: str, expire: int = 1000):
         await store_kv(kv_is_init(dsrc), key, value, expire)
 
 
-async def get_string(dsrc: Source, key: str) -> str:
-    value = await get_kv(kv_is_init(dsrc), key)
+def string_return(value: Optional[bytes]) -> str:
     if value is None:
         raise NoDataError(
             "String for this key does not exist or expired.", "saved_str_empty"
@@ -130,6 +130,16 @@ async def get_string(dsrc: Source, key: str) -> str:
         return value.decode()
     except UnicodeEncodeError:
         raise DataError("Data is not of unicode string type.", "bad_str_encode")
+
+
+async def pop_string(dsrc: Source, key: str) -> str:
+    value = await pop_kv(kv_is_init(dsrc), key)
+    return string_return(value)
+
+
+async def get_string(dsrc: Source, key: str) -> str:
+    value = await get_kv(kv_is_init(dsrc), key)
+    return string_return(value)
 
 
 async def store_pem_keys(dsrc: Source, keys: list[PEMKey]):

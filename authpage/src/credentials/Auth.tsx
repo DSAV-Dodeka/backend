@@ -94,7 +94,6 @@ const Auth = () => {
 
         // So 'client:email/update/' is an example of a redirect that will lead to the /email/update/ of the frontend
         if (redirect !== null) {
-            console.log(redirect)
             setRedirect("0")
             const splitRedirect = redirect.split(':')
             const side = splitRedirect[0]

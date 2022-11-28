@@ -1,6 +1,7 @@
 from typing import Any, Optional, Union
 
 from redis.asyncio import Redis
+from redis.asyncio.client import Pipeline
 from redis.exceptions import ResponseError
 
 __all__ = [
@@ -11,6 +12,8 @@ __all__ = [
     "pop_json",
     "store_json_perm",
     "store_json_multi",
+    "store_kv_perm",
+    "pop_kv",
 ]
 
 JsonType = Union[str, int, float, bool, None, dict[str, "JsonType"], list["JsonType"]]
@@ -69,3 +72,16 @@ async def store_kv_perm(kv: Redis, key: str, value):
 
 async def get_kv(kv: Redis, key: str) -> Optional[bytes]:
     return await kv.get(key)
+
+
+async def pop_kv(kv: Redis, key: str) -> Optional[bytes]:
+    async with kv.pipeline() as pipe:
+        pipe.get(key)
+        pipe.delete(key)
+        results: list[Any] = await pipe.execute()
+    # returns a list with the result for each call
+    # first is the get result, second equal to '1' if delete successful
+    try:
+        return results[0] if results[1] else None
+    except IndexError:
+        return None

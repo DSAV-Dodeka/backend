@@ -223,4 +223,6 @@ async def get_all_birthdays(dsrc: Source, conn: AsyncConnection) -> list[Birthda
 
 
 async def delete_user(dsrc: Source, conn: AsyncConnection, user_id: str):
-    await delete_by_column(dsrc, conn, USER_TABLE, USER_ID, user_id)
+    row_count = await delete_by_column(dsrc, conn, USER_TABLE, USER_ID, user_id)
+    if row_count == 0:
+        raise NoDataError("User does not exist.", "user_empty")

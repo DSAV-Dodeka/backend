@@ -22,6 +22,8 @@ from apiserver.define import (
     ChangedEmailResponse,
     UpdateEmailState,
     DeleteAccount,
+    DeleteAccountCheck,
+    DeleteUrlResponse,
 )
 from apiserver.env import Config
 from apiserver.routers.helper import require_user
@@ -103,7 +105,7 @@ async def update_password_start(update_pass: UpdatePasswordRequest, request: Req
     dsrc: Source = request.app.state.dsrc
 
     try:
-        stored_email = await data.kv.get_string(dsrc, update_pass.flow_id)
+        stored_email = await data.kv.pop_string(dsrc, update_pass.flow_id)
     except NoDataError as e:
         logger.debug(e.message)
         reason = "No reset has been requested for this user."
@@ -199,7 +201,7 @@ async def update_email_check(update_check: UpdateEmailCheck, request: Request):
 
     try:
         stored_email = await data.kv.get_update_email(dsrc, update_check.flow_id)
-    except NoDataError as e:
+    except NoDataError:
         reason = "Update request has expired, please try again!"
         logger.debug(reason + f" {flow_user.user_id}")
         return ErrorResponse(status_code=400, err_type="bad_update", err_desc=reason)
@@ -254,9 +256,31 @@ async def delete_account(
 
     await data.kv.store_string(dsrc, flow_id, user_id, 1000)
 
-    return delete_url
+    return DeleteUrlResponse(delete_url=delete_url)
 
 
 @router.post("/update/delete/check/")
-async def delete_account(request: Request):
+async def delete_account(delete_check: DeleteAccountCheck, request: Request):
     dsrc: Source = request.app.state.dsrc
+
+    flow_user = await authentication.check_password(dsrc, delete_check.code)
+
+    try:
+        stored_user_id = await data.kv.pop_string(dsrc, delete_check.flow_id)
+    except NoDataError:
+        reason = "Delete request has expired, please try again!"
+        logger.debug(reason + f" {flow_user.user_id}")
+        return ErrorResponse(status_code=400, err_type="bad_update", err_desc=reason)
+
+    async with data.get_conn(dsrc) as conn:
+        try:
+            await data.user.delete_user(dsrc, conn, stored_user_id)
+            return DeleteAccount(user_id=stored_user_id)
+        except NoDataError:
+            reason = "User for delete request does not exist!"
+            logger.debug(reason + f" {flow_user.user_id}")
+            return ErrorResponse(
+                status_code=400,
+                err_type="bad_update",
+                err_desc="Delete request has expired, please try again!",
+            )

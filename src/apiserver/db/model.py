@@ -144,7 +144,7 @@ userdata = sqla.Table(
     sqla.Column(UD_FIRSTNAME, sqla.String(length=100), nullable=False),
     sqla.Column(UD_LASTNAME, sqla.String(length=100), nullable=False),
     sqla.Column(UD_CALLNAME, sqla.String(length=100)),
-    sqla.Column(UD_PHONE, sqla.String(length=15)),
+    sqla.Column(UD_PHONE, sqla.String(length=32)),
     sqla.Column(
         UD_EMAIL,
         sqla.String(length=255),

@@ -1,12 +1,16 @@
 from pathlib import Path
 import asyncio
 
+import random
 import pytest
 import pytest_asyncio
+from faker import Faker
 
 from httpx import AsyncClient
 import opaquepy as opq
 
+from apiserver.data.user import new_userdata
+from apiserver.define.entities import SignedUp
 from apiserver.utilities.crypto import encrypt_dict, aes_from_symmetric, decrypt_dict
 from apiserver.env import load_config
 import apiserver.utilities as util
@@ -103,6 +107,54 @@ async def test_generate_admin(local_dsrc: Source):
     pw_file = opq.register_finish(cl_fin)
 
     print(pw_file)
+
+
+@pytest.mark.asyncio
+async def test_generate_dummies(local_dsrc: Source, faker: Faker):
+    admin_password = "admin"
+    async with data.get_conn(local_dsrc) as conn:
+        setup = await data.opaquesetup.get_setup(local_dsrc, conn)
+
+    # setup = ""
+    faker_u = faker.unique
+
+    for i in range(99):
+        fname = faker_u.first_name()
+        lname = faker_u.last_name()
+        email = f"{fname}.{lname}@gmail.com"
+        su = SignedUp(
+            firstname=fname,
+            lastname=lname,
+            email=email,
+            phone=faker_u.phone_number(),
+            confirmed=True,
+        )
+        av40id = int.from_bytes(faker_u.binary(2), byteorder="big")
+        register_id = util.random_time_hash_hex()
+        joined = faker.date()
+        async with data.get_conn(local_dsrc) as conn:
+            uid = await data.user.new_user(
+                local_dsrc,
+                conn,
+                su,
+                register_id=register_id,
+                av40id=av40id,
+                joined=joined,
+            )
+            userdata = new_userdata(su, uid, register_id, av40id, joined)
+
+            cl_req, cl_state = opq.register_client(admin_password)
+            serv_resp = opq.register(setup, cl_req, uid)
+            cl_fin = opq.register_client_finish(cl_state, admin_password, serv_resp)
+            pw_file = opq.register_finish(cl_fin)
+            birthdate = faker.date()
+            new_ud = data.user.finished_userdata(
+                userdata, callname=fname, eduinstitution="TU Delft", birthdate=birthdate
+            )
+
+            await data.user.update_password_file(local_dsrc, conn, uid, pw_file)
+            await data.user.upsert_userdata(local_dsrc, conn, new_ud)
+            await data.signedup.delete_signedup(local_dsrc, conn, email)
 
 
 @pytest.mark.asyncio

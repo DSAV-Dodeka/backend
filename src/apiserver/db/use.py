@@ -221,6 +221,6 @@ class PostgresOperations(DbOperations):
         cls, conn: AsyncConnection, table: str, column: str, column_val
     ) -> int:
         """Ensure `table`, `column` and `column_val` are never user-defined."""
-        query = text(f"DELETE FROM {table} WHERE {column} = :{column};")
-        res: CursorResult = await conn.execute(query, parameters={column: column_val})
+        query = text(f"DELETE FROM {table} WHERE {column} = :val;")
+        res: CursorResult = await conn.execute(query, parameters={"val": column_val})
         return row_cnt(res)

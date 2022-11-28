@@ -10,6 +10,7 @@ from apiserver.data.use import (
     exists_by_unique,
     update_column_by_unique,
     select_where,
+    delete_by_column,
 )
 from apiserver.db import SIGNEDUP_TABLE
 from apiserver.db.model import (
@@ -27,6 +28,7 @@ __all__ = [
     "insert_su_row",
     "signedup_exists",
     "get_all_signedup",
+    "delete_signedup",
 ]
 
 
@@ -64,3 +66,7 @@ async def insert_su_row(dsrc: Source, conn: AsyncConnection, su_row: dict):
     except DbError as e:
         raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
     return result
+
+
+async def delete_signedup(dsrc: Source, conn: AsyncConnection, email: str):
+    await delete_by_column(dsrc, conn, SIGNEDUP_TABLE, SU_EMAIL, email)

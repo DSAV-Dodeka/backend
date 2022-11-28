@@ -53,6 +53,43 @@ def parse_birthday_data(birthday_dict: Optional[dict]) -> BirthdayData:
     return BirthdayData.parse_obj(birthday_dict)
 
 
+def new_userdata(
+    su: SignedUp, user_id: str, register_id: str, av40id: int, joined: date
+):
+    return UserData(
+        user_id=user_id,
+        active=True,
+        registerid=register_id,
+        firstname=su.firstname,
+        lastname=su.lastname,
+        email=su.email,
+        phone=su.phone,
+        av40id=av40id,
+        joined=joined,
+        registered=False,
+    )
+
+
+def finished_userdata(
+    ud: UserData, callname: str, eduinstitution: str, birthdate: date
+):
+    return UserData(
+        user_id=ud.user_id,
+        firstname=ud.firstname,
+        lastname=ud.lastname,
+        callname=callname,
+        email=ud.email,
+        phone=ud.phone,
+        av40id=ud.av40id,
+        joined=ud.joined,
+        eduinstitution=eduinstitution,
+        birthdate=birthdate,
+        registerid=ud.registerid,
+        active=True,
+        registered=True,
+    )
+
+
 async def user_exists(dsrc: Source, conn: AsyncConnection, user_email: str) -> bool:
     return await exists_by_unique(dsrc, conn, USER_TABLE, USER_EMAIL, user_email)
 
@@ -141,19 +178,8 @@ async def new_user(
 
     user = User(id_name=id_name, email=signed_up.email, password_file="")
     user_id = await insert_return_user_id(dsrc, conn, user)
+    userdata = new_userdata(signed_up, user_id, register_id, av40id, joined)
 
-    userdata = UserData(
-        user_id=user_id,
-        active=True,
-        registerid=register_id,
-        firstname=signed_up.firstname,
-        lastname=signed_up.lastname,
-        email=signed_up.email,
-        phone=signed_up.phone,
-        av40id=av40id,
-        joined=joined,
-        registered=False,
-    )
     await insert_userdata(dsrc, conn, userdata)
 
     return user_id

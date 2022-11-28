@@ -167,7 +167,7 @@ async def update_email(
         async with data.get_conn(dsrc) as conn:
             u = await data.user.get_user_by_id(dsrc, conn, user_id)
     except NoDataError:
-        return ErrorResponse(
+        raise ErrorResponse(
             400, "bad_update", "User no longer exists.", "update_user_empty"
         )
     old_email = u.email
@@ -204,7 +204,7 @@ async def update_email_check(update_check: UpdateEmailCheck, request: Request):
     except NoDataError:
         reason = "Update request has expired, please try again!"
         logger.debug(reason + f" {flow_user.user_id}")
-        return ErrorResponse(status_code=400, err_type="bad_update", err_desc=reason)
+        raise ErrorResponse(status_code=400, err_type="bad_update", err_desc=reason)
     user_id = stored_email.user_id
 
     async with data.get_conn(dsrc) as conn:
@@ -235,11 +235,11 @@ async def delete_account(
         async with data.get_conn(dsrc) as conn:
             ud = await data.user.get_userdata_by_id(dsrc, conn, user_id)
     except NoDataError:
-        return ErrorResponse(
+        raise ErrorResponse(
             400, "bad_update", "User no longer exists.", "update_user_empty"
         )
     if not ud.registered:
-        return ErrorResponse(
+        raise ErrorResponse(
             status_code=400,
             err_type="bad_delete",
             err_desc="User not registered",
@@ -270,7 +270,7 @@ async def delete_account(delete_check: DeleteAccountCheck, request: Request):
     except NoDataError:
         reason = "Delete request has expired, please try again!"
         logger.debug(reason + f" {flow_user.user_id}")
-        return ErrorResponse(status_code=400, err_type="bad_update", err_desc=reason)
+        raise ErrorResponse(status_code=400, err_type="bad_update", err_desc=reason)
 
     async with data.get_conn(dsrc) as conn:
         try:
@@ -279,7 +279,7 @@ async def delete_account(delete_check: DeleteAccountCheck, request: Request):
         except NoDataError:
             reason = "User for delete request does not exist!"
             logger.debug(reason + f" {flow_user.user_id}")
-            return ErrorResponse(
+            raise ErrorResponse(
                 status_code=400,
                 err_type="bad_update",
                 err_desc="Delete request has expired, please try again!",

@@ -281,7 +281,7 @@ async def start_register(register_start: RegisterRequest, request: Request):
 @router.post("/onboard/finish/")
 async def finish_register(register_finish: FinishRequest, request: Request):
     """At this point, we have info saved under 'userdata', 'users' and short-term storage as SavedRegisterState. All
-    this data must match up for there to be a succesful registration."""
+    this data must match up for there to be a successful registration."""
     dsrc: Source = request.app.state.dsrc
     try:
         saved_state = await data.kv.get_register_state(dsrc, register_finish.auth_id)
@@ -296,8 +296,17 @@ async def finish_register(register_finish: FinishRequest, request: Request):
         )
 
     # Generate password file
-    # Note that this is equal to the client request
-    password_file = opq.register_finish(register_finish.client_request)
+    # Note that this is equal to the client request, it simply is a check for correct format
+    try:
+        password_file = opq.register_finish(register_finish.client_request)
+    except ValueError as e:
+        logger.debug(f"OPAQUE failure from client OPAQUE message: {str(e)}")
+        raise ErrorResponse(
+            400,
+            err_type="invalid_registration",
+            err_desc="Invalid OPAQUE registration.",
+            debug_key="bad_opaque_registration",
+        )
 
     try:
         async with data.get_conn(dsrc) as conn:
@@ -334,20 +343,11 @@ async def finish_register(register_finish: FinishRequest, request: Request):
             debug_key="bad_registration",
         )
 
-    new_userdata = UserData(
-        user_id=ud.user_id,
-        firstname=ud.firstname,
-        lastname=ud.lastname,
-        callname=register_finish.callname,
-        email=ud.email,
-        phone=ud.phone,
-        av40id=ud.av40id,
-        joined=ud.joined,
-        eduinstitution=register_finish.eduinstitution,
-        birthdate=register_finish.birthdate,
-        registerid=ud.registerid,
-        active=True,
-        registered=True,
+    new_userdata = data.user.finished_userdata(
+        ud,
+        register_finish.callname,
+        register_finish.eduinstitution,
+        register_finish.birthdate,
     )
 
     async with data.get_conn(dsrc) as conn:
@@ -355,5 +355,6 @@ async def finish_register(register_finish: FinishRequest, request: Request):
             dsrc, conn, saved_state.user_id, password_file
         )
         await data.user.upsert_userdata(dsrc, conn, new_userdata)
+        await data.signedup.delete_signedup(dsrc, conn, ud.email)
 
     # send welcome email

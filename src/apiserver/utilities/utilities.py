@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Optional, Union, Any
 import json
 from base64 import urlsafe_b64encode, urlsafe_b64decode
@@ -163,3 +164,8 @@ def dec_dict(encoded: bytes) -> dict[str, Any]:
     if not isinstance(obj, dict):
         raise ValueError("Only supports JSON objects, not primitives.")
     return obj
+
+
+def when_modified(p: Path) -> int:
+    """Calculates the timestamp of most recently modified file in all files, subdirectories in a path."""
+    return max([int(f.stat().st_mtime) if f.is_file() else 0 for f in p.rglob("*")])

@@ -27,6 +27,8 @@ from apiserver.define import (
 )
 from apiserver.env import load_config, Config
 
+import apiserver.utilities as util
+
 # Import types separately to make it clear in what line the module is first loaded and its top-level run
 from apiserver.data import Source
 
@@ -38,8 +40,6 @@ import apiserver.routers.onboard as onboard
 import apiserver.routers.update as update
 import apiserver.routers.admin as admin
 import apiserver.routers.users as users
-
-log_path = Path("/home/erag/files/gitp/dodekabackend/test.log")
 
 
 class LoggerMiddleware(BaseHTTPMiddleware):
@@ -137,6 +137,13 @@ async def app_startup(dsrc_inst: Source):
             " (define.toml)! Ensure defined variables are appropriate for the runtime"
             " environment before changing the environment!"
         )
+    if config.APISERVER_ENV == "localdev":
+        cr_time = util.when_modified(res_path.joinpath("static/credentials"))
+        src_time = util.when_modified(res_path.parent.parent.parent.joinpath("authpage/src"))
+        if cr_time > src_time:
+            logger.warning("Most likely authpage has not been recently built for development, please run `npm run build"
+                           "` in /authpage directory.")
+
     safe_startup(apiserver_app, dsrc_inst, config)
     # Db connections, etc.
     do_recreate = config.RECREATE == "yes"

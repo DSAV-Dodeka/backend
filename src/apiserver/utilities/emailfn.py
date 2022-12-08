@@ -66,7 +66,7 @@ def send_email_vars(
     subject: str,
     receiver_name: Optional[str] = None,
     from_name: Optional[str] = None,
-):
+) -> None:
     template = loaded_env.get_template(template_name)
 
     txt_content = template.render(templ_vars)

@@ -38,6 +38,7 @@ logger = logging.getLogger(LOGGER_NAME)
 def send_signup_email(
     background_tasks: BackgroundTasks,
     receiver: str,
+    receiver_name: str,
     mail_pass: str,
     redirect_link: str,
     signup_link: str,
@@ -46,11 +47,12 @@ def send_signup_email(
 
     def send_lam():
         util.send_email(
-            "confirm.html.jinja2",
+            "confirm.jinja2",
             receiver,
             mail_pass,
             "Please confirm your email",
-            add_vars,
+            receiver_name,
+            add_vars=add_vars,
         )
 
     background_tasks.add_task(send_lam)
@@ -64,11 +66,11 @@ def send_register_email(
     def send_lam():
         org_name = loc_dict["loc"]["org_name"]
         util.send_email(
-            "register.html.jinja2",
+            "register.jinja2",
             receiver,
             mail_pass,
             f"Welcome to {org_name}",
-            add_vars,
+            add_vars=add_vars,
         )
 
     background_tasks.add_task(send_lam)
@@ -102,6 +104,7 @@ async def init_signup(
         send_signup_email(
             background_tasks,
             signup.email,
+            f"{signup.firstname} {signup.lastname}",
             config.MAIL_PASS,
             confirmation_url,
             signup_url,

@@ -167,5 +167,6 @@ def dec_dict(encoded: bytes) -> dict[str, Any]:
 
 
 def when_modified(p: Path) -> int:
-    """Calculates the timestamp of most recently modified file in all files, subdirectories in a path."""
+    """Calculates the timestamp of most recently modified file in all files, subdirectories in a path.
+    """
     return max([int(f.stat().st_mtime) if f.is_file() else 0 for f in p.rglob("*")])

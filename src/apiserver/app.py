@@ -139,10 +139,14 @@ async def app_startup(dsrc_inst: Source):
         )
     if config.APISERVER_ENV == "localdev":
         cr_time = util.when_modified(res_path.joinpath("static/credentials"))
-        src_time = util.when_modified(res_path.parent.parent.parent.joinpath("authpage/src"))
+        src_time = util.when_modified(
+            res_path.parent.parent.parent.joinpath("authpage/src")
+        )
         if cr_time > src_time:
-            logger.warning("Most likely authpage has not been recently built for development, please run `npm run build"
-                           "` in /authpage directory.")
+            logger.warning(
+                "Most likely authpage has not been recently built for development,"
+                " please run `npm run build` in /authpage directory."
+            )
 
     safe_startup(apiserver_app, dsrc_inst, config)
     # Db connections, etc.

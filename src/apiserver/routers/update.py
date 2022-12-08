@@ -42,11 +42,11 @@ def send_reset_email(
 
     def send_lam():
         util.send_email(
-            "passwordchange.html.jinja2",
+            "passwordchange.jinja2",
             receiver,
             mail_pass,
             "Request for password reset",
-            add_vars,
+            add_vars=add_vars,
         )
 
     background_tasks.add_task(send_lam)
@@ -66,11 +66,11 @@ def send_change_email_email(
 
     def send_lam():
         util.send_email(
-            "emailchange.html.jinja2",
+            "emailchange.jinja2",
             receiver,
             mail_pass,
             "Please confirm your new email",
-            add_vars,
+            add_vars=add_vars,
         )
 
     background_tasks.add_task(send_lam)

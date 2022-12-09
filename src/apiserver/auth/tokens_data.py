@@ -119,3 +119,17 @@ async def new_token(
     )
 
     return id_token, access_token, refresh_token, id_exp, access_scope
+
+
+async def delete_refresh(dsrc: Source, refresh_token: str):
+    aesgcm, old_aesgcm, signing_key = await get_keys(dsrc)
+    try:
+        refresh = decrypt_old_refresh(aesgcm, old_aesgcm, refresh_token)
+        print(refresh)
+    except InvalidRefresh:
+        print("invalid")
+        return None
+
+    async with data.get_conn(dsrc) as conn:
+        await data.refreshtoken.delete_family(dsrc, conn, refresh.family_id)
+

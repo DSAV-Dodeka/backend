@@ -11,7 +11,7 @@ import apiserver.data as data
 import apiserver.utilities as util
 from apiserver.auth.header import auth_header
 from apiserver.auth.tokens import InvalidRefresh
-from apiserver.auth.tokens_data import do_refresh, new_token
+from apiserver.auth.tokens_data import do_refresh, new_token, delete_refresh
 from apiserver.data import NoDataError, Source
 from apiserver.define import frontend_client_id, credentials_url, LOGGER_NAME
 from apiserver.define.reqres import (
@@ -23,7 +23,7 @@ from apiserver.define.reqres import (
     AuthRequest,
     TokenResponse,
     TokenRequest,
-    FlowUser,
+    FlowUser, LogoutRequest,
 )
 from apiserver.routers.helper import require_user
 
@@ -325,3 +325,9 @@ async def get_users(
     dsrc: Source = request.app.state.dsrc
     acc = await require_user(authorization, dsrc, user)
     return acc.exp
+
+
+@router.post("/auth/logout/")
+async def delete_token(logout: LogoutRequest, request: Request):
+    dsrc: Source = request.app.state.dsrc
+    await delete_refresh(dsrc, logout.refresh_token)

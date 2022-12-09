@@ -230,3 +230,7 @@ class DeleteUrlResponse(BaseModel):
 class DeleteAccountCheck(BaseModel):
     flow_id: str
     code: str
+
+
+class LogoutRequest(BaseModel):
+    refresh_token: str

@@ -306,7 +306,6 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
         logger.debug(f"{reason} Used: {token_request.grant_type}")
         raise ErrorResponse(400, err_type=f"unsupported_grant_type", err_desc=reason)
 
-    # TODO login options
     logger.info(f"Token request granted for {token_user_id}")
     return TokenResponse(
         id_token=id_token,
@@ -327,7 +326,7 @@ async def get_users(
     return acc.exp
 
 
-@router.post("/auth/logout/")
+@router.post("/logout/delete/")
 async def delete_token(logout: LogoutRequest, request: Request):
     dsrc: Source = request.app.state.dsrc
     await delete_refresh(dsrc, logout.refresh_token)

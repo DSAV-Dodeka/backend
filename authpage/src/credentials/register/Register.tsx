@@ -16,6 +16,7 @@ import {base64ToBin} from "../../functions/encode";
 import Back from "../../components/Back";
 import {z} from "zod";
 import {new_err} from "../../functions/error";
+import timeout from "ky/distribution/utils/timeout";
 // Imported lazily due to large library size
 const PasswordStrength = React.lazy(() => import('../../components/PasswordStrength'));
 
@@ -65,24 +66,30 @@ let initialState: RegisterState = {
     callname: "",
     password: "",
     password_confirm: "",
-    date_of_birth: "",
+    date_of_birth: "2019-01-25",
     birthday_check: false,
     student: false,
     eduinstitution: "TU Delft",
     eduinstitution_other: ""
 }
 
+let focus:boolean = false;
+
 const handleFocus = (event: FocusEvent<HTMLInputElement>) => {
-    event.target.type = 'date';
+    if (!focus) {
+        event.target.blur();
+        event.target.type = 'date';
+        focus = true;
+        clearTimeout(0);
+        event.target.focus();
+    }
 }
 
 const handleBlur = (event: FocusEvent<HTMLInputElement>) => {
-    event.target.type = 'text';
-}
-
-// iOS doesn't focus on click
-const forceFocus = (event: MouseEvent<HTMLInputElement>) => {
-    event.currentTarget.focus()
+    if (focus) {
+        event.target.type = 'text';
+        focus = false;
+    }
 }
 
 const RegisterInfo = z.object({
@@ -220,7 +227,7 @@ const Register = () => {
                     <Suspense fallback={<div className="passBar1">""</div>}><PasswordStrength password={state.password} passScore={passScore} setPass={setPassScore}/></Suspense>
                     <input className={submitted} required id="password_confirm" type="password" placeholder="Herhaal wachtwoord" name="password_confirm" value={state.password_confirm}
                            onChange={handleFormChange}/>
-                    <input className={submitted} required id="date_of_birth" type="text" placeholder="Geboortedatum" onClick={forceFocus} onFocus={handleFocus} onBlur={handleBlur} name="date_of_birth" value={state.date_of_birth}
+                    <input className={submitted} required id="date_of_birth" type="text" placeholder="Geboortedatum" onFocus={handleFocus} onBlur={handleBlur} name="date_of_birth" value={state.date_of_birth}
                             onChange={handleFormChange} />
                     <div className="checkbox">
                         <label >Leden mogen mijn verjaardag en leeftijd zien</label>

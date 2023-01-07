@@ -101,6 +101,28 @@ class PostgresOperations(DbOperations):
         return all_rows(res)
 
     @classmethod
+    async def select_some_two_where(
+        cls,
+        conn: AsyncConnection,
+        table: str,
+        sel_col: set[str],
+        where_col1: str,
+        where_value1,
+        where_col2: str,
+        where_value2,
+    ) -> list[dict]:
+        """Ensure `table`, `where_col` and `sel_col` are never user-defined."""
+        some = select_set(sel_col)
+        query = text(
+            f"SELECT {some} FROM {table} WHERE {where_col1} = :vala AND {where_col2} ="
+            " :valb;"
+        )
+        res = await conn.execute(
+            query, parameters={"vala": where_value1, "valb": where_value2}
+        )
+        return all_rows(res)
+
+    @classmethod
     async def select_where(
         cls, conn: AsyncConnection, table: str, column, value
     ) -> list[dict]:

@@ -44,6 +44,20 @@ class DbOperations(ABC):
 
     @classmethod
     @abstractmethod
+    async def select_some_two_where(
+        cls,
+        conn: AsyncConnection,
+        table: str,
+        sel_col: set[str],
+        where_col1: str,
+        where_value1,
+        where_col2: str,
+        where_value2,
+    ) -> list[dict]:
+        ...
+
+    @classmethod
+    @abstractmethod
     async def select_where(
         cls, conn: AsyncConnection, table: str, column, value
     ) -> list[dict]:

@@ -238,6 +238,7 @@ mock_userdata = UserData(
     av40id=123,
     joined=date.today(),
     registered=False,
+    showage=False,
 )
 mock_auth_request = AuthRequest(
     response_type="code",

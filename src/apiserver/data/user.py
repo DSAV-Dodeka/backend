@@ -17,6 +17,7 @@ from apiserver.data.use import (
     select_where,
     delete_by_column,
     select_some_where,
+    select_some_two_where,
 )
 from apiserver.db import USER_TABLE, USERDATA_TABLE
 from apiserver.db.model import (
@@ -29,6 +30,7 @@ from apiserver.db.model import (
     UD_EMAIL,
     USER_EMAIL,
     UD_ACTIVE,
+    SHOW_AGE,
 )
 from apiserver.db.ops import DbError
 
@@ -67,11 +69,12 @@ def new_userdata(
         av40id=av40id,
         joined=joined,
         registered=False,
+        showage=False,
     )
 
 
 def finished_userdata(
-    ud: UserData, callname: str, eduinstitution: str, birthdate: date
+    ud: UserData, callname: str, eduinstitution: str, birthdate: date, show_age: bool
 ):
     return UserData(
         user_id=ud.user_id,
@@ -87,6 +90,7 @@ def finished_userdata(
         registerid=ud.registerid,
         active=True,
         registered=True,
+        showage=show_age,
     )
 
 
@@ -237,12 +241,14 @@ async def get_all_userdata(dsrc: Source, conn: AsyncConnection) -> list[UserData
 
 
 async def get_all_birthdays(dsrc: Source, conn: AsyncConnection) -> list[BirthdayData]:
-    all_birthdays = await select_some_where(
+    all_birthdays = await select_some_two_where(
         dsrc,
         conn,
         USERDATA_TABLE,
         {UD_FIRSTNAME, UD_LASTNAME, BIRTHDATE},
         UD_ACTIVE,
+        True,
+        SHOW_AGE,
         True,
     )
     return [parse_birthday_data(ud_dct) for ud_dct in all_birthdays]

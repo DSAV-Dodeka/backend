@@ -354,6 +354,7 @@ async def finish_register(register_finish: FinishRequest, request: Request):
         register_finish.callname,
         register_finish.eduinstitution,
         register_finish.birthdate,
+        register_finish.age_privacy,
     )
 
     async with data.get_conn(dsrc) as conn:

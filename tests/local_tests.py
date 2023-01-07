@@ -149,7 +149,11 @@ async def test_generate_dummies(local_dsrc: Source, faker: Faker):
             pw_file = opq.register_finish(cl_fin)
             birthdate = faker.date()
             new_ud = data.user.finished_userdata(
-                userdata, callname=fname, eduinstitution="TU Delft", birthdate=birthdate
+                userdata,
+                callname=fname,
+                eduinstitution="TU Delft",
+                birthdate=birthdate,
+                show_age=True,
             )
 
             await data.user.update_password_file(local_dsrc, conn, uid, pw_file)

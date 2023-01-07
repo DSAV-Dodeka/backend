@@ -105,6 +105,15 @@ class UserData(BaseModel):
     birthdate: date = date.min
     registerid: str = ""
     registered: bool
+    showage: bool
+
+    # Coerces null in database to false
+    @validator("showage", pre=True)
+    def parse_field3_as_bar(cls, value):
+        if value is None:
+            return False
+        else:
+            return value
 
 
 class BirthdayData(BaseModel):

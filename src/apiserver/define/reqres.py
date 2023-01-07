@@ -125,6 +125,7 @@ class FinishRequest(BaseModel):
     callname: str
     eduinstitution: str
     birthdate: date
+    age_privacy: bool
 
 
 class FinishLogin(BaseModel):

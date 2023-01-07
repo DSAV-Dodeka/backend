@@ -32,7 +32,8 @@ export async function clientRegister(registerState: RegisterState) {
             "register_id": registerState.register_id,
             "callname": registerState.callname,
             eduinstitution,
-            birthdate: registerState.date_of_birth
+            birthdate: registerState.date_of_birth,
+            age_privacy: registerState.birthday_check
         }
         await back_post("onboard/finish/", register_finish)
         return true

@@ -44,6 +44,22 @@ async def select_some_where(
     )
 
 
+async def select_some_two_where(
+    dsrc: Source,
+    conn: AsyncConnection,
+    table: str,
+    sel_col: set[str],
+    where_col1: str,
+    where_value1,
+    where_col2: str,
+    where_value2,
+) -> list[dict]:
+    """Ensure `table`, `where_col` and `sel_col` are never user-defined."""
+    return await dsrc.gateway.ops.select_some_two_where(
+        conn, table, sel_col, where_col1, where_value1, where_col2, where_value2
+    )
+
+
 async def select_where(
     dsrc: Source, conn: AsyncConnection, table: str, column: str, value
 ) -> list[dict]:

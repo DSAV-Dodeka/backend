@@ -131,6 +131,7 @@ BIRTHDATE = "birthdate"
 REGISTER_ID = "registerid"
 EDUCATION_INSTITUTION = "eduinstitution"
 USER_REGISTERED = "registered"
+SHOW_AGE = "showage"
 userdata = sqla.Table(
     USERDATA_TABLE,
     metadata,
@@ -160,4 +161,5 @@ userdata = sqla.Table(
     sqla.Column(REGISTER_ID, sqla.String(length=100), unique=True),
     sqla.Column(EDUCATION_INSTITUTION, sqla.String(length=100)),
     sqla.Column(USER_REGISTERED, sqla.Boolean, nullable=False),
+    sqla.Column(SHOW_AGE, sqla.Boolean),
 )

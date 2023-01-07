@@ -210,49 +210,52 @@ const Register = () => {
             }
             {infoOk &&
             <form className="form" onSubmit={handleSubmit}>
-                    <input disabled className={submitted} required id="name" type="text" placeholder="Voornaam" name="name" value={state.firstname}
-                           onChange={handleFormChange}/>
-                    <input disabled className={submitted} required id="surname" type="text" placeholder="Achternaam" name="surname" value={state.lastname}
-                           onChange={handleFormChange}/>
-                    <input disabled className={submitted} required id="email" type="text" placeholder="E-mail" name="email" value={state.email}
-                           onChange={handleFormChange}/>
-                    <input disabled className={submitted} required id="phone" type="text" placeholder="Telefoonnummer" name="phone" value={state.phone}
-                           onChange={handleFormChange}/>
-                    <p>Staat hierboven een foutje? Laat het weten aan het bestuur en ze zullen je een nieuwe e-mail sturen!</p>
-                    <input className={submitted} required id="callname" type="text" placeholder="Roepnaam" name="callname" value={state.callname}
-                           onChange={handleFormChange}/>
-                    <input required className={"formPassword " + submitted}  id="password" type="password" placeholder="Wachtwoord" name="password" value={state.password}
-                           onChange={handleFormChange}/>
-                    {/** The Suspense is used because the library used for loading is quite big, so it is loaded in the background after page load **/}
-                    <Suspense fallback={<div className="passBar1">""</div>}><PasswordStrength password={state.password} passScore={passScore} setPass={setPassScore}/></Suspense>
-                    <input className={submitted} required id="password_confirm" type="password" placeholder="Herhaal wachtwoord" name="password_confirm" value={state.password_confirm}
-                           onChange={handleFormChange}/>
-                    <input className={submitted} required id="date_of_birth" type="text" placeholder="Geboortedatum" onFocus={handleFocus} onBlur={handleBlur} name="date_of_birth" value={state.date_of_birth}
-                            onChange={handleFormChange} />
-                    <div className="checkbox">
-                        <label >Leden mogen mijn verjaardag en leeftijd zien</label>
-                        <input className={submitted} id="birthday_check" type="checkbox" name="birthday_check"
-                                onChange={handleCheckboxChange}/>
-                    </div>
-                    <div className="checkbox">
-                        <label >Ik ben student</label>
-                        <input id="student" type="checkbox" name="student"
-                                onChange={handleCheckboxChange}/>
-                    </div>
-                    <div className={"dropdown" + (state.student ? "": " inputHidden")}>
-                        <label >Onderwijsinstelling:</label>
-                        <select id="eduinstitution" name="eduinstitution" value={state.eduinstitution}
-                                onChange={handleSelectChange}>
-                            <option>TU Delft</option>
-                            <option>Haagse Hogeschool - Delft</option>
-                            <option>Haagse Hogeschool - Den Haag</option>
-                            <option>Hogeschool Inholland - Delft</option>
-                            <option>Anders, namelijk:</option>
-                        </select>
-                    </div>
-                    <input className={"" + (state.student && state.eduinstitution === "Anders, namelijk:" ? "" : " inputHidden")} id="eduinstitution_other" type="text" placeholder="Onderwijsinstelling" name="eduinstitution_other" value={state.eduinstitution_other}
-                            onChange={handleFormChange} />
+                <input disabled className={submitted} required id="name" type="text" placeholder="Voornaam" name="name" value={state.firstname}
+                       onChange={handleFormChange}/>
+                <input disabled className={submitted} required id="surname" type="text" placeholder="Achternaam" name="surname" value={state.lastname}
+                       onChange={handleFormChange}/>
+                <input disabled className={submitted} required id="email" type="text" placeholder="E-mail" name="email" value={state.email}
+                       onChange={handleFormChange}/>
+                <input disabled className={submitted} required id="phone" type="text" placeholder="Telefoonnummer" name="phone" value={state.phone}
+                       onChange={handleFormChange}/>
+                <p>Staat hierboven een foutje? Laat het weten aan het bestuur en ze zullen je een nieuwe e-mail sturen!</p>
+                <input className={submitted} required id="callname" type="text" placeholder="Roepnaam" name="callname" value={state.callname}
+                       onChange={handleFormChange}/>
+                <input required className={"formPassword " + submitted}  id="password" type="password" placeholder="Wachtwoord" name="password" value={state.password}
+                       onChange={handleFormChange}/>
+                {/** The Suspense is used because the library used for loading is quite big, so it is loaded in the background after page load **/}
+                <Suspense fallback={<div className="passBar1">""</div>}><PasswordStrength password={state.password} passScore={passScore} setPass={setPassScore}/></Suspense>
+                <input className={submitted} required id="password_confirm" type="password" placeholder="Herhaal wachtwoord" name="password_confirm" value={state.password_confirm}
+                       onChange={handleFormChange}/>
+                <input className={submitted} required id="date_of_birth" type="text" placeholder="Geboortedatum" onFocus={handleFocus} onBlur={handleBlur} name="date_of_birth" value={state.date_of_birth}
+                        onChange={handleFormChange} />
+                <div className="checkbox">
+                    <label >Leden mogen mijn verjaardag en leeftijd zien</label>
+                    <input className={submitted} id="birthday_check" type="checkbox" name="birthday_check"
+                            onChange={handleCheckboxChange}/>
+                </div>
+                <div className="checkbox">
+                    <label >Ik ben student</label>
+                    <input id="student" type="checkbox" name="student"
+                            onChange={handleCheckboxChange}/>
+                </div>
+                <div className={"dropdown" + (state.student ? "": " inputHidden")}>
+                    <label >Onderwijsinstelling:</label>
+                    <select id="eduinstitution" name="eduinstitution" value={state.eduinstitution}
+                            onChange={handleSelectChange}>
+                        <option>TU Delft</option>
+                        <option>Haagse Hogeschool - Delft</option>
+                        <option>Haagse Hogeschool - Den Haag</option>
+                        <option>Hogeschool Inholland - Delft</option>
+                        <option>Anders, namelijk:</option>
+                    </select>
+                </div>
+                <input className={"" + (state.student && state.eduinstitution === "Anders, namelijk:" ? "" : " inputHidden")} id="eduinstitution_other" type="text" placeholder="Onderwijsinstelling" name="eduinstitution_other" value={state.eduinstitution_other}
+                        onChange={handleFormChange} />
+
+                <br />
                 <button className="authButton" id="submit_button" onClick={handleSubmitClick} type="submit">Registreer</button><br />
+                <p className="buttonText">Door op registeer te klikken ga je akkoord met het eerder genoemde <a href="https://dsavdodeka.nl/files/privacyverklaring_dodeka_temp.pdf" target="_blank" rel="noreferrer" className="privacy_link">privacybeleid</a></p>
                 <p className="formStatus">{status}</p>
             </form>}
         </div>

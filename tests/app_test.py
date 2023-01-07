@@ -459,6 +459,7 @@ async def test_start_register(
                 av40id=123,
                 joined=date.today(),
                 registered=False,
+                showage=True,
             )
 
     g_ud.side_effect = ud_side_effect
@@ -533,6 +534,7 @@ async def test_finish_register(test_client, mocker: MockerFixture):
                 av40id=2,
                 joined=date.today(),
                 registered=False,
+                showage=True,
             )
 
     g_state.side_effect = state_side_effect
@@ -547,6 +549,7 @@ async def test_finish_register(test_client, mocker: MockerFixture):
         "callname": "somecaller",
         "eduinstitution": "testinstitution",
         "birthdate": "2022-09-05",
+        "age_privacy": True,
     }
 
     # TODO check saved data

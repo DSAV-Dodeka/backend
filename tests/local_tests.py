@@ -94,12 +94,12 @@ async def admin_access(local_dsrc):
 
 
 @pytest.mark.asyncio
-async def test_generate_admin(local_dsrc: Source):
-    admin_password = "admin"
-    async with data.get_conn(local_dsrc) as conn:
-        setup = await data.opaquesetup.get_setup(local_dsrc, conn)
+async def test_generate_admin():
+    admin_password = ""
+    # async with data.get_conn(local_dsrc) as conn:
+    #     setup = await data.opaquesetup.get_setup(local_dsrc, conn)
 
-    # setup = ""
+    setup = ""
 
     cl_req, cl_state = opq.register_client(admin_password)
     serv_resp = opq.register(setup, cl_req, util.usp_hex("0_admin"))

@@ -23,7 +23,8 @@ from apiserver.define.reqres import (
     AuthRequest,
     TokenResponse,
     TokenRequest,
-    FlowUser, LogoutRequest,
+    FlowUser,
+    LogoutRequest,
 )
 from apiserver.routers.helper import require_user
 
@@ -39,6 +40,7 @@ async def start_login(login_start: PasswordRequest, request: Request):
     """Login can be initiated in 2 different flows: the first is the OAuth 2 flow, the second is a simple password
     check flow."""
     dsrc: Source = request.app.state.dsrc
+    login_mail = login_start.email.lower()
 
     scope = "none"
     async with data.get_conn(dsrc) as conn:
@@ -49,7 +51,7 @@ async def start_login(login_start: PasswordRequest, request: Request):
         u = await data.user.get_user_by_id(dsrc, conn, "1_fakerecord")
         password_file = u.password_file
         try:
-            ru = await data.user.get_user_by_email(dsrc, conn, login_start.email)
+            ru = await data.user.get_user_by_email(dsrc, conn, login_mail)
             # If the user exists and has a password set (meaning they are registered), we perform the check with the
             # actual password
             if ru.password_file:
@@ -68,7 +70,7 @@ async def start_login(login_start: PasswordRequest, request: Request):
     )
 
     saved_state = SavedState(
-        user_id=u.user_id, user_email=login_start.email, scope=scope, state=state
+        user_id=u.user_id, user_email=login_mail, scope=scope, state=state
     )
 
     await data.kv.store_auth_state(dsrc, auth_id, saved_state)
@@ -79,6 +81,7 @@ async def start_login(login_start: PasswordRequest, request: Request):
 @router.post("/login/finish/")
 async def finish_login(login_finish: FinishLogin, request: Request):
     dsrc: Source = request.app.state.dsrc
+    finish_email = login_finish.email.lower()
     try:
         saved_state = await data.kv.get_state(dsrc, login_finish.auth_id)
     except NoDataError as e:
@@ -90,8 +93,8 @@ async def finish_login(login_finish: FinishLogin, request: Request):
             err_desc=reason,
             debug_key="no_login_start",
         )
-
-    if saved_state.user_email != login_finish.email:
+    saved_email = saved_state.user_email.lower()
+    if saved_email != finish_email:
         raise ErrorResponse(
             status_code=400,
             err_type="invalid_login",

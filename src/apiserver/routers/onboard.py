@@ -84,13 +84,14 @@ async def init_signup(
     sign up. Board can see who has signed up this way. There might not be full correspondence between exact signup and
     what is provided to AV'40. So there is a manual check."""
     dsrc: Source = request.app.state.dsrc
+    signup_email = signup.email.lower()
 
     async with data.get_conn(dsrc) as conn:
-        u_ex = await data.user.user_exists(dsrc, conn, signup.email)
-        su_ex = await data.signedup.signedup_exists(dsrc, conn, signup.email)
+        u_ex = await data.user.user_exists(dsrc, conn, signup_email)
+        su_ex = await data.signedup.signedup_exists(dsrc, conn, signup_email)
 
     do_send_email = not u_ex and not su_ex
-    logger.debug(f"{signup.email} /onboard/signup - do_send_email {do_send_email}")
+    logger.debug(f"{signup_email} /onboard/signup - do_send_email {do_send_email}")
 
     confirm_id = util.random_time_hash_hex()
 
@@ -103,7 +104,7 @@ async def init_signup(
     if do_send_email:
         send_signup_email(
             background_tasks,
-            signup.email,
+            signup_email,
             f"{signup.firstname} {signup.lastname}",
             config.MAIL_PASS,
             confirmation_url,
@@ -174,11 +175,12 @@ async def confirm_join(
     """Board confirms data from AV`40 signup through admin tool."""
     dsrc: Source = request.app.state.dsrc
     await require_admin(authorization, dsrc)
+    signup_email = signup.email.lower()
 
     try:
         async with data.get_conn(dsrc) as conn:
             signed_up = await data.signedup.get_signedup_by_email(
-                dsrc, conn, signup.email
+                dsrc, conn, signup_email
             )
     except DataError as e:
         if e.key == "signedup_empty":
@@ -205,7 +207,7 @@ async def confirm_join(
             av40id=signup.av40id,
             joined=signup.joined,
         )
-        await data.signedup.confirm_signup(dsrc, conn, signup.email)
+        await data.signedup.confirm_signup(dsrc, conn, signup_email)
 
     config: Config = request.app.state.config
 
@@ -221,7 +223,7 @@ async def confirm_join(
     registration_url = f"{credentials_url}register/?{urlencode(params)}"
 
     send_register_email(
-        background_tasks, signup.email, config.MAIL_PASS, registration_url
+        background_tasks, signup_email, config.MAIL_PASS, registration_url
     )
 
 
@@ -268,7 +270,7 @@ async def start_register(register_start: RegisterRequest, request: Request):
             debug_key="bad_registration_start",
         )
 
-    if u.email != register_start.email:
+    if u.email != register_start.email.lower():
         logger.debug("Registration start does not match e-mail")
         reason = "Bad registration."
         raise ErrorResponse(
@@ -336,7 +338,7 @@ async def finish_register(register_finish: FinishRequest, request: Request):
             debug_key="bad_registration",
         )
 
-    if ud.email != register_finish.email:
+    if ud.email != register_finish.email.lower():
         logger.debug("Registration does not match e-mail.")
         reason = "Bad registration."
         raise ErrorResponse(

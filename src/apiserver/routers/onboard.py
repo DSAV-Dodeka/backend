@@ -84,14 +84,15 @@ async def init_signup(
     sign up. Board can see who has signed up this way. There might not be full correspondence between exact signup and
     what is provided to AV'40. So there is a manual check."""
     dsrc: Source = request.app.state.dsrc
-    signup_email = signup.email.lower()
+    if not signup.email.islower():
+        signup.email = signup.email.lower()
 
     async with data.get_conn(dsrc) as conn:
-        u_ex = await data.user.user_exists(dsrc, conn, signup_email)
-        su_ex = await data.signedup.signedup_exists(dsrc, conn, signup_email)
+        u_ex = await data.user.user_exists(dsrc, conn, signup.email)
+        su_ex = await data.signedup.signedup_exists(dsrc, conn, signup.email)
 
     do_send_email = not u_ex and not su_ex
-    logger.debug(f"{signup_email} /onboard/signup - do_send_email {do_send_email}")
+    logger.debug(f"{signup.email} /onboard/signup - do_send_email {do_send_email}")
 
     confirm_id = util.random_time_hash_hex()
 
@@ -104,7 +105,7 @@ async def init_signup(
     if do_send_email:
         send_signup_email(
             background_tasks,
-            signup_email,
+            signup.email,
             f"{signup.firstname} {signup.lastname}",
             config.MAIL_PASS,
             confirmation_url,

@@ -1,3 +1,4 @@
+from apiserver.define import ErrorResponse
 from apiserver.define.entities import BirthdayData
 from fastapi import APIRouter, Security, Request
 import apiserver.data as data
@@ -9,7 +10,9 @@ router = APIRouter()
 
 
 @router.get("/members/birthdays/", response_model=list[BirthdayData])
-async def get_user_birthdays(request: Request, authorization: str = Security(auth_header)):
+async def get_user_birthdays(
+    request: Request, authorization: str = Security(auth_header)
+):
     dsrc: Source = request.app.state.dsrc
     await require_member(authorization, dsrc)
 
@@ -18,28 +21,21 @@ async def get_user_birthdays(request: Request, authorization: str = Security(aut
     return birthday_data
 
 
-@router.get("/members/rankings_training/", response_model=object)
-async def get_user_rankings(request: Request, authorization: str = Security(auth_header)):
+@router.get("/members/rankings/{name}")
+async def get_user_rankings(
+    name, request: Request, authorization: str = Security(auth_header)
+):
     dsrc: Source = request.app.state.dsrc
     await require_member(authorization, dsrc)
 
-    ranking_data = await data.user.get_all_rankings("training")
-    return ranking_data
+    if name != "training" and name != "points" and name != "pr":
+        reason = f"Ranking {name} is unknown!"
+        raise ErrorResponse(
+            status_code=400,
+            err_type="invalid_ranking",
+            err_desc=reason,
+            debug_key="bad_ranking",
+        )
 
-
-@router.get("/members/rankings_pr/", response_model=object)
-async def get_user_rankings(request: Request, authorization: str = Security(auth_header)):
-    dsrc: Source = request.app.state.dsrc
-    await require_member(authorization, dsrc)
-
-    ranking_data = await data.user.get_all_rankings("pr")
-    return ranking_data
-
-
-@router.get("/members/rankings_general/", response_model=object)
-async def get_user_rankings(request: Request, authorization: str = Security(auth_header)):
-    dsrc: Source = request.app.state.dsrc
-    await require_member(authorization, dsrc)
-
-    ranking_data = await data.user.get_all_rankings("general")
+    ranking_data = await data.file.load_json(name)
     return ranking_data

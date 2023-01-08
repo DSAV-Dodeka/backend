@@ -6,3 +6,4 @@ import apiserver.data.key as key
 import apiserver.data.signedup as signedup
 import apiserver.data.refreshtoken as refreshtoken
 import apiserver.data.opaquesetup as opaquesetup
+import apiserver.data.file as file

@@ -1,10 +1,13 @@
+import json
 import re
+from os import path
 from typing import Optional
 from datetime import date
 
 from sqlalchemy.engine import CursorResult, Row
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncTransaction
 
+from apiserver import res_path
 from apiserver.define.entities import User, SignedUp, UserData, BirthdayData
 from apiserver.utilities import usp_hex
 from apiserver.data.source import Source, DataError, NoDataError
@@ -56,7 +59,7 @@ def parse_birthday_data(birthday_dict: Optional[dict]) -> BirthdayData:
 
 
 def new_userdata(
-    su: SignedUp, user_id: str, register_id: str, av40id: int, joined: date
+        su: SignedUp, user_id: str, register_id: str, av40id: int, joined: date
 ):
     return UserData(
         user_id=user_id,
@@ -74,7 +77,7 @@ def new_userdata(
 
 
 def finished_userdata(
-    ud: UserData, callname: str, eduinstitution: str, birthdate: date, show_age: bool
+        ud: UserData, callname: str, eduinstitution: str, birthdate: date, show_age: bool
 ):
     return UserData(
         user_id=ud.user_id,
@@ -104,7 +107,7 @@ async def get_user_by_id(dsrc: Source, conn: AsyncConnection, user_id: str) -> U
 
 
 async def get_userdata_by_id(
-    dsrc: Source, conn: AsyncConnection, user_id: str
+        dsrc: Source, conn: AsyncConnection, user_id: str
 ) -> UserData:
     userdata_row = await retrieve_by_unique(
         dsrc, conn, USERDATA_TABLE, USER_ID, user_id
@@ -113,14 +116,14 @@ async def get_userdata_by_id(
 
 
 async def get_userdata_by_email(
-    dsrc: Source, conn: AsyncConnection, email: str
+        dsrc: Source, conn: AsyncConnection, email: str
 ) -> UserData:
     userdata_row = await retrieve_by_unique(dsrc, conn, USERDATA_TABLE, UD_EMAIL, email)
     return parse_userdata(userdata_row)
 
 
 async def get_userdata_by_register_id(
-    dsrc: Source, conn: AsyncConnection, register_id: str
+        dsrc: Source, conn: AsyncConnection, register_id: str
 ) -> UserData:
     userdata_row = await retrieve_by_unique(
         dsrc, conn, USERDATA_TABLE, REGISTER_ID, register_id
@@ -138,14 +141,14 @@ async def get_userdata_by_register_id(
 
 
 async def get_user_by_email(
-    dsrc: Source, conn: AsyncConnection, user_email: str
+        dsrc: Source, conn: AsyncConnection, user_email: str
 ) -> User:
     user_row = await retrieve_by_unique(dsrc, conn, USER_TABLE, USER_EMAIL, user_email)
     return parse_user(user_row)
 
 
 async def update_password_file(
-    dsrc: Source, conn: AsyncConnection, user_id: str, password_file: str
+        dsrc: Source, conn: AsyncConnection, user_id: str, password_file: str
 ):
     await update_column_by_unique(
         dsrc, conn, USER_TABLE, PASSWORD, password_file, USER_ID, user_id
@@ -171,12 +174,12 @@ def gen_id_name(first_name: str, last_name: str):
 
 
 async def new_user(
-    dsrc: Source,
-    conn: AsyncConnection,
-    signed_up: SignedUp,
-    register_id: str,
-    av40id: int,
-    joined: date,
+        dsrc: Source,
+        conn: AsyncConnection,
+        signed_up: SignedUp,
+        register_id: str,
+        av40id: int,
+        joined: date,
 ):
     id_name = gen_id_name(signed_up.firstname, signed_up.lastname)
 
@@ -212,7 +215,7 @@ async def upsert_userdata(dsrc: Source, conn: AsyncConnection, userdata: UserDat
 
 
 async def update_ud_email(
-    dsrc: Source, conn: AsyncConnection, user_id: str, new_email: str
+        dsrc: Source, conn: AsyncConnection, user_id: str, new_email: str
 ) -> bool:
     try:
         count = await update_column_by_unique(
@@ -224,7 +227,7 @@ async def update_ud_email(
 
 
 async def update_user_email(
-    dsrc: Source, conn: AsyncConnection, user_id: str, new_email: str
+        dsrc: Source, conn: AsyncConnection, user_id: str, new_email: str
 ) -> bool:
     try:
         count = await update_column_by_unique(
@@ -251,7 +254,28 @@ async def get_all_birthdays(dsrc: Source, conn: AsyncConnection) -> list[Birthda
         SHOW_AGE,
         True,
     )
-    return [parse_birthday_data(ud_dct) for ud_dct in all_birthdays]
+    return [parse_birthday_data(bd_dct) for bd_dct in all_birthdays]
+
+
+async def get_all_rankings(ranking_type: str) -> object:
+    pathname = res_path.joinpath(ranking_type + ".json")
+    if not path.exists(pathname):
+        create_file = open(pathname, "x")
+        create_file.close()
+        fakedata = {
+            "leander": 69
+        }
+        json_object = json.dumps(fakedata)
+        writefile = open(pathname, "w")
+        writefile.write(json_object)
+        writefile.close()
+
+    file = open(pathname)
+
+    data = json.load(file)
+    file.close()
+
+    return data
 
 
 async def delete_user(dsrc: Source, conn: AsyncConnection, user_id: str):

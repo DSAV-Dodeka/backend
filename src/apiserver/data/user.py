@@ -4,7 +4,7 @@ from datetime import date
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from apiserver.define.entities import User, SignedUp, UserData, BirthdayData
+from apiserver.define.entities import User, SignedUp, UserData, BirthdayData, EasterEggData
 from apiserver.utilities import usp_hex
 from apiserver.data.source import Source, DataError, NoDataError
 from apiserver.data.use import (
@@ -16,7 +16,7 @@ from apiserver.data.use import (
     select_where,
     delete_by_column,
     select_some_two_where,
-    insert,
+    insert, select_some_where,
 )
 from apiserver.db import USER_TABLE, USERDATA_TABLE
 from apiserver.db.model import (
@@ -29,7 +29,7 @@ from apiserver.db.model import (
     UD_EMAIL,
     USER_EMAIL,
     UD_ACTIVE,
-    SHOW_AGE,
+    SHOW_AGE, EASTER_EGG_TABLE, EE_EGG_ID,
 )
 from apiserver.db.ops import DbError
 
@@ -69,8 +69,14 @@ def parse_birthday_data(birthday_dict: Optional[dict]) -> BirthdayData:
     return BirthdayData.parse_obj(birthday_dict)
 
 
+def parse_easter_egg_data(easter_egg_dict: Optional[dict]) -> EasterEggData:
+    if easter_egg_dict is None:
+        raise NoDataError("BirthdayData does not exist.", "birthday_data_empty")
+    return EasterEggData.parse_obj(easter_egg_dict)
+
+
 def new_userdata(
-    su: SignedUp, user_id: str, register_id: str, av40id: int, joined: date
+        su: SignedUp, user_id: str, register_id: str, av40id: int, joined: date
 ):
     return UserData(
         user_id=user_id,
@@ -88,7 +94,7 @@ def new_userdata(
 
 
 def finished_userdata(
-    ud: UserData, callname: str, eduinstitution: str, birthdate: date, show_age: bool
+        ud: UserData, callname: str, eduinstitution: str, birthdate: date, show_age: bool
 ):
     return UserData(
         user_id=ud.user_id,
@@ -118,7 +124,7 @@ async def get_user_by_id(dsrc: Source, conn: AsyncConnection, user_id: str) -> U
 
 
 async def get_userdata_by_id(
-    dsrc: Source, conn: AsyncConnection, user_id: str
+        dsrc: Source, conn: AsyncConnection, user_id: str
 ) -> UserData:
     userdata_row = await retrieve_by_unique(
         dsrc, conn, USERDATA_TABLE, USER_ID, user_id
@@ -127,14 +133,14 @@ async def get_userdata_by_id(
 
 
 async def get_userdata_by_email(
-    dsrc: Source, conn: AsyncConnection, email: str
+        dsrc: Source, conn: AsyncConnection, email: str
 ) -> UserData:
     userdata_row = await retrieve_by_unique(dsrc, conn, USERDATA_TABLE, UD_EMAIL, email)
     return parse_userdata(userdata_row)
 
 
 async def get_userdata_by_register_id(
-    dsrc: Source, conn: AsyncConnection, register_id: str
+        dsrc: Source, conn: AsyncConnection, register_id: str
 ) -> UserData:
     userdata_row = await retrieve_by_unique(
         dsrc, conn, USERDATA_TABLE, REGISTER_ID, register_id
@@ -143,14 +149,14 @@ async def get_userdata_by_register_id(
 
 
 async def get_user_by_email(
-    dsrc: Source, conn: AsyncConnection, user_email: str
+        dsrc: Source, conn: AsyncConnection, user_email: str
 ) -> User:
     user_row = await retrieve_by_unique(dsrc, conn, USER_TABLE, USER_EMAIL, user_email)
     return parse_user(user_row)
 
 
 async def update_password_file(
-    dsrc: Source, conn: AsyncConnection, user_id: str, password_file: str
+        dsrc: Source, conn: AsyncConnection, user_id: str, password_file: str
 ):
     await update_column_by_unique(
         dsrc, conn, USER_TABLE, PASSWORD, password_file, USER_ID, user_id
@@ -185,12 +191,12 @@ def gen_id_name(first_name: str, last_name: str):
 
 
 async def new_user(
-    dsrc: Source,
-    conn: AsyncConnection,
-    signed_up: SignedUp,
-    register_id: str,
-    av40id: int,
-    joined: date,
+        dsrc: Source,
+        conn: AsyncConnection,
+        signed_up: SignedUp,
+        register_id: str,
+        av40id: int,
+        joined: date,
 ):
     id_name = gen_id_name(signed_up.firstname, signed_up.lastname)
 
@@ -226,7 +232,7 @@ async def upsert_userdata(dsrc: Source, conn: AsyncConnection, userdata: UserDat
 
 
 async def update_ud_email(
-    dsrc: Source, conn: AsyncConnection, user_id: str, new_email: str
+        dsrc: Source, conn: AsyncConnection, user_id: str, new_email: str
 ) -> bool:
     try:
         count = await update_column_by_unique(
@@ -238,7 +244,7 @@ async def update_ud_email(
 
 
 async def update_user_email(
-    dsrc: Source, conn: AsyncConnection, user_id: str, new_email: str
+        dsrc: Source, conn: AsyncConnection, user_id: str, new_email: str
 ) -> bool:
     try:
         count = await update_column_by_unique(
@@ -272,3 +278,32 @@ async def delete_user(dsrc: Source, conn: AsyncConnection, user_id: str):
     row_count = await delete_by_column(dsrc, conn, USER_TABLE, USER_ID, user_id)
     if row_count == 0:
         raise NoDataError("User does not exist.", "user_empty")
+
+
+async def get_easter_eggs_count(dsrc: Source, conn: AsyncConnection, user_id: str):
+    easter_eggs_found = await select_some_where(
+        dsrc,
+        conn,
+        EASTER_EGG_TABLE,
+        EE_EGG_ID,
+        USER_ID,
+        user_id,
+    )
+
+    return [parse_easter_egg_data(eed_dct) for eed_dct in easter_eggs_found]
+
+
+async def found_easter_egg(dsrc: Source, conn: AsyncConnection, user_id: str, egg_id: str):
+    # Insert into database?
+
+    # await insert_value_where(
+    #     dsrc,
+    #     conn,
+    #     EASTER_EGG_TABLE,
+    #     EE_EGG_ID,
+    #     egg_id,
+    #     USER_ID,
+    #     user_id,
+    # )
+
+    return None

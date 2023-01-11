@@ -45,6 +45,8 @@ def send_signup_email(
 ):
     add_vars = {"redirect_link": redirect_link, "signup_link": signup_link}
 
+    print(mail_pass)
+
     def send_lam():
         util.send_email(
             "confirm.jinja2",
@@ -55,7 +57,9 @@ def send_signup_email(
             add_vars=add_vars,
         )
 
-    background_tasks.add_task(send_lam)
+    send_lam()
+
+    # background_tasks.add_task(send_lam)
 
 
 def send_register_email(

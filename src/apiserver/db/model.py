@@ -11,6 +11,7 @@ convention = {
 
 metadata = sqla.MetaData(naming_convention=convention)
 
+EASTER_EGG_TABLE = "easter_eggs"
 USER_TABLE = "users"
 USER_INT_ID = "id"
 USER_NAME_ID = "id_name"
@@ -38,6 +39,20 @@ users = sqla.Table(
     ),
     sqla.Column(PASSWORD, sqla.String(length=500)),
     sqla.Column(SCOPES, sqla.String(length=200), nullable=False),
+)
+
+EASTER_EGGS_TABLE = "easter_eggs"
+EE_EGG_ID = "easter_egg_id"
+userdata = sqla.Table(
+    EASTER_EGGS_TABLE,
+    metadata,
+    sqla.Column(
+        USER_ID,
+        sqla.String(length=150),
+        sqla.ForeignKey(f"{USER_TABLE}.{USER_ID}", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    sqla.Column(EE_EGG_ID, sqla.String(length=150)),
 )
 
 KEY_TABLE = "keys"

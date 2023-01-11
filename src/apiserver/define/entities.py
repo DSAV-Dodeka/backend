@@ -122,6 +122,10 @@ class BirthdayData(BaseModel):
     birthdate: date = date.min
 
 
+class EasterEggData(BaseModel):
+    easter_egg_id: str
+
+
 class JWKSRow(BaseModel):
     id: int
     encrypted_value: str

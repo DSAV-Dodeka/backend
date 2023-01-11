@@ -4,14 +4,14 @@ from fastapi import APIRouter, Security, Request
 import apiserver.data as data
 from apiserver.data import Source
 from apiserver.auth.header import auth_header
-from apiserver.routers.helper import require_member
+from apiserver.routers.helper import require_member, require_user, handle_auth
 
 router = APIRouter()
 
 
 @router.get("/members/birthdays/", response_model=list[BirthdayData])
 async def get_user_birthdays(
-    request: Request, authorization: str = Security(auth_header)
+        request: Request, authorization: str = Security(auth_header)
 ):
     dsrc: Source = request.app.state.dsrc
     await require_member(authorization, dsrc)
@@ -23,7 +23,7 @@ async def get_user_birthdays(
 
 @router.get("/members/rankings/{rank_type}")
 async def get_user_rankings(
-    rank_type, request: Request, authorization: str = Security(auth_header)
+        rank_type, request: Request, authorization: str = Security(auth_header)
 ):
     dsrc: Source = request.app.state.dsrc
     await require_member(authorization, dsrc)
@@ -39,3 +39,31 @@ async def get_user_rankings(
 
     ranking_data = await data.file.load_json(rank_type)
     return ranking_data
+
+
+@router.get("/members/easter_eggs/get/count")
+async def get_user_easter_eggs_count(
+        request: Request, authorization: str = Security(auth_header)
+):
+    dsrc: Source = request.app.state.dsrc
+    acc = await handle_auth(authorization, dsrc)
+
+    async with data.get_conn(dsrc) as conn:
+        easter_eggs_get_count_data = await data.user.get_easter_eggs_count(dsrc, conn, acc.sub)
+
+    # Count all the found eggs and return total?
+    return easter_eggs_get_count_data.count()
+
+
+@router.get("/members/easter_eggs/found/{easter_egg_id}")
+async def user_easter_egg_found(
+        easter_egg_id, request: Request, authorization: str = Security(auth_header)
+):
+    dsrc: Source = request.app.state.dsrc
+    acc = await handle_auth(authorization, dsrc)
+
+    async with data.get_conn(dsrc) as conn:
+        # Function needs to be implemented, insert into database
+        await data.user.found_easter_egg(dsrc, conn, acc.sub, easter_egg_id)
+
+    return "To be implemented.."

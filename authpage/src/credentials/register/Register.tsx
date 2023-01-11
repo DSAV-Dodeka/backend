@@ -255,7 +255,7 @@ const Register = () => {
 
                 <br />
                 <button className="authButton" id="submit_button" onClick={handleSubmitClick} type="submit">Registreer</button><br />
-                <p className="buttonText">Door op registeer te klikken ga je akkoord met het eerder genoemde <a href="https://dsavdodeka.nl/files/privacyverklaring_dodeka_temp.pdf" target="_blank" rel="noreferrer" className="privacy_link">privacybeleid</a></p>
+                <p className="buttonText">Door op registeer te klikken ga je akkoord met het eerder genoemde <a href="https://dsavdodeka.nl/files/privacyverklaring_dodeka_jan23.pdf" target="_blank" rel="noreferrer" className="privacy_link">privacybeleid</a></p>
                 <p className="formStatus">{status}</p>
             </form>}
         </div>

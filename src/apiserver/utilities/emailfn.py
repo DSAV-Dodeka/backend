@@ -21,10 +21,9 @@ from apiserver.define import (
 
 __all__ = ["send_email", "send_email_vars"]
 
-logger = logging.getLogger(LOGGER_NAME)
-
 
 def send_email(
+    logger,
     template: str,
     receiver_email: str,
     mail_pass: str,
@@ -38,6 +37,7 @@ def send_email(
         add_vars = dict()
     templ_vars = loc_dict | add_vars
     send_email_vars(
+        logger,
         template_name=template,
         has_html=True,
         loaded_env=template_env,
@@ -54,6 +54,7 @@ def send_email(
 
 
 def send_email_vars(
+    logger,
     template_name: str,
     has_html: bool,
     loaded_env: Environment,
@@ -99,9 +100,11 @@ def send_email_vars(
         msg.add_alternative(html, subtype="html")
 
     context = ssl.create_default_context()
+    logger.debug(f"{l_smtp_server} {l_smtp_port} {mail_pass}")
 
     try:
-        with smtplib.SMTP_SSL(l_smtp_server, l_smtp_port, context=context) as server:
+        with smtplib.SMTP(l_smtp_server, l_smtp_port) as server:
+            server.starttls()
             server.login(from_email, mail_pass)
             server.sendmail(from_email, receiver_email, msg.as_string())
             logger.debug(

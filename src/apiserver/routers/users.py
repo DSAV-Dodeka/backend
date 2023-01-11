@@ -21,15 +21,15 @@ async def get_user_birthdays(
     return birthday_data
 
 
-@router.get("/members/rankings/{name}")
+@router.get("/members/rankings/{rank_type}")
 async def get_user_rankings(
-    name, request: Request, authorization: str = Security(auth_header)
+    rank_type, request: Request, authorization: str = Security(auth_header)
 ):
     dsrc: Source = request.app.state.dsrc
     await require_member(authorization, dsrc)
 
-    if name != "training" and name != "points" and name != "pr":
-        reason = f"Ranking {name} is unknown!"
+    if rank_type != "training" and rank_type != "points" and rank_type != "pr":
+        reason = f"Ranking {rank_type} is unknown!"
         raise ErrorResponse(
             status_code=400,
             err_type="invalid_ranking",
@@ -37,5 +37,5 @@ async def get_user_rankings(
             debug_key="bad_ranking",
         )
 
-    ranking_data = await data.file.load_json(name)
+    ranking_data = await data.file.load_json(rank_type)
     return ranking_data

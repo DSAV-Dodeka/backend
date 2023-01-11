@@ -1,13 +1,9 @@
-import json
 import re
-from os import path
 from typing import Optional
 from datetime import date
 
-from sqlalchemy.engine import CursorResult, Row
-from sqlalchemy.ext.asyncio import AsyncConnection, AsyncTransaction
+from sqlalchemy.ext.asyncio import AsyncConnection
 
-from apiserver import res_path
 from apiserver.define.entities import User, SignedUp, UserData, BirthdayData
 from apiserver.utilities import usp_hex
 from apiserver.data.source import Source, DataError, NoDataError
@@ -19,8 +15,8 @@ from apiserver.data.use import (
     upsert_by_unique,
     select_where,
     delete_by_column,
-    select_some_where,
     select_some_two_where,
+    insert,
 )
 from apiserver.db import USER_TABLE, USERDATA_TABLE
 from apiserver.db.model import (
@@ -37,7 +33,22 @@ from apiserver.db.model import (
 )
 from apiserver.db.ops import DbError
 
-__all__ = ["get_user_by_id", "user_exists", "get_userdata_by_email"]
+__all__ = [
+    "get_user_by_id",
+    "user_exists",
+    "get_userdata_by_email",
+    "new_userdata",
+    "finished_userdata",
+    "user_exists",
+    "get_userdata_by_id",
+    "get_userdata_by_register_id",
+    "get_user_by_email",
+    "update_password_file",
+    "insert_user",
+    "insert_return_user_id",
+    "gen_id_name",
+    "new_user",
+]
 
 
 def parse_user(user_dict: Optional[dict]) -> User:
@@ -131,15 +142,6 @@ async def get_userdata_by_register_id(
     return parse_userdata(userdata_row)
 
 
-# async def userdata_registered_by_email(
-#     dsrc: Source, conn: AsyncConnection, email: str
-# ) -> bool:
-#     result = await fetch_column_by_unique(
-#         dsrc, conn, USERDATA_TABLE, USER_REGISTERED, UD_EMAIL, email
-#     )
-#     return result if result is True else False
-
-
 async def get_user_by_email(
     dsrc: Source, conn: AsyncConnection, user_email: str
 ) -> User:
@@ -153,6 +155,15 @@ async def update_password_file(
     await update_column_by_unique(
         dsrc, conn, USER_TABLE, PASSWORD, password_file, USER_ID, user_id
     )
+
+
+async def insert_user(dsrc: Source, conn: AsyncConnection, user: User) -> str:
+    user_row: dict = user.dict(exclude={"user_id"})
+    try:
+        user_id = await insert(dsrc, conn, USER_TABLE, user_row)
+    except DbError as e:
+        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
+    return user_id
 
 
 async def insert_return_user_id(dsrc: Source, conn: AsyncConnection, user: User) -> str:

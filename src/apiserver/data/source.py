@@ -1,8 +1,9 @@
-import logging
 from typing import Type, Optional
 from dataclasses import dataclass
-
 from random import random
+from datetime import date
+import logging
+
 from anyio import sleep
 import redis
 from redis.asyncio import Redis
@@ -11,7 +12,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine
 
 from apiserver.define import LOGGER_NAME
-from apiserver.define.entities import JWKSet, A256GCMKey, User
+from apiserver.define.entities import JWKSet, A256GCMKey, User, UserData
 import apiserver.utilities as util
 from apiserver.utilities.crypto import aes_from_symmetric, decrypt_dict, encrypt_dict
 from apiserver.utilities.keys import ed448_private_to_pem
@@ -60,7 +61,7 @@ class Gateway:
         db_url = f"{db_cluster}/{config.DB_NAME}"
         # Connections are not actually established, it simply initializes the connection parameters
         self.kv = Redis(
-            host=config.KV_HOST, port=config.KV_PORT, db=0, password=config.KV_PASS
+            host=config.KV_HOST, port=int(config.KV_PORT), db=0, password=config.KV_PASS
         )
         self.engine: AsyncEngine = create_async_engine(f"postgresql+asyncpg://{db_url}")
 
@@ -187,13 +188,39 @@ async def initial_population(dsrc: Source, config: Config):
         opaque_setup.value, fake_record_pass, "1_fakerecord"
     )
 
+    fake_user = User(
+        id_name="fakerecord",
+        email="fakerecord",
+        password_file=fake_pw_file,
+        scope="none",
+    )
+    admin_user = User(
+        id=0,
+        id_name="admin",
+        email="admin",
+        # This does not adhere to OPAQUE requirements, so you cannot actually login with this
+        password_file="admin",
+        scope="member admin",
+    )
+    admin_userdata = UserData(
+        user_id="0_admin",
+        active=False,
+        registerid="",
+        firstname="admin",
+        lastname="admin",
+        callname="admin",
+        email="admin",
+        phone="admin",
+        av40id=0,
+        joined=date.today(),
+        birthdate=date.today(),
+        registered=True,
+        showage=False,
+    )
+
     async with data.get_conn(dsrc) as conn:
-        fake_user = User(
-            id_name="fakerecord",
-            email="fakerecord",
-            password_file=fake_pw_file,
-            scope="none",
-        )
+        await data.user.insert_user(dsrc, conn, admin_user)
+        await data.user.insert_userdata(dsrc, conn, admin_userdata)
         user_id = await data.user.insert_return_user_id(dsrc, conn, fake_user)
         assert user_id == "1_fakerecord"
 

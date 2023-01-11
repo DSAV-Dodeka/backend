@@ -1,1 +1,524 @@
-{"points": [{"Naam": "jasper", "Punten": 45}, {"Naam": "sanne d", "Punten": 43}, {"Naam": "aniek", "Punten": 37}, {"Naam": "koen", "Punten": 36}, {"Naam": "lars s", "Punten": 36}, {"Naam": "saana", "Punten": 35}, {"Naam": "jelmer", "Punten": 35}, {"Naam": "thomas", "Punten": 34}, {"Naam": "thirza", "Punten": 32}, {"Naam": "stefan", "Punten": 32}, {"Naam": "marien", "Punten": 30}, {"Naam": "elize", "Punten": 30}, {"Naam": "kyllian", "Punten": 28}, {"Naam": "raymond", "Punten": 27}, {"Naam": "lianne", "Punten": 27}, {"Naam": "florence", "Punten": 26}, {"Naam": "simon", "Punten": 26}, {"Naam": "maaike", "Punten": 25}, {"Naam": "fieke", "Punten": 25}, {"Naam": "jonas", "Punten": 23}, {"Naam": "sylke", "Punten": 22}, {"Naam": "itse", "Punten": 22}, {"Naam": "tjeerd", "Punten": 22}, {"Naam": "yulan", "Punten": 21}, {"Naam": "robert", "Punten": 21}, {"Naam": "jeroen", "Punten": 20}, {"Naam": "gijs", "Punten": 20}, {"Naam": "sanne", "Punten": 19}, {"Naam": "celine", "Punten": 19}, {"Naam": "bart", "Punten": 19}, {"Naam": "niels v", "Punten": 19}, {"Naam": "loek", "Punten": 18}, {"Naam": "eric", "Punten": 18}, {"Naam": "stan", "Punten": 18}, {"Naam": "robina", "Punten": 18}, {"Naam": "martha", "Punten": 18}, {"Naam": "hugo", "Punten": 17}, {"Naam": "merel b", "Punten": 17}, {"Naam": "abel", "Punten": 17}, {"Naam": "tobias", "Punten": 17}, {"Naam": "larissa", "Punten": 17}, {"Naam": "wolf", "Punten": 17}, {"Naam": "stein", "Punten": 16}, {"Naam": "hylke", "Punten": 15}, {"Naam": "nathan", "Punten": 14}, {"Naam": "jamie", "Punten": 14}, {"Naam": "robin b", "Punten": 14}, {"Naam": "emma", "Punten": 13}, {"Naam": "liam", "Punten": 13}, {"Naam": "sacha r", "Punten": 12}, {"Naam": "robin", "Punten": 12}, {"Naam": "donne", "Punten": 12}, {"Naam": "ilse", "Punten": 12}, {"Naam": "merel l", "Punten": 12}, {"Naam": "niels g", "Punten": 12}, {"Naam": "julius", "Punten": 11}, {"Naam": "marie", "Punten": 11}, {"Naam": "robin s", "Punten": 11}, {"Naam": "lars p", "Punten": 11}, {"Naam": "mattijs", "Punten": 11}, {"Naam": "temba", "Punten": 11}, {"Naam": "rianne", "Punten": 10}, {"Naam": "stef", "Punten": 10}, {"Naam": "mark", "Punten": 10}, {"Naam": "sven", "Punten": 9}, {"Naam": "christa", "Punten": 9}, {"Naam": "lisa", "Punten": 9}, {"Naam": "rick", "Punten": 9}, {"Naam": "tim", "Punten": 9}, {"Naam": "marin", "Punten": 9}, {"Naam": "roy", "Punten": 9}, {"Naam": "jefry", "Punten": 8}, {"Naam": "joris", "Punten": 8}, {"Naam": "lotte", "Punten": 7}, {"Naam": "chris", "Punten": 7}, {"Naam": "amber", "Punten": 7}, {"Naam": "tip", "Punten": 6}, {"Naam": "lucy", "Punten": 6}, {"Naam": "carine", "Punten": 6}, {"Naam": "lisan", "Punten": 6}, {"Naam": "tara", "Punten": 6}, {"Naam": "daan", "Punten": 6}, {"Naam": "luca", "Punten": 6}, {"Naam": "isabel", "Punten": 6}, {"Naam": "jesper", "Punten": 6}, {"Naam": "nicoline", "Punten": 5}, {"Naam": "henrietta", "Punten": 5}, {"Naam": "elena", "Punten": 5}, {"Naam": "meike d", "Punten": 5}, {"Naam": "merel", "Punten": 5}, {"Naam": "moritz", "Punten": 4}, {"Naam": "milou", "Punten": 4}, {"Naam": "anne-wil", "Punten": 4}, {"Naam": "anna", "Punten": 4}, {"Naam": "marieke", "Punten": 4}, {"Naam": "noortje", "Punten": 4}, {"Naam": "klaas", "Punten": 4}, {"Naam": "thijs", "Punten": 4}, {"Naam": "juliet", "Punten": 3}, {"Naam": "jeroen v", "Punten": 3}, {"Naam": "sebastiaan", "Punten": 3}, {"Naam": "femke", "Punten": 3}, {"Naam": "hannah", "Punten": 3}, {"Naam": "job", "Punten": 3}, {"Naam": "neil", "Punten": 3}, {"Naam": "xylander", "Punten": 3}, {"Naam": "leander", "Punten": 3}, {"Naam": "jara", "Punten": 3}, {"Naam": "tim w", "Punten": 3}, {"Naam": "noah", "Punten": 2}, {"Naam": "thom", "Punten": 2}, {"Naam": "marleen", "Punten": 2}, {"Naam": "mischa", "Punten": 2}, {"Naam": "kimmo", "Punten": 2}, {"Naam": "alan", "Punten": 2}, {"Naam": "pelle", "Punten": 2}, {"Naam": "matthijs", "Punten": 2}, {"Naam": "gert", "Punten": 2}, {"Naam": "laura", "Punten": 2}, {"Naam": "thijs e", "Punten": 2}, {"Naam": "pien", "Punten": 2}, {"Naam": "sanne c", "Punten": 1}, {"Naam": "kimani", "Punten": 1}, {"Naam": "anne", "Punten": 1}, {"Naam": "marea", "Punten": 1}, {"Naam": "simone", "Punten": 1}, {"Naam": "thijs s", "Punten": 1}, {"Naam": "gustaaf", "Punten": 1}, {"Naam": "myrthe", "Punten": 1}, {"Naam": "david", "Punten": 1}]}
+{
+  "points": [
+    {
+      "Naam": "jasper",
+      "Punten": 45
+    },
+    {
+      "Naam": "sanne d",
+      "Punten": 43
+    },
+    {
+      "Naam": "aniek",
+      "Punten": 37
+    },
+    {
+      "Naam": "koen",
+      "Punten": 36
+    },
+    {
+      "Naam": "lars s",
+      "Punten": 36
+    },
+    {
+      "Naam": "saana",
+      "Punten": 35
+    },
+    {
+      "Naam": "jelmer",
+      "Punten": 35
+    },
+    {
+      "Naam": "thomas",
+      "Punten": 34
+    },
+    {
+      "Naam": "thirza",
+      "Punten": 32
+    },
+    {
+      "Naam": "stefan",
+      "Punten": 32
+    },
+    {
+      "Naam": "marien",
+      "Punten": 30
+    },
+    {
+      "Naam": "elize",
+      "Punten": 30
+    },
+    {
+      "Naam": "kyllian",
+      "Punten": 28
+    },
+    {
+      "Naam": "raymond",
+      "Punten": 27
+    },
+    {
+      "Naam": "lianne",
+      "Punten": 27
+    },
+    {
+      "Naam": "florence",
+      "Punten": 26
+    },
+    {
+      "Naam": "simon",
+      "Punten": 26
+    },
+    {
+      "Naam": "maaike",
+      "Punten": 25
+    },
+    {
+      "Naam": "fieke",
+      "Punten": 25
+    },
+    {
+      "Naam": "jonas",
+      "Punten": 23
+    },
+    {
+      "Naam": "sylke",
+      "Punten": 22
+    },
+    {
+      "Naam": "itse",
+      "Punten": 22
+    },
+    {
+      "Naam": "tjeerd",
+      "Punten": 22
+    },
+    {
+      "Naam": "yulan",
+      "Punten": 21
+    },
+    {
+      "Naam": "robert",
+      "Punten": 21
+    },
+    {
+      "Naam": "jeroen",
+      "Punten": 20
+    },
+    {
+      "Naam": "gijs",
+      "Punten": 20
+    },
+    {
+      "Naam": "sanne",
+      "Punten": 19
+    },
+    {
+      "Naam": "celine",
+      "Punten": 19
+    },
+    {
+      "Naam": "bart",
+      "Punten": 19
+    },
+    {
+      "Naam": "niels v",
+      "Punten": 19
+    },
+    {
+      "Naam": "loek",
+      "Punten": 18
+    },
+    {
+      "Naam": "eric",
+      "Punten": 18
+    },
+    {
+      "Naam": "stan",
+      "Punten": 18
+    },
+    {
+      "Naam": "robina",
+      "Punten": 18
+    },
+    {
+      "Naam": "martha",
+      "Punten": 18
+    },
+    {
+      "Naam": "hugo",
+      "Punten": 17
+    },
+    {
+      "Naam": "merel b",
+      "Punten": 17
+    },
+    {
+      "Naam": "abel",
+      "Punten": 17
+    },
+    {
+      "Naam": "tobias",
+      "Punten": 17
+    },
+    {
+      "Naam": "larissa",
+      "Punten": 17
+    },
+    {
+      "Naam": "wolf",
+      "Punten": 17
+    },
+    {
+      "Naam": "stein",
+      "Punten": 16
+    },
+    {
+      "Naam": "hylke",
+      "Punten": 15
+    },
+    {
+      "Naam": "nathan",
+      "Punten": 14
+    },
+    {
+      "Naam": "jamie",
+      "Punten": 14
+    },
+    {
+      "Naam": "robin b",
+      "Punten": 14
+    },
+    {
+      "Naam": "emma",
+      "Punten": 13
+    },
+    {
+      "Naam": "liam",
+      "Punten": 13
+    },
+    {
+      "Naam": "sacha r",
+      "Punten": 12
+    },
+    {
+      "Naam": "robin",
+      "Punten": 12
+    },
+    {
+      "Naam": "donne",
+      "Punten": 12
+    },
+    {
+      "Naam": "ilse",
+      "Punten": 12
+    },
+    {
+      "Naam": "merel l",
+      "Punten": 12
+    },
+    {
+      "Naam": "niels g",
+      "Punten": 12
+    },
+    {
+      "Naam": "julius",
+      "Punten": 11
+    },
+    {
+      "Naam": "marie",
+      "Punten": 11
+    },
+    {
+      "Naam": "robin s",
+      "Punten": 11
+    },
+    {
+      "Naam": "lars p",
+      "Punten": 11
+    },
+    {
+      "Naam": "mattijs",
+      "Punten": 11
+    },
+    {
+      "Naam": "temba",
+      "Punten": 11
+    },
+    {
+      "Naam": "rianne",
+      "Punten": 10
+    },
+    {
+      "Naam": "stef",
+      "Punten": 10
+    },
+    {
+      "Naam": "mark",
+      "Punten": 10
+    },
+    {
+      "Naam": "sven",
+      "Punten": 9
+    },
+    {
+      "Naam": "christa",
+      "Punten": 9
+    },
+    {
+      "Naam": "lisa",
+      "Punten": 9
+    },
+    {
+      "Naam": "rick",
+      "Punten": 9
+    },
+    {
+      "Naam": "tim",
+      "Punten": 9
+    },
+    {
+      "Naam": "marin",
+      "Punten": 9
+    },
+    {
+      "Naam": "roy",
+      "Punten": 9
+    },
+    {
+      "Naam": "jefry",
+      "Punten": 8
+    },
+    {
+      "Naam": "joris",
+      "Punten": 8
+    },
+    {
+      "Naam": "lotte",
+      "Punten": 7
+    },
+    {
+      "Naam": "chris",
+      "Punten": 7
+    },
+    {
+      "Naam": "amber",
+      "Punten": 7
+    },
+    {
+      "Naam": "tip",
+      "Punten": 6
+    },
+    {
+      "Naam": "lucy",
+      "Punten": 6
+    },
+    {
+      "Naam": "carine",
+      "Punten": 6
+    },
+    {
+      "Naam": "lisan",
+      "Punten": 6
+    },
+    {
+      "Naam": "tara",
+      "Punten": 6
+    },
+    {
+      "Naam": "daan",
+      "Punten": 6
+    },
+    {
+      "Naam": "luca",
+      "Punten": 6
+    },
+    {
+      "Naam": "isabel",
+      "Punten": 6
+    },
+    {
+      "Naam": "jesper",
+      "Punten": 6
+    },
+    {
+      "Naam": "nicoline",
+      "Punten": 5
+    },
+    {
+      "Naam": "henrietta",
+      "Punten": 5
+    },
+    {
+      "Naam": "elena",
+      "Punten": 5
+    },
+    {
+      "Naam": "meike d",
+      "Punten": 5
+    },
+    {
+      "Naam": "merel",
+      "Punten": 5
+    },
+    {
+      "Naam": "moritz",
+      "Punten": 4
+    },
+    {
+      "Naam": "milou",
+      "Punten": 4
+    },
+    {
+      "Naam": "anne-wil",
+      "Punten": 4
+    },
+    {
+      "Naam": "anna",
+      "Punten": 4
+    },
+    {
+      "Naam": "marieke",
+      "Punten": 4
+    },
+    {
+      "Naam": "noortje",
+      "Punten": 4
+    },
+    {
+      "Naam": "klaas",
+      "Punten": 4
+    },
+    {
+      "Naam": "thijs",
+      "Punten": 4
+    },
+    {
+      "Naam": "juliet",
+      "Punten": 3
+    },
+    {
+      "Naam": "jeroen v",
+      "Punten": 3
+    },
+    {
+      "Naam": "sebastiaan",
+      "Punten": 3
+    },
+    {
+      "Naam": "femke",
+      "Punten": 3
+    },
+    {
+      "Naam": "hannah",
+      "Punten": 3
+    },
+    {
+      "Naam": "job",
+      "Punten": 3
+    },
+    {
+      "Naam": "neil",
+      "Punten": 3
+    },
+    {
+      "Naam": "xylander",
+      "Punten": 3
+    },
+    {
+      "Naam": "leander",
+      "Punten": 3
+    },
+    {
+      "Naam": "jara",
+      "Punten": 3
+    },
+    {
+      "Naam": "tim w",
+      "Punten": 3
+    },
+    {
+      "Naam": "noah",
+      "Punten": 2
+    },
+    {
+      "Naam": "thom",
+      "Punten": 2
+    },
+    {
+      "Naam": "marleen",
+      "Punten": 2
+    },
+    {
+      "Naam": "mischa",
+      "Punten": 2
+    },
+    {
+      "Naam": "kimmo",
+      "Punten": 2
+    },
+    {
+      "Naam": "alan",
+      "Punten": 2
+    },
+    {
+      "Naam": "pelle",
+      "Punten": 2
+    },
+    {
+      "Naam": "matthijs",
+      "Punten": 2
+    },
+    {
+      "Naam": "gert",
+      "Punten": 2
+    },
+    {
+      "Naam": "laura",
+      "Punten": 2
+    },
+    {
+      "Naam": "thijs e",
+      "Punten": 2
+    },
+    {
+      "Naam": "pien",
+      "Punten": 2
+    },
+    {
+      "Naam": "sanne c",
+      "Punten": 1
+    },
+    {
+      "Naam": "kimani",
+      "Punten": 1
+    },
+    {
+      "Naam": "anne",
+      "Punten": 1
+    },
+    {
+      "Naam": "marea",
+      "Punten": 1
+    },
+    {
+      "Naam": "simone",
+      "Punten": 1
+    },
+    {
+      "Naam": "thijs s",
+      "Punten": 1
+    },
+    {
+      "Naam": "gustaaf",
+      "Punten": 1
+    },
+    {
+      "Naam": "myrthe",
+      "Punten": 1
+    },
+    {
+      "Naam": "david",
+      "Punten": 1
+    }
+  ]
+}

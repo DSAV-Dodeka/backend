@@ -100,7 +100,7 @@ def send_email_vars(
         msg.add_alternative(html, subtype="html")
 
     context = ssl.create_default_context()
-    logger.debug(f"{l_smtp_server} {l_smtp_port} {mail_pass}")
+    logger.debug(f"{l_smtp_server} {l_smtp_port}")
 
     try:
         with smtplib.SMTP(l_smtp_server, l_smtp_port) as server:

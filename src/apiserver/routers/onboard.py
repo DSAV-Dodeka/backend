@@ -45,8 +45,6 @@ def send_signup_email(
 ):
     add_vars = {"redirect_link": redirect_link, "signup_link": signup_link}
 
-    print(mail_pass)
-
     def send_lam():
         util.send_email(
             logger,
@@ -58,9 +56,7 @@ def send_signup_email(
             add_vars=add_vars,
         )
 
-    send_lam()
-
-    # background_tasks.add_task(send_lam)
+    background_tasks.add_task(send_lam)
 
 
 def send_register_email(

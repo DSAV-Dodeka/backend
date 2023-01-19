@@ -66,7 +66,7 @@ let initialState: RegisterState = {
     callname: "",
     password: "",
     password_confirm: "",
-    date_of_birth: "2019-01-25",
+    date_of_birth: "25-02-2019",
     birthday_check: false,
     student: false,
     eduinstitution: "TU Delft",
@@ -227,8 +227,12 @@ const Register = () => {
                 <Suspense fallback={<div className="passBar1">""</div>}><PasswordStrength password={state.password} passScore={passScore} setPass={setPassScore}/></Suspense>
                 <input className={submitted} required id="password_confirm" type="password" placeholder="Herhaal wachtwoord" name="password_confirm" value={state.password_confirm}
                        onChange={handleFormChange}/>
+                <div className="dropdown">
+                <label>Geboortedatum:</label>
                 <input className={submitted} required id="date_of_birth" type="text" placeholder="Geboortedatum" onFocus={handleFocus} onBlur={handleBlur} name="date_of_birth" value={state.date_of_birth}
                         onChange={handleFormChange} />
+                </div>
+                
                 <div className="checkbox">
                     <label >Leden mogen mijn verjaardag en leeftijd zien</label>
                     <input className={submitted} id="birthday_check" type="checkbox" name="birthday_check"

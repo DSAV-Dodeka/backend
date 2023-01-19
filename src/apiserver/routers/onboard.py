@@ -47,6 +47,7 @@ def send_signup_email(
 
     def send_lam():
         util.send_email(
+            logger,
             "confirm.jinja2",
             receiver,
             mail_pass,
@@ -66,6 +67,7 @@ def send_register_email(
     def send_lam():
         org_name = loc_dict["loc"]["org_name"]
         util.send_email(
+            logger,
             "register.jinja2",
             receiver,
             mail_pass,

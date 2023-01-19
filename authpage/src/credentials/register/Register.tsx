@@ -69,7 +69,7 @@ let initialState: RegisterState = {
     date_of_birth: "25-02-2019",
     birthday_check: false,
     student: false,
-    eduinstitution: "TU Delft",
+    eduinstitution: "",
     eduinstitution_other: ""
 }
 

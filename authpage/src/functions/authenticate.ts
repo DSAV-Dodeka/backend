@@ -23,8 +23,14 @@ export async function clientRegister(registerState: RegisterState) {
 
         const message2 = client_register_finish_wasm(register_state, registerState.password, server_message)
 
-        const eduinstitution = registerState.eduinstitution === "Anders, namelijk:" ?
-            registerState.eduinstitution_other : registerState.eduinstitution
+        var eduinstitution;
+        if (!registerState.student) {
+            eduinstitution = "";
+        } else {
+            eduinstitution = registerState.eduinstitution === "Anders, namelijk:" ?
+            registerState.eduinstitution_other : registerState.eduinstitution;
+        }
+        
         const register_finish = {
             "email": registerState.email,
             "client_request": message2,

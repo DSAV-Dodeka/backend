@@ -1,4 +1,5 @@
-from typing import Optional, Any
+import contextlib
+from typing import Optional, Any, AsyncIterator, Callable
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
@@ -12,7 +13,7 @@ def eng_is_init(dsrc: Source):
         return dsrc.gateway.engine
 
 
-def get_conn(dsrc: Source):
+def get_conn(dsrc: Source) -> AsyncIterator[AsyncConnection]:
     return dsrc.gateway.ops.begin_conn(eng_is_init(dsrc))
 
 

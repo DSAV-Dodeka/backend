@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Any
+from typing import Optional, Any, AsyncIterator, Callable
 
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncConnection
 
@@ -13,7 +13,7 @@ class DbOperations(ABC):
 
     @classmethod
     @abstractmethod
-    def begin_conn(cls, engine: AsyncEngine) -> AsyncConnection:
+    def begin_conn(cls, engine: AsyncEngine) -> AsyncIterator[AsyncConnection]:
         ...
 
     @classmethod

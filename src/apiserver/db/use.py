@@ -1,4 +1,5 @@
-from typing import Optional, Any
+import contextlib
+from typing import Optional, Any, AsyncIterator, Callable
 
 from sqlalchemy import text
 from sqlalchemy.engine import CursorResult
@@ -43,12 +44,12 @@ async def execute_catch_conn(
 
 
 def first_or_none(res: CursorResult) -> Optional[dict]:
-    row = res.first()
+    row = res.mappings().first()
     return dict(row) if row is not None else None
 
 
 def all_rows(res: CursorResult) -> list[dict]:
-    rows = res.all()
+    rows = res.mappings().all()
     return [dict(row) for row in rows]
 
 
@@ -64,7 +65,7 @@ class PostgresOperations(DbOperations):
     """
 
     @classmethod
-    def begin_conn(cls, engine: AsyncEngine) -> AsyncTransaction:
+    def begin_conn(cls, engine: AsyncEngine) -> AsyncIterator[AsyncConnection]:
         return engine.begin()
 
     @classmethod
@@ -152,7 +153,7 @@ class PostgresOperations(DbOperations):
         res: CursorResult = await conn.execute(
             query, parameters={"where_val": where_val}
         )
-        return res.scalars().all()
+        return list(res.scalars().all())
 
     @classmethod
     async def exists_by_unique(

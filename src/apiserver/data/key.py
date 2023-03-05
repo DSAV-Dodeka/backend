@@ -16,6 +16,11 @@ async def get_newest_symmetric(dsrc: Source, conn: AsyncConnection) -> tuple[str
     results = await get_largest_where(
         dsrc, conn, KEY_TABLE, {KEY_ID}, KEY_USE, "enc", KEY_ISSUED, 2
     )
+    if len(results) < 2:
+        raise DataError(
+            message=f"There should be at least two symmetric keys.",
+            key="missing_symmetric_keys",
+        )
     return results[0], results[1]
 
 

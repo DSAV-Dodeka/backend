@@ -44,11 +44,11 @@ types-redis = "^4.3.21"
 faker = "^15.3.3"
 
 [tool.black]
-target-version = ['py310']
+target-version = ['py311']
 preview = true
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 strict = true
 files = ["src"]
 plugins = [

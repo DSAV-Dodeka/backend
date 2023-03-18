@@ -11,40 +11,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v2
+    - run: pipx install poetry==1.4.0
+    - uses: actions/setup-python@v4
       with:
-        python-version: '3.10'
-    # Cache means install is saved in repo cache
-    # Increment poetry-0 if new install is necessary
-    - name: Load cached Poetry installation
-      uses: actions/cache@v2
-      with:
-        path: ~/.local
-        key: poetry-1
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
-      with:
-        virtualenvs-create: true
-        # .venv is created in project
-        virtualenvs-in-project: true
-        installer-parallel: true
-    # Load .venv directly from cache
-    - name: Load cached venv
-      id: cached-poetry-dependencies
-      uses: actions/cache@v2
-      with:
-        path: .venv
-        # Key only changes if poetry.lock changes
-        key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
-    - name: Install dependencies
-      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-      run: poetry install --no-interaction --no-root
+        python-version: '3.11'
+        cache: 'poetry'
+    - run: |
+        poetry env use python3.11
+        poetry install
     - name: Install library
-      run: poetry install --no-interaction
+      run: poetry install
     - uses: actions/setup-node@v2
       with:
-        node-version: '16'
+        node-version: '18'
         cache: 'npm'
         cache-dependency-path: ${{ github.workspace }}/authpage/package-lock.json
     - name: Cache authpage

@@ -11,7 +11,8 @@ from sqlalchemy.engine import Engine
 
 
 def drop_recreate_database(engine: Engine, db_name: str):
-    drop_db = text(f"DROP DATABASE IF EXISTS {db_name}")
-    engine.execute(drop_db)
-    create_db = text(f"CREATE DATABASE {db_name}")
-    engine.execute(create_db)
+    with engine.connect() as connection:
+        drop_db = text(f"DROP DATABASE IF EXISTS {db_name}")
+        connection.execute(drop_db)
+        create_db = text(f"CREATE DATABASE {db_name}")
+        connection.execute(create_db)

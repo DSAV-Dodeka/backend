@@ -5,10 +5,10 @@ description = ""
 authors = ["Tip ten Brink <75669206+tiptenbrink@users.noreply.github.com>"]
 
 [tool.poetry.dependencies]
-python = ">=3.10, <3.11"
+python = ">=3.11, <3.12"
 tomli = "2.0.1"
-fastapi = "0.92.0"
-uvicorn = { extras = ["standard"], version = "^0.20.0" }
+fastapi = "0.94.1"
+uvicorn = { extras = ["standard"], version = "^0.21.1" }
 asyncpg = "^0.27.0"
 gunicorn = "^20.1.0"
 redis = "^4.5.1"

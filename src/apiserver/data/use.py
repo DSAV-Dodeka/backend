@@ -114,6 +114,31 @@ async def update_column_by_unique(
     )
 
 
+async def concat_column_by_unique_returning(
+    dsrc: Source,
+    conn: AsyncConnection,
+    table: str,
+    concat_source_column: str,
+    concat_target_column: str,
+    concat_value,
+    unique_column: str,
+    value,
+    return_col: str,
+) -> Any:
+    """Ensure `table`, `concat_source_column`, `concat_target_column`, `return_col` and `unique_column`
+    are never user-defined."""
+    return await dsrc.gateway.ops.concat_column_by_unique_returning(
+        conn,
+        table,
+        concat_source_column,
+        concat_target_column,
+        concat_value,
+        unique_column,
+        value,
+        return_col,
+    )
+
+
 async def insert(dsrc: Source, conn: AsyncConnection, table: str, row: dict):
     """Ensure `table` and the `row` keys are never user-defined."""
     return await dsrc.gateway.ops.insert(conn, table, row)

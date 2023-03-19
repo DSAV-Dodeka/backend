@@ -99,7 +99,7 @@ async def test_generate_admin():
     # async with data.get_conn(local_dsrc) as conn:
     #     setup = await data.opaquesetup.get_setup(local_dsrc, conn)
 
-    setup = "szwyM9T-quglmIBaPMBvH-KfcOrX1AJv70hWyINS942vNaUnim91-fb9iu7C25iShrIq38pAqiqPMWDHB2BtD0xFdPwM4VLi9iIIvjLTvpgxxcmnOz7gqvJ_uVOjcbII7YjHzmhSiNQyk7NTs-uUepMo2EW1OZsHYirViSsehQ4"
+    setup = ""
 
     cl_req, cl_state = opq.register_client(admin_password)
     serv_resp = opq.register(setup, cl_req, util.usp_hex("0_admin"))

@@ -106,6 +106,21 @@ class DbOperations(ABC):
 
     @classmethod
     @abstractmethod
+    async def concat_column_by_unique_returning(
+        cls,
+        conn: AsyncConnection,
+        table: str,
+        concat_source_column: str,
+        concat_target_column: str,
+        concat_value,
+        unique_column: str,
+        value,
+        return_col: str,
+    ) -> Any:
+        ...
+
+    @classmethod
+    @abstractmethod
     async def insert(cls, conn: AsyncConnection, table: str, row: dict) -> int:
         ...
 

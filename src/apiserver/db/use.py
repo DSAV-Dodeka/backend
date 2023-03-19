@@ -207,6 +207,31 @@ class PostgresOperations(DbOperations):
         return row_cnt(res)
 
     @classmethod
+    async def concat_column_by_unique_returning(
+        cls,
+        conn: AsyncConnection,
+        table: str,
+        concat_source_column: str,
+        concat_target_column: str,
+        concat_value,
+        unique_column: str,
+        value,
+        return_col: str,
+    ) -> Any:
+        """Note that while the values are safe from injection, the column names are not.
+        """
+
+        query = text(
+            f"UPDATE {table} SET {concat_target_column} = {concat_source_column} ||"
+            f" :add WHERE {unique_column} = :val RETURNING ({return_col});"
+        )
+
+        res = await execute_catch_conn(
+            conn, query, params={"add": concat_value, "val": value}
+        )
+        return res.scalar()
+
+    @classmethod
     async def insert(cls, conn: AsyncConnection, table: str, row: dict) -> int:
         """Note that while the values are safe from injection, the column names are not. Ensure the row dict
         is validated using the model and not just passed directly by the user."""

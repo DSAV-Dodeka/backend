@@ -235,3 +235,8 @@ class DeleteAccountCheck(BaseModel):
 
 class LogoutRequest(BaseModel):
     refresh_token: str
+
+
+class ScopeAddRequest(BaseModel):
+    user_id: str
+    scope: str

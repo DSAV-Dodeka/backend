@@ -132,4 +132,3 @@ async def delete_refresh(dsrc: Source, refresh_token: str):
 
     async with data.get_conn(dsrc) as conn:
         await data.refreshtoken.delete_family(dsrc, conn, refresh.family_id)
-

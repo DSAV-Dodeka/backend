@@ -7,6 +7,7 @@ import time
 import hashlib
 import secrets
 import math
+import regex as re
 from datetime import datetime, timezone
 
 
@@ -170,3 +171,7 @@ def when_modified(p: Path) -> int:
     """Calculates the timestamp of most recently modified file in all files, subdirectories in a path.
     """
     return max([int(f.stat().st_mtime) if f.is_file() else 0 for f in p.rglob("*")])
+
+
+def replace_whitespace(string: str):
+    return re.sub(r"[\s\p{Z}]+", "", string)

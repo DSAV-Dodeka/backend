@@ -43,7 +43,7 @@ users = sqla.Table(
 
 EASTER_EGGS_TABLE = "easter_eggs"
 EE_EGG_ID = "easter_egg_id"
-userdata = sqla.Table(
+easter_eggs = sqla.Table(
     EASTER_EGGS_TABLE,
     metadata,
     sqla.Column(

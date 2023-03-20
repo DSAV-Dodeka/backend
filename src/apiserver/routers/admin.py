@@ -4,7 +4,7 @@ from fastapi import APIRouter, Security, Request
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from apiserver.define import LOGGER_NAME
-from apiserver.define.entities import UserData
+from apiserver.define.entities import UserData, UserScopeData
 from apiserver.define.reqres import ScopeAddRequest, ErrorResponse
 import apiserver.data as data
 from apiserver.data import Source, DataError, NoDataError
@@ -25,7 +25,18 @@ async def get_users(request: Request, authorization: str = Security(auth_header)
     return user_data
 
 
-@router.post("/admin/scope/add/")
+@router.get("/admin/scopes/all/", response_model=list[UserScopeData])
+async def get_users_scopes(
+    request: Request, authorization: str = Security(auth_header)
+):
+    dsrc: Source = request.app.state.dsrc
+    await require_admin(authorization, dsrc)
+    async with data.get_conn(dsrc) as conn:
+        user_scope_data = await data.user.get_all_users_scopes(dsrc, conn)
+    return user_scope_data
+
+
+@router.post("/admin/scopes/add/")
 async def add_scope(
     scope_request: ScopeAddRequest,
     request: Request,
@@ -33,6 +44,16 @@ async def add_scope(
 ):
     dsrc: Source = request.app.state.dsrc
     await require_admin(authorization, dsrc)
+
+    if "admin" in scope_request.scope or "member" in scope_request.scope:
+        reason = "Cannot add fundamental roles of 'member' or 'admin'."
+        raise ErrorResponse(
+            400,
+            err_type="invalid_scope_add",
+            err_desc=reason,
+            debug_key="scope_admin_member_add",
+        )
+
     async with data.get_conn(dsrc) as conn:
         conn: AsyncConnection = conn
         try:
@@ -58,3 +79,5 @@ async def add_scope(
                 err_desc=reason,
                 debug_key=debug_key,
             )
+
+    return {}

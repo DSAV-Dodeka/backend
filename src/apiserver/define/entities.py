@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Optional, Literal
 
-from pydantic import BaseModel, validator, conint
+from pydantic import BaseModel, validator, conint, root_validator
 
 
 class User(BaseModel):
@@ -120,6 +120,19 @@ class BirthdayData(BaseModel):
     firstname: str
     lastname: str
     birthdate: date = date.min
+
+
+class RawUserScopeData(BaseModel):
+    firstname: str
+    lastname: str
+    user_id: str
+    scope: str
+
+
+class UserScopeData(BaseModel):
+    name: str
+    user_id: str
+    scope: list[str]
 
 
 class EasterEggData(BaseModel):

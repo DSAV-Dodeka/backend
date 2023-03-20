@@ -68,6 +68,24 @@ async def select_where(
     return await dsrc.gateway.ops.select_where(conn, table, column, value)
 
 
+async def select_some_join_where(
+    dsrc: Source,
+    conn: AsyncConnection,
+    sel_col: set[str],
+    table_1: str,
+    table_2: str,
+    join_col_1: str,
+    join_col_2: str,
+    where_col: str,
+    value,
+) -> list[dict]:
+    """Ensure nothing is ever user-defined. If some select column exists in both tables, they must be
+    namespaced: i.e. <table_1 name>.column, <table_2 name>.column."""
+    return await dsrc.gateway.ops.select_some_join_where(
+        conn, sel_col, table_1, table_2, join_col_1, join_col_2, where_col, value
+    )
+
+
 async def get_largest_where(
     dsrc: Source,
     conn: AsyncConnection,

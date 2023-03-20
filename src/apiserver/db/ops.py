@@ -65,6 +65,21 @@ class DbOperations(ABC):
 
     @classmethod
     @abstractmethod
+    async def select_some_join_where(
+        cls,
+        conn: AsyncConnection,
+        sel_col: set[str],
+        table_1: str,
+        table_2: str,
+        join_col_1: str,
+        join_col_2: str,
+        where_col: str,
+        value,
+    ) -> list[dict]:
+        ...
+
+    @classmethod
+    @abstractmethod
     async def get_largest_where(
         cls,
         conn: AsyncConnection,

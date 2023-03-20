@@ -10,8 +10,10 @@ from apiserver.define.entities import (
     UserData,
     BirthdayData,
     EasterEggData,
+    UserScopeData,
+    RawUserScopeData,
 )
-from apiserver.utilities import usp_hex, replace_whitespace
+from apiserver.utilities import usp_hex, replace_whitespace, de_usp_hex
 from apiserver.data.source import Source, DataError, NoDataError
 from apiserver.data.use import (
     retrieve_by_unique,
@@ -25,6 +27,7 @@ from apiserver.data.use import (
     insert,
     select_some_where,
     concat_column_by_unique_returning,
+    select_some_join_where,
 )
 from apiserver.db import USER_TABLE, USERDATA_TABLE
 from apiserver.db.model import (
@@ -78,6 +81,28 @@ def parse_birthday_data(birthday_dict: Optional[dict]) -> BirthdayData:
     if birthday_dict is None:
         raise NoDataError("BirthdayData does not exist.", "birthday_data_empty")
     return BirthdayData.parse_obj(birthday_dict)
+
+
+def ignore_admin_member(scope: str):
+    if scope == "admin" or scope == "member":
+        return ""
+    else:
+        return scope
+
+
+def parse_users_scopes_data(users_scope_dict: Optional[dict]) -> UserScopeData:
+    if users_scope_dict is None:
+        raise NoDataError("UserScopeData does not exist.", "user_scope_data_empty")
+    raw_user_scope = RawUserScopeData.parse_obj(users_scope_dict)
+    name = raw_user_scope.firstname + " " + raw_user_scope.lastname
+    scope_list = {
+        ignore_admin_member(de_usp_hex(usph_scope))
+        for usph_scope in raw_user_scope.scope.split(" ")
+    }
+    scope_list.discard("")
+    return UserScopeData(
+        name=name, user_id=raw_user_scope.user_id, scope=list(scope_list)
+    )
 
 
 def parse_easter_egg_data(easter_egg_dict: Optional[dict]) -> EasterEggData:
@@ -283,6 +308,29 @@ async def get_all_birthdays(dsrc: Source, conn: AsyncConnection) -> list[Birthda
         True,
     )
     return [parse_birthday_data(bd_dct) for bd_dct in all_birthdays]
+
+
+async def get_all_users_scopes(
+    dsrc: Source, conn: AsyncConnection
+) -> list[UserScopeData]:
+    # user_id must be namespaced as it exists in both tables
+    select_columns = {UD_FIRSTNAME, UD_LASTNAME, f"{USER_TABLE}.{USER_ID}", SCOPES}
+
+    all_users_scopes = await select_some_join_where(
+        dsrc,
+        conn,
+        select_columns,
+        USER_TABLE,
+        USERDATA_TABLE,
+        USER_ID,
+        USER_ID,
+        UD_ACTIVE,
+        True,
+    )
+
+    return [
+        parse_users_scopes_data(u_ud_scope_dct) for u_ud_scope_dct in all_users_scopes
+    ]
 
 
 async def delete_user(dsrc: Source, conn: AsyncConnection, user_id: str):

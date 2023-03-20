@@ -133,6 +133,28 @@ class PostgresOperations(DbOperations):
         return all_rows(res)
 
     @classmethod
+    async def select_some_join_where(
+        cls,
+        conn: AsyncConnection,
+        sel_col: set[str],
+        table_1: str,
+        table_2: str,
+        join_col_1: str,
+        join_col_2: str,
+        where_col: str,
+        value: str,
+    ) -> list[dict]:
+        """Ensure columsn and atbles are never user-defined. If some select column exists in both tables, they must be
+        namespaced: i.e. <table_1 name>.column, <table_2 name>.column."""
+        some = select_set(sel_col)
+        query = text(
+            f"SELECT {some} FROM {table_1} JOIN {table_2} on {table_1}.{join_col_1} ="
+            f" {table_2}.{join_col_2} WHERE {where_col} = :val;"
+        )
+        res = await conn.execute(query, parameters={"val": value})
+        return all_rows(res)
+
+    @classmethod
     async def get_largest_where(
         cls,
         conn: AsyncConnection,

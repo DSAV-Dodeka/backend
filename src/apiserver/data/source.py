@@ -117,6 +117,7 @@ class Source:
         # Set lock
         await data.kv.set_startup_lock(self)
         if first_lock and recreate:
+            logger.debug("Dropping and recreating...")
             drop_create_database(config)
         await self.gateway.startup()
         if first_lock and recreate:

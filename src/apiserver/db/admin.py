@@ -1,6 +1,11 @@
+import logging
+
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
+from apiserver.define import LOGGER_NAME
+
+logger = logging.getLogger(LOGGER_NAME)
 
 # async def remove_test_dbs(admin_db: Database):
 #     query_databases = "SELECT datname FROM pg_database"
@@ -16,3 +21,4 @@ def drop_recreate_database(engine: Engine, db_name: str):
         connection.execute(drop_db)
         create_db = text(f"CREATE DATABASE {db_name}")
         connection.execute(create_db)
+        logger.info("Dropped and recreated database.")

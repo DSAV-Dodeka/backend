@@ -240,3 +240,8 @@ class LogoutRequest(BaseModel):
 class ScopeAddRequest(BaseModel):
     user_id: str
     scope: str
+
+
+class ScopeRemoveRequest(BaseModel):
+    user_id: str
+    scope: str

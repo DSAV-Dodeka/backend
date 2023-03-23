@@ -12,6 +12,7 @@ from apiserver.define.entities import (
     EasterEggData,
     UserScopeData,
     RawUserScopeData,
+    ScopeData,
 )
 from apiserver.utilities import usp_hex, replace_whitespace, de_usp_hex
 from apiserver.data.source import Source, DataError, NoDataError
@@ -75,6 +76,13 @@ def parse_userdata(user_dict: Optional[dict]) -> UserData:
     if user_dict is None:
         raise NoDataError("UserData does not exist.", "userdata_empty")
     return UserData.parse_obj(user_dict)
+
+
+def parse_scope_data(scope_dict: Optional[dict]) -> ScopeData:
+    if scope_dict is None:
+        raise NoDataError("ScopeData does not exist.", "scope_data_empty")
+
+    return ScopeData.parse_obj(scope_dict)
 
 
 def parse_birthday_data(birthday_dict: Optional[dict]) -> BirthdayData:
@@ -361,6 +369,47 @@ async def add_scope(dsrc: Source, conn: AsyncConnection, user_id: str, new_scope
     scope_values = final_scope.split(" ")
     if len(set(scope_values)) != len(scope_values):
         raise DataError("Scope already exists on scope", "scope_duplicate")
+
+
+async def remove_scope(
+    dsrc: Source, conn: AsyncConnection, user_id: str, old_scope: str
+):
+    # Space is added because we concatenate
+    scope_usph = usp_hex(old_scope)
+
+    try:
+        data_list: list[dict] = await select_some_where(
+            dsrc, conn, USER_TABLE, {SCOPES}, USER_ID, user_id
+        )
+    except DbError as e:
+        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
+
+    # With 'where USER_ID = user_id', the result should only contain one dict.
+    # Maybe in the future we can make the user_id attribute a list to bulk remove roles.
+    # For example a button to more easily change the board -> Remove role from old board
+    if len(data_list) != 1:
+        raise DataError(
+            "No scope removed, user most likely does not exist", "scope_not_removed"
+        )
+
+    scope_data = parse_scope_data(data_list[0])
+
+    scope_string = scope_data.scope
+    scope_list = scope_string.split(" ")
+
+    try:
+        scope_list.remove(scope_usph)
+    except ValueError as e:
+        raise DataError("Scope does not exists on scope", "scope_nonexistent")
+
+    result = " ".join([str(scope) for scope in scope_list])
+
+    try:
+        await update_column_by_unique(
+            dsrc, conn, USER_TABLE, SCOPES, result, USER_ID, user_id
+        )
+    except DbError as e:
+        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
 
 
 async def get_easter_eggs_count(dsrc: Source, conn: AsyncConnection, user_id: str):

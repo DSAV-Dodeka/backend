@@ -399,7 +399,7 @@ async def remove_scope(
 
     try:
         scope_list.remove(scope_usph)
-    except ValueError as e:
+    except ValueError:
         raise DataError("Scope does not exists on scope", "scope_nonexistent")
 
     result = " ".join([str(scope) for scope in scope_list])

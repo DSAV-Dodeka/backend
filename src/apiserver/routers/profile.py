@@ -5,7 +5,7 @@ from apiserver.define.entities import UserData
 from apiserver.auth.header import auth_header
 from apiserver.routers.helper import handle_auth
 
-import apiserver.data as data
+from apiserver import data
 
 router = APIRouter()
 

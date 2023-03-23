@@ -1,22 +1,21 @@
+import asyncio
 from contextlib import asynccontextmanager
 from datetime import date
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
-import asyncio
-
 import pytest
-import pytest
-from pytest_mock import MockerFixture
-
-from httpx import AsyncClient
 from fastapi import status, FastAPI
 from fastapi.testclient import TestClient
+from httpx import codes
+from pytest_mock import MockerFixture
 
-from apiserver.data import Source
-from apiserver.utilities.crypto import aes_from_symmetric
+from apiserver.app import State, safe_startup
+from apiserver.app import create_app
 from apiserver.auth.tokens import id_info_from_ud
+from apiserver.data import Source
 from apiserver.data.user import gen_id_name
+from apiserver.db.ops import DbOperations
 from apiserver.define import (
     FlowUser,
     AuthRequest,
@@ -24,8 +23,6 @@ from apiserver.define import (
     SavedRegisterState,
     frontend_client_id,
 )
-from apiserver.env import load_config
-from apiserver.utilities import utc_timestamp
 from apiserver.define.entities import (
     SavedRefreshToken,
     UserData,
@@ -33,9 +30,9 @@ from apiserver.define.entities import (
     PEMKey,
     A256GCMKey,
 )
-from apiserver.db.ops import DbOperations
-from apiserver.app import State, safe_startup
-from apiserver.app import create_app
+from apiserver.env import load_config
+from apiserver.utilities import utc_timestamp
+from apiserver.utilities.crypto import aes_from_symmetric
 
 
 @pytest.fixture(scope="module")
@@ -82,11 +79,11 @@ def test_client(app):
 def test_root(test_client):
     response = test_client.get("/")
 
-    assert response.status_code == 200
+    assert response.status_code == codes.OK
     assert response.json() == {"Hallo": "Atleten"}
 
 
-def test_incorrect_client_id(test_client: AsyncClient):
+def test_incorrect_client_id(test_client: TestClient):
     req = {
         "client_id": "incorrect",
         "grant_type": "",
@@ -96,11 +93,11 @@ def test_incorrect_client_id(test_client: AsyncClient):
         "refresh_token": "",
     }
     response = test_client.post("/oauth/token/", json=req)
-    assert response.status_code == 400
+    assert response.status_code == codes.BAD_REQUEST
     assert response.json()["error"] == "invalid_client"
 
 
-def test_incorrect_grant_type(test_client: AsyncClient):
+def test_incorrect_grant_type(test_client: TestClient):
     req = {
         "client_id": frontend_client_id,
         "grant_type": "wrong",
@@ -111,12 +108,12 @@ def test_incorrect_grant_type(test_client: AsyncClient):
     }
 
     response = test_client.post("/oauth/token/", json=req)
-    assert response.status_code == 400
+    assert response.status_code == codes.BAD_REQUEST
     res_j = response.json()
     assert res_j["error"] == "unsupported_grant_type"
 
 
-def test_empty_verifier(test_client: AsyncClient):
+def test_empty_verifier(test_client: TestClient):
     req = {
         "client_id": frontend_client_id,
         "grant_type": "authorization_code",
@@ -127,13 +124,13 @@ def test_empty_verifier(test_client: AsyncClient):
     }
 
     response = test_client.post("/oauth/token/", json=req)
-    assert response.status_code == 400
+    assert response.status_code == codes.BAD_REQUEST
     res_j = response.json()
     assert res_j["error"] == "invalid_request"
     assert res_j["debug_key"] == "incomplete_code"
 
 
-def test_missing_redirect(test_client: AsyncClient):
+def test_missing_redirect(test_client: TestClient):
     req = {
         "client_id": frontend_client_id,
         "grant_type": "authorization_code",
@@ -143,13 +140,13 @@ def test_missing_redirect(test_client: AsyncClient):
     }
 
     response = test_client.post("/oauth/token/", json=req)
-    assert response.status_code == 400
+    assert response.status_code == codes.BAD_REQUEST
     res_j = response.json()
     assert res_j["error"] == "invalid_request"
     assert res_j["debug_key"] == "incomplete_code"
 
 
-def test_empty_code(test_client: AsyncClient):
+def test_empty_code(test_client: TestClient):
     req = {
         "client_id": frontend_client_id,
         "grant_type": "authorization_code",
@@ -160,7 +157,7 @@ def test_empty_code(test_client: AsyncClient):
     }
 
     response = test_client.post("/oauth/token/", json=req)
-    assert response.status_code == 400
+    assert response.status_code == codes.BAD_REQUEST
     res_j = response.json()
     assert res_j["error"] == "invalid_request"
     assert res_j["debug_key"] == "incomplete_code"
@@ -328,7 +325,7 @@ def test_refresh(test_client, mocker: MockerFixture, mock_get_keys, fake_tokens)
     response = test_client.post("/oauth/token/", json=req)
     # res_j = response.json()
     # print(res_j)
-    assert response.status_code == 200
+    assert response.status_code == codes.OK
 
 
 def test_auth_code(test_client, mocker: MockerFixture, mock_get_keys):
@@ -368,7 +365,7 @@ def test_auth_code(test_client, mocker: MockerFixture, mock_get_keys):
     response = test_client.post("/oauth/token/", json=req)
     # res_j = response.json()
     # print(res_j)
-    assert response.status_code == 200
+    assert response.status_code == codes.OK
 
 
 mock_opq_setup = {
@@ -419,9 +416,7 @@ def flow_store(store_fix, mocker: MockerFixture):
     yield store_fix
 
 
-def test_start_register(
-        test_client, mocker: MockerFixture, register_state_store: dict
-):
+def test_start_register(test_client, mocker: MockerFixture, register_state_store: dict):
     t_hash = mocker.patch("apiserver.utilities.random_time_hash_hex")
     test_user_email = "start@loginer.nl"
     user_fn = "terst"
@@ -491,7 +486,7 @@ def test_start_register(
     # example message
     # GGnMPMzUGlKDTd0O4Yjw2S3sNrte4a1ybatXCr_-cRvyxVgYqutFLW3oUC5bmAczDl2DMzPRvmukMc-eKmSsZg
     assert res_j["auth_id"] == test_auth_id
-    assert response.status_code == 200
+    assert response.status_code == codes.OK
     saved_state = SavedRegisterState.parse_obj(register_state_store[test_auth_id])
     assert saved_state.user_id == test_user_id
 
@@ -507,7 +502,7 @@ def test_finish_register(test_client, mocker: MockerFixture):
     test_r_id = "5488f0d6b6534a15"
 
     # password 'clientele'
-    test_state = "n-aQ8YSkFMbIoTJPS46lBeO4X4v5KbQ52ztB9-xP8wg"
+    # test_state = "n-aQ8YSkFMbIoTJPS46lBeO4X4v5KbQ52ztB9-xP8wg"
 
     g_state = mocker.patch("apiserver.data.kv.get_register_state")
     g_ud_rid = mocker.patch("apiserver.data.user.get_userdata_by_register_id")
@@ -554,7 +549,7 @@ def test_finish_register(test_client, mocker: MockerFixture):
     # example password file
     # DnuCs40tbbcosYBGDyyMrrxNcq-wkzrjZTa65_pJ_QWONK6yr3F4DOLphiBzfmBcTO_icmKmbQps-iBcMiF5CQGnS6qC60tEmF-ffv9Thofssx_y5dixQrch3rCHg_9kMloGndIfuv7n8Sxu8toQD74KIBeOYQfuefdKXy6FGRbvUm4A06OVvkDFtNpkbLNIFkRh2h-m6ZDtMwhXLvBBClz77Jo_jzEYobRL3d-f7QrEiZhpehFlN0n5OecMiPFC-g
     # n-aQ8YSkFMbIoTJPS46lBeO4X4v5KbQ52ztB9-xP8wgeiTMc52ItDYFQshq4rfw5-WSoIqkg-H2BmoIFQbGBNwE_hacoe5llYjoExc93uFOc7OcGs8gqwbgJkWWp40rpC4IeS7WUzh-LwSn6fx2C5Vvx2m9T29U_bD0voDdEMROZi_rAJ1fc8nDvLtahFp91n6_YNkZH0P8289wpUdwfTcpC50gPaWel_TRH8zgK2ZddqO21ZV13d6HjRenRhbjWfw
-    assert response.status_code == 200
+    assert response.status_code == codes.OK
 
 
 def test_start_login(test_client, mocker: MockerFixture, state_store: dict):
@@ -621,7 +616,7 @@ def test_start_login(test_client, mocker: MockerFixture, state_store: dict):
     # ALBAwXBHmhQd_ifiKP8NODRQ3mOWG6m8-zFmmJVdUn9Sot6VDE6Gv1G7nwmXDdZ35lyzYoKlqW2Z4czRkngvu53aA66H-Ir4r2qu_Im6qb9fQ0vYxFxq7Ecc1hi90RUztLu5OrI-BtWHzzsBSU5RvKl07JITisMv3o8ae87vxFl8z7nQEAXpy5-ZTqTh9EvKdIEHETSea0BBTHyUQ5mZA55c3mXsVKEKpk0zRcuzyr8CdX8a-1pwdDkG40ZTwE_AxAXORiNsicTq-ZspiDwSkag9Exp-_2H-g2sY3s_8k_YUBIXo7B2i9YOZe5ygA3eU8EQKusWjqJ0lJ1tObZdgPFOTTsryGFcRFLvLE-QH83tV91S5n3Rc9nChlSlAghwVjW5vH1hE9OrtzViSSFSd_oQxpl3t8JXXI6v15qWdYTA
     # example state
     # NxOxeb4oKwirncPlH1SlCbE_md8lH767HsgGv57G1l3aMinOwsi9BDWQW054L-iqZh9le2YqQ4LI10kCbfh4ijIV36HPrGDZg1ObZKx4U1Mgg-5wnLKZx-qtUukSWgON8a0fkN7_C_Jazl8oZxKC4fXBbJj1NKKn2xZM0yrezur9PbOOAi8m9g4WTgKcEwyHGXz41dey2QetWH2GnK-w540e3mdi5vP9q7NPGXOJ-I6TIqvU9tp5B3539LnwwTE1
-    assert response.status_code == 200
+    assert response.status_code == codes.OK
     assert test_auth_id in state_store.keys()
     assert res_j["auth_id"] == test_auth_id
     print(state_store[test_auth_id])
@@ -667,7 +662,7 @@ def test_finish_login(test_client, mocker: MockerFixture, flow_store: dict):
     flow_user = FlowUser.parse_obj(flow_store[session_key])
     assert flow_user.flow_id == flow_id
     assert flow_user.scope == fake_token_scope
-    assert response.status_code == 200
+    assert response.status_code == codes.OK
 
 
 @pytest.fixture
@@ -682,7 +677,7 @@ def req_store(store_fix, mocker: MockerFixture):
     yield store_fix
 
 
-def test_oauth_authorize(test_client: AsyncClient, req_store):
+def test_oauth_authorize(test_client: TestClient, req_store):
     req = {
         "response_type": "code",
         "client_id": "dodekaweb_client",
@@ -698,7 +693,7 @@ def test_oauth_authorize(test_client: AsyncClient, req_store):
     assert response.status_code == status.HTTP_303_SEE_OTHER
 
 
-def test_oauth_callback(test_client: AsyncClient, mocker: MockerFixture):
+def test_oauth_callback(test_client: TestClient, mocker: MockerFixture):
     test_flow_id = "1cd7afeca7eb420201ea69e06d9085ae2b8dd84adaae8d27c89746aab75d1dff"
     test_code = "zySjwa5CpddMzSydqKOvXZHQrtRK-VD83aOPMAB_1gEVxSscBywmS8XxZze3letN9whXUiRfSEfGel9e-5XGgQ"
 

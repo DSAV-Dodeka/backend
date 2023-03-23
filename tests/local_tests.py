@@ -1,23 +1,22 @@
-from pathlib import Path
 import asyncio
+from pathlib import Path
 
-import random
+import opaquepy as opq
 import pytest
 import pytest_asyncio
 from faker import Faker
-
 from httpx import AsyncClient
-import opaquepy as opq
+from httpx import codes
 
+import apiserver.utilities as util
+from apiserver import data
+from apiserver.auth.tokens import create_tokens, finish_tokens
+from apiserver.auth.tokens_data import get_keys
+from apiserver.data import Source
 from apiserver.data.user import new_userdata
 from apiserver.define.entities import SignedUp
-from apiserver.utilities.crypto import encrypt_dict, aes_from_symmetric, decrypt_dict
 from apiserver.env import load_config
-import apiserver.utilities as util
-from apiserver.auth.tokens import create_tokens, finish_tokens
-import apiserver.data as data
-from apiserver.data import Source
-from apiserver.auth.tokens_data import get_keys
+from apiserver.utilities.crypto import encrypt_dict, aes_from_symmetric, decrypt_dict
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -44,7 +43,7 @@ async def local_client():
 async def test_root(local_client):
     response = await local_client.get("/")
 
-    assert response.status_code == 200
+    assert response.status_code == codes.OK
     assert response.json() == {"Hallo": "Atleten"}
 
 
@@ -206,7 +205,7 @@ async def test_fill_signedup():
     # key_set: JWKSet = JWKSet.parse_obj(key_set_dict)
     runtime_key = aes_from_symmetric("AT_av0v62Z3hQH50VYwKBks1-VSukK9xDN_Ur34mdZ4")
     reencrypted_key_set = encrypt_dict(runtime_key, key_set_dict)
-    x = decrypt_dict(runtime_key, reencrypted_key_set)
+    decrypt_dict(runtime_key, reencrypted_key_set)
     print(reencrypted_key_set)
 
 

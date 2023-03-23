@@ -29,7 +29,7 @@ def test_usp_hex():
     )
     assert util.de_usp_hex(util.usp_hex(test_str)) == test_str
     # The bottom looks weird due to RLO character
-    test_str_2 = "~858!.̷̨͇̙͇̜̦̤̗̟̫͖͙͚̗̤͇̹̟̦͕͓̱̤̻̠̯͇̯͓̩͈͕̣̙̙͕̻̣̟̲̘͕͇‮̙͇̘͔̜͓̳̳̙̠̖͚̘̙̆̐͂̉́͋̆̃͒̑̉͒̑̽͗́́̾̊̌̊͑̒̾*$*~~f081"
+    test_str_2 = "~858!.̷̨͇̙͇̜̦̤̗̟̫͖͙͚̗̤͇̹̟̦͕͓̱̤̻̠̯͇̯͓̩͈͕̣̙̙͕̻̣̟̲̘͕͇‮̙͇̘͔̜͓̳̳̙̠̖͚̘̙̆̐͂̉́͋̆̃͒̑̉͒̑̽͗́́̾̊̌̊͑̒̾*$*~~f081"  # noqa: PLE2502
     assert util.de_usp_hex(util.usp_hex(test_str_2)) == test_str_2
 
 
@@ -39,7 +39,7 @@ def test_check_white_space():
 
 
 def test_check_white_space_unicode():
-    test_str = " \nasdf \t as\t  "
+    test_str = " \nasdf \t as\t  "  # noqa: RUF001
     replaced = util.replace_whitespace(test_str)
     print(replaced)
     assert replaced == "asdfas"

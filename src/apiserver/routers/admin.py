@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 from apiserver.define import LOGGER_NAME
 from apiserver.define.entities import UserData, UserScopeData
 from apiserver.define.reqres import ScopeAddRequest, ErrorResponse, ScopeRemoveRequest
-import apiserver.data as data
+from apiserver import data
 from apiserver.data import Source, DataError, NoDataError
 from apiserver.auth.header import auth_header
 from apiserver.routers.helper import require_admin
@@ -63,7 +63,7 @@ async def add_scope(
         except NoDataError as e:
             logger.debug(e.message)
             raise ErrorResponse(
-                400, err_type=f"invalid_scope_add", err_desc=e.message, debug_key=e.key
+                400, err_type="invalid_scope_add", err_desc=e.message, debug_key=e.key
             )
         except DataError as e:
             if e.key == "scope_duplicate":
@@ -111,7 +111,7 @@ async def remove_scope(
             logger.debug(e.message)
             raise ErrorResponse(
                 400,
-                err_type=f"invalid_scope_remove",
+                err_type="invalid_scope_remove",
                 err_desc=e.message,
                 debug_key=e.key,
             )

@@ -1,8 +1,5 @@
-import secrets
-
-import pytest
-
 import opaquepy.lib as opq
+import pytest
 
 import apiserver.utilities as util
 

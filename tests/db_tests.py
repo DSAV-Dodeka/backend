@@ -13,7 +13,7 @@ from apiserver.utilities import random_time_hash_hex
 
 @pytest.fixture(scope="module")
 def event_loop():
-    """ Necessary for async tests with module-scoped fixtures """
+    """Necessary for async tests with module-scoped fixtures"""
     loop = asyncio.get_event_loop()
     yield loop
     loop.close()
@@ -22,13 +22,16 @@ def event_loop():
 @pytest.fixture(scope="module", autouse=True)
 @pytest.mark.asyncio
 async def test_db():
-    """ Set up a database for testing, is run once each time this module is run. """
+    """Set up a database for testing, is run once each time this module is run."""
 
     config = load_config()
 
     # Random name that cannot be duplicated
-    test_db_name = 'test' + random_time_hash_hex()
-    db_cluster = f"postgresql://{config.DB_USER}:{config.DB_PASS}@{config.DB_HOST}:{config.DB_PORT}"
+    test_db_name = "test" + random_time_hash_hex()
+    db_cluster = (
+        f"postgresql://{config.DB_USER}:{config.DB_PASS}@{config.DB_HOST}:"
+        f"{config.DB_PORT}"
+    )
     admin_db_url = f"{db_cluster}/{config.DB_NAME_ADMIN}"
     # Connect to admin database that allows us to create new database
     database = Database(admin_db_url)
@@ -68,5 +71,5 @@ async def test_dbops():
 @pytest.mark.asyncio
 async def test_check_dbs(test_db: Database):
     query_fetch = "SELECT datname FROM pg_database"
-    fetch_res = await test_db.fetch_all(query_fetch)
+    await test_db.fetch_all(query_fetch)
     # print([dict(res) for res in fetch_res])

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Any, AsyncIterator, Callable
+from typing import Optional, Any, AsyncIterator
 
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncConnection
 

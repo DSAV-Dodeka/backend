@@ -7,7 +7,7 @@ from fastapi import APIRouter, status, Response, Request, Security
 from fastapi.responses import RedirectResponse
 from pydantic import ValidationError
 
-import apiserver.data as data
+from apiserver import data
 import apiserver.utilities as util
 from apiserver.auth.header import auth_header
 from apiserver.auth.tokens import InvalidRefresh
@@ -113,8 +113,6 @@ async def finish_login(login_finish: FinishLogin, request: Request):
 
     await data.kv.store_flow_user(dsrc, session_key, flow_user)
 
-    return None
-
 
 @router.get("/oauth/authorize/", status_code=303)
 async def oauth_endpoint(
@@ -167,13 +165,80 @@ async def oauth_finish(flow_id: str, code: str, response: Response, request: Req
     except NoDataError as e:
         logger.debug(e.message)
         reason = "Expired or missing auth request"
-        raise ErrorResponse(400, err_type=f"invalid_oauth_callback", err_desc=reason)
+        raise ErrorResponse(400, err_type="invalid_oauth_callback", err_desc=reason)
 
     params = {"code": code, "state": auth_request.state}
 
     redirect = f"{auth_request.redirect_uri}?{urlencode(params)}"
 
     return RedirectResponse(redirect, status_code=status.HTTP_303_SEE_OTHER)
+
+
+def authorization_validate(token_request: TokenRequest):
+    # This grant type requires other body parameters than the refresh token grant type
+    try:
+        assert token_request.redirect_uri
+        assert token_request.code_verifier
+        assert token_request.code
+    except AssertionError:
+        reason = "redirect_uri, code and code_verifier must be defined"
+        logger.debug(reason)
+        raise ErrorResponse(
+            400,
+            err_type="invalid_request",
+            err_desc=reason,
+            debug_key="incomplete_code",
+        )
+
+
+def auth_request_validate(token_request: TokenRequest, auth_request: AuthRequest):
+    if token_request.client_id != auth_request.client_id:
+        logger.debug(
+            f"Request redirect {token_request.client_id} does not match"
+            f" {auth_request.client_id}"
+        )
+        raise ErrorResponse(
+            400, err_type="invalid_request", err_desc="Incorrect client_id"
+        )
+    if token_request.redirect_uri != auth_request.redirect_uri:
+        logger.debug(
+            f"Request redirect {token_request.redirect_uri} does not match"
+            f" {auth_request.redirect_uri}"
+        )
+        raise ErrorResponse(
+            400, err_type="invalid_request", err_desc="Incorrect redirect_uri"
+        )
+
+    try:
+        # We only support S256, so don't have to check the code_challenge_method
+        computed_challenge_hash = hashlib.sha256(
+            token_request.code_verifier.encode("ascii")
+        ).digest()
+        # Remove "=" as we do not store those
+        challenge = util.enc_b64url(computed_challenge_hash)
+    except UnicodeError:
+        reason = "Incorrect code_verifier format"
+        logger.debug(f"{reason}: {token_request.code_verifier}")
+        raise ErrorResponse(400, err_type="invalid_request", err_desc=reason)
+    if challenge != auth_request.code_challenge:
+        logger.debug(
+            f"Computed code challenge {challenge} does not match saved"
+            f" {auth_request.code_challenge}"
+        )
+        raise ErrorResponse(
+            400, err_type="invalid_grant", err_desc="Incorrect code_challenge"
+        )
+
+
+def refresh_validate(token_request: TokenRequest):
+    try:
+        assert token_request.refresh_token is not None
+    except AssertionError as e:
+        error_desc = "refresh_token must be defined"
+        logger.debug(f"{str(e)}: {error_desc}")
+        raise ErrorResponse(
+            400, err_type="invalid_grant", err_desc="refresh_token must be defined"
+        )
 
 
 @router.post("/oauth/token/", response_model=TokenResponse)
@@ -195,21 +260,10 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
     # Two available grant types, 'authorization_code' (after login) and 'refresh_token' (when logged in)
     # The first requires a code provided by the OPAQUE login flow
     if token_request.grant_type == "authorization_code":
-        logger.debug(f"authorization_code request")
-        # This grant type requires other body parameters than the refresh token grant type
-        try:
-            assert token_request.redirect_uri
-            assert token_request.code_verifier
-            assert token_request.code
-        except AssertionError:
-            reason = "redirect_uri, code and code_verifier must be defined"
-            logger.debug(reason)
-            raise ErrorResponse(
-                400,
-                err_type="invalid_request",
-                err_desc=reason,
-                debug_key="incomplete_code",
-            )
+        logger.debug("authorization_code request")
+        # Validate if it contains everything necessary and get flow_user and auth_request
+        authorization_validate(token_request)
+
         try:
             flow_user = await data.kv.pop_flow_user(dsrc, token_request.code)
         except NoDataError as e:
@@ -225,44 +279,10 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
             # TODO maybe check auth time just in case
             logger.debug(e.message)
             reason = "Expired or missing auth request"
-            raise ErrorResponse(400, err_type=f"invalid_grant", err_desc=reason)
+            raise ErrorResponse(400, err_type="invalid_grant", err_desc=reason)
 
-        if token_request.client_id != auth_request.client_id:
-            logger.debug(
-                f"Request redirect {token_request.client_id} does not match"
-                f" {auth_request.client_id}"
-            )
-            raise ErrorResponse(
-                400, err_type="invalid_request", err_desc="Incorrect client_id"
-            )
-        if token_request.redirect_uri != auth_request.redirect_uri:
-            logger.debug(
-                f"Request redirect {token_request.redirect_uri} does not match"
-                f" {auth_request.redirect_uri}"
-            )
-            raise ErrorResponse(
-                400, err_type="invalid_request", err_desc="Incorrect redirect_uri"
-            )
-
-        try:
-            # We only support S256, so don't have to check the code_challenge_method
-            computed_challenge_hash = hashlib.sha256(
-                token_request.code_verifier.encode("ascii")
-            ).digest()
-            # Remove "=" as we do not store those
-            challenge = util.enc_b64url(computed_challenge_hash)
-        except UnicodeError:
-            reason = "Incorrect code_verifier format"
-            logger.debug(f"{reason}: {token_request.code_verifier}")
-            raise ErrorResponse(400, err_type=f"invalid_request", err_desc=reason)
-        if challenge != auth_request.code_challenge:
-            logger.debug(
-                f"Computed code challenge {challenge} does not match saved"
-                f" {auth_request.code_challenge}"
-            )
-            raise ErrorResponse(
-                400, err_type="invalid_grant", err_desc="Incorrect code_challenge"
-            )
+        # Validate if auth_request corresponds to token_request
+        auth_request_validate(token_request, auth_request)
 
         auth_time = flow_user.auth_time
         id_nonce = auth_request.nonce
@@ -274,15 +294,8 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
         )
 
     elif token_request.grant_type == "refresh_token":
-        logger.debug(f"refresh_token request")
-        try:
-            assert token_request.refresh_token is not None
-        except AssertionError as e:
-            error_desc = "refresh_token must be defined"
-            logger.debug(f"{str(e)}: {error_desc}")
-            raise ErrorResponse(
-                400, err_type="invalid_grant", err_desc="refresh_token must be defined"
-            )
+        logger.debug("refresh_token request")
+        refresh_validate(token_request)
 
         old_refresh = token_request.refresh_token
 
@@ -307,7 +320,7 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
             "Only 'refresh_token' and 'authorization_code' grant types are available."
         )
         logger.debug(f"{reason} Used: {token_request.grant_type}")
-        raise ErrorResponse(400, err_type=f"unsupported_grant_type", err_desc=reason)
+        raise ErrorResponse(400, err_type="unsupported_grant_type", err_desc=reason)
 
     logger.info(f"Token request granted for {token_user_id}")
     return TokenResponse(

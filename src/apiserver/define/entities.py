@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Optional, Literal
 
-from pydantic import BaseModel, validator, conint, root_validator
+from pydantic import BaseModel, validator
 
 
 class User(BaseModel):

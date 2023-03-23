@@ -60,6 +60,9 @@ def usp_hex(unicode_str: str) -> str:
     return anp_base64url_str
 
 
+HEX_PER_BYTE = 2
+
+
 def de_usp_hex(usp_hex_str: str) -> str:
     """Reverse of usp_hex, returns the utf-8 string."""
     b_str = b""
@@ -71,7 +74,7 @@ def de_usp_hex(usp_hex_str: str) -> str:
             hexing = True
         elif hexing:
             hex_chars += c
-            if len(hex_chars) == 2:
+            if len(hex_chars) == HEX_PER_BYTE:
                 b_str += bytes.fromhex(hex_chars)
                 hex_chars = ""
                 hexing = False
@@ -168,7 +171,8 @@ def dec_dict(encoded: bytes) -> dict[str, Any]:
 
 
 def when_modified(p: Path) -> int:
-    """Calculates the timestamp of most recently modified file in all files, subdirectories in a path.
+    """Calculates the timestamp of most recently modified file in all files,
+    subdirectories in a path.
     """
     return max([int(f.stat().st_mtime) if f.is_file() else 0 for f in p.rglob("*")])
 

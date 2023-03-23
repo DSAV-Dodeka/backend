@@ -12,13 +12,16 @@ from apiserver.db import KEY_TABLE, JWK_TABLE
 from apiserver.db.model import JWK_VALUE, KEY_ID, KEY_ISSUED, KEY_USE
 
 
+MINIMUM_KEYS = 2
+
+
 async def get_newest_symmetric(dsrc: Source, conn: AsyncConnection) -> tuple[str, str]:
     results = await get_largest_where(
         dsrc, conn, KEY_TABLE, {KEY_ID}, KEY_USE, "enc", KEY_ISSUED, 2
     )
-    if len(results) < 2:
+    if len(results) < MINIMUM_KEYS:
         raise DataError(
-            message=f"There should be at least two symmetric keys.",
+            message="There should be at least two symmetric keys.",
             key="missing_symmetric_keys",
         )
     return results[0], results[1]
@@ -57,5 +60,5 @@ async def update_jwk(
 async def get_jwk(dsrc: Source, conn: AsyncConnection) -> str:
     row_dict = await retrieve_by_id(dsrc, conn, JWK_TABLE, 1)
     if row_dict is None:
-        raise DataError(message=f"JWK Set missing.", key="missing_jwks")
+        raise DataError(message="JWK Set missing.", key="missing_jwks")
     return JWKSRow.parse_obj(row_dict).encrypted_value

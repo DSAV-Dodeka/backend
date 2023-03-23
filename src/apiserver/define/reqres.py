@@ -42,6 +42,11 @@ def error_response_handler(request: Request, e: ErrorResponse) -> JSONResponse:
     return error_response_return(e.status_code, e.err_type, e.err_desc, e.debug_key)
 
 
+MAX_STR_LEN = 100
+CODE_CHALLENGE_MAX = 128
+CODE_CHALLENGE_MIN = 43
+
+
 class AuthRequest(BaseModel):
     response_type: str
     client_id: str
@@ -68,13 +73,15 @@ class AuthRequest(BaseModel):
 
     @validator("state")
     def check_state(cls, v: str) -> str:
-        assert len(v) < 100, "State must not be too long!"
+        assert len(v) < MAX_STR_LEN, "State must not be too long!"
         return v
 
     # possibly replace for performance
     @validator("code_challenge")
     def check_challenge(cls, v: str) -> str:
-        assert 128 >= len(v) >= 43, "Length must be 128 >= len >= 43!"
+        assert (
+            CODE_CHALLENGE_MAX >= len(v) >= CODE_CHALLENGE_MIN
+        ), "Length must be 128 >= len >= 43!"
         for c in v:
             assert c.isalnum() or c in "-._~", "Invalid character in challenge!"
         return v
@@ -86,7 +93,7 @@ class AuthRequest(BaseModel):
 
     @validator("nonce")
     def check_nonce(cls, v: str) -> str:
-        assert len(v) < 100, "Nonce must not be too long!"
+        assert len(v) < MAX_STR_LEN, "Nonce must not be too long!"
         return v
 
 

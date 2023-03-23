@@ -1,12 +1,8 @@
-import logging
-from email.message import EmailMessage
-from email.headerregistry import Address
-from email.utils import make_msgid
-from typing import Optional, Any
-
 import smtplib
-import ssl
+from email.headerregistry import Address
+from email.message import EmailMessage
 from email.utils import formatdate
+from typing import Optional, Any
 
 from jinja2 import Environment
 
@@ -16,7 +12,6 @@ from apiserver.define import (
     smtp_server,
     smtp_port,
     loc_dict,
-    LOGGER_NAME,
 )
 
 __all__ = ["send_email", "send_email_vars"]
@@ -99,7 +94,6 @@ def send_email_vars(
 
         msg.add_alternative(html, subtype="html")
 
-    context = ssl.create_default_context()
     logger.debug(f"{l_smtp_server} {l_smtp_port}")
 
     try:

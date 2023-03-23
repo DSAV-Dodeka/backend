@@ -1,7 +1,6 @@
 from typing import Any, Optional, Union
 
 from redis.asyncio import Redis
-from redis.asyncio.client import Pipeline
 from redis.exceptions import ResponseError
 
 __all__ = [

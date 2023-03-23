@@ -1,11 +1,9 @@
-import contextlib
-from typing import Optional, Any, AsyncIterator, Callable
+from typing import Optional, Any, AsyncIterator
 
 from sqlalchemy import text
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncTransaction, AsyncConnection
-from sqlalchemy.sql.elements import TextClause
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncConnection
 
 from apiserver.db.ops import DbOperations, DbError
 

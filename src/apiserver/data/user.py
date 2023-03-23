@@ -11,7 +11,8 @@ from apiserver.define.entities import (
     BirthdayData,
     EasterEggData,
     UserScopeData,
-    RawUserScopeData, ScopeData,
+    RawUserScopeData,
+    ScopeData,
 )
 from apiserver.utilities import usp_hex, replace_whitespace, de_usp_hex
 from apiserver.data.source import Source, DataError, NoDataError
@@ -370,7 +371,9 @@ async def add_scope(dsrc: Source, conn: AsyncConnection, user_id: str, new_scope
         raise DataError("Scope already exists on scope", "scope_duplicate")
 
 
-async def remove_scope(dsrc: Source, conn: AsyncConnection, user_id: str, old_scope: str):
+async def remove_scope(
+    dsrc: Source, conn: AsyncConnection, user_id: str, old_scope: str
+):
     # Space is added because we concatenate
     scope_usph = usp_hex(old_scope)
 
@@ -399,17 +402,11 @@ async def remove_scope(dsrc: Source, conn: AsyncConnection, user_id: str, old_sc
     except ValueError as e:
         raise DataError("Scope does not exists on scope", "scope_nonexistent")
 
-    result = ' '.join([str(scope) for scope in scope_list])
+    result = " ".join([str(scope) for scope in scope_list])
 
     try:
         await update_column_by_unique(
-            dsrc,
-            conn,
-            USER_TABLE,
-            SCOPES,
-            result,
-            USER_ID,
-            user_id
+            dsrc, conn, USER_TABLE, SCOPES, result, USER_ID, user_id
         )
     except DbError as e:
         raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)

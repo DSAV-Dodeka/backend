@@ -27,7 +27,7 @@ async def get_users(request: Request, authorization: str = Security(auth_header)
 
 @router.get("/admin/scopes/all/", response_model=list[UserScopeData])
 async def get_users_scopes(
-        request: Request, authorization: str = Security(auth_header)
+    request: Request, authorization: str = Security(auth_header)
 ):
     dsrc: Source = request.app.state.dsrc
     await require_admin(authorization, dsrc)
@@ -38,9 +38,9 @@ async def get_users_scopes(
 
 @router.post("/admin/scopes/add/")
 async def add_scope(
-        scope_request: ScopeAddRequest,
-        request: Request,
-        authorization: str = Security(auth_header),
+    scope_request: ScopeAddRequest,
+    request: Request,
+    authorization: str = Security(auth_header),
 ):
     dsrc: Source = request.app.state.dsrc
     await require_admin(authorization, dsrc)
@@ -85,9 +85,9 @@ async def add_scope(
 
 @router.post("/admin/scopes/remove/")
 async def remove_scope(
-        scope_request: ScopeRemoveRequest,
-        request: Request,
-        authorization: str = Security(auth_header),
+    scope_request: ScopeRemoveRequest,
+    request: Request,
+    authorization: str = Security(auth_header),
 ):
     dsrc: Source = request.app.state.dsrc
     await require_admin(authorization, dsrc)
@@ -110,7 +110,10 @@ async def remove_scope(
         except NoDataError as e:
             logger.debug(e.message)
             raise ErrorResponse(
-                400, err_type=f"invalid_scope_remove", err_desc=e.message, debug_key=e.key
+                400,
+                err_type=f"invalid_scope_remove",
+                err_desc=e.message,
+                debug_key=e.key,
             )
         except DataError as e:
             if e.key == "scope_nonexistent":

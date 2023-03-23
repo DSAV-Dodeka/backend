@@ -1,24 +1,31 @@
 import logging
 from contextlib import asynccontextmanager
 from logging import Logger
-from pathlib import Path
 from typing import TypedDict
 
-from uvicorn.logging import DefaultFormatter
-
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware import Middleware
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.routing import Mount
-from fastapi.exceptions import RequestValidationError
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.types import ASGIApp
+from uvicorn.logging import DefaultFormatter
 
-# We rely upon database parameters being set at import time, which is fragile, but the only way to easily re-use it
-# in the app state
-# In most cases this is where all environment variables and other configuration is loaded
+import apiserver.routers.admin as admin
+import apiserver.routers.auth as auth
 
+# Router modules, each router has its own API endpoints
+import apiserver.routers.basic as basic
+import apiserver.routers.onboard as onboard
+import apiserver.routers.profile as profile
+import apiserver.routers.update as update
+import apiserver.routers.users as users
+import apiserver.utilities as util
+
+# Import types separately to make it clear in what line the module is first loaded and its top-level run
+from apiserver.data import Source
 from apiserver.define import (
     res_path,
     ErrorResponse,
@@ -29,29 +36,10 @@ from apiserver.define import (
 )
 from apiserver.env import load_config, Config
 
-import apiserver.utilities as util
 
-# Import types separately to make it clear in what line the module is first loaded and its top-level run
-from apiserver.data import Source
-
-# Router modules, each router has its own API endpoints
-import apiserver.routers.basic as basic
-import apiserver.routers.auth as auth
-import apiserver.routers.profile as profile
-import apiserver.routers.onboard as onboard
-import apiserver.routers.update as update
-import apiserver.routers.admin as admin
-import apiserver.routers.users as users
-
-
-class LoggerMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app: ASGIApp, mw_logger: Logger):
-        super().__init__(app)
-        self.mw_logger = mw_logger
-
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint):
-        # self.mw_logger.debug(request.headers)
-        return await call_next(request)
+# We rely upon database parameters being set at import time, which is fragile, but the only way to easily re-use it
+# in the app state
+# In most cases this is where all environment variables and other configuration is loaded
 
 
 def init_logging(logger_name: str, log_level: int):
@@ -66,6 +54,19 @@ def init_logging(logger_name: str, log_level: int):
     # logger_init.addHandler(handler)
     logger_init.addHandler(str_handler)
     return logger_init
+
+
+logger = init_logging(LOGGER_NAME, logging.DEBUG)
+
+
+class LoggerMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app: ASGIApp, mw_logger: Logger):
+        super().__init__(app)
+        self.mw_logger = mw_logger
+
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint):
+        # self.mw_logger.debug(request.headers)
+        return await call_next(request)
 
 
 class State(TypedDict):
@@ -83,9 +84,16 @@ async def lifespan(app: FastAPI) -> State:
     await app_shutdown(dsrc)
 
 
-def create_app(app_lifespan) -> tuple[FastAPI, Logger]:
-    new_logger = init_logging(LOGGER_NAME, logging.DEBUG)
+def validation_exception_handler(request, exc: RequestValidationError):
+    # Also show debug if there is an error in the request
+    exc_str = str(exc)
+    logger.debug(str(exc))
+    return error_response_return(
+        err_status_code=400, err_type="bad_request_validation", err_desc=exc_str
+    )
 
+
+def create_app(app_lifespan) -> tuple[FastAPI, Logger]:
     # TODO change all origins
     origins = [
         "*",
@@ -106,11 +114,17 @@ def create_app(app_lifespan) -> tuple[FastAPI, Logger]:
             allow_methods=["*"],
             allow_headers=["Authorization"],
         ),
-        Middleware(LoggerMiddleware, mw_logger=new_logger),
+        Middleware(LoggerMiddleware, mw_logger=logger),
     ]
 
+    exception_handlers = {RequestValidationError: validation_exception_handler}
+
     new_app = FastAPI(
-        title="apiserver", routes=routes, middleware=middleware, lifespan=app_lifespan
+        title="apiserver",
+        routes=routes,
+        middleware=middleware,
+        lifespan=app_lifespan,
+        exception_handlers=exception_handlers,
     )
     new_app.include_router(basic.router)
     new_app.include_router(auth.router)
@@ -122,14 +136,9 @@ def create_app(app_lifespan) -> tuple[FastAPI, Logger]:
     new_app.add_exception_handler(ErrorResponse, handler=error_response_handler)
     # TODO change logger behavior in tests
 
-    new_logger.info("Starting...")
+    logger.info("Starting...")
 
-    return new_app, new_logger
-
-
-# Running FastAPI relies on the fact the app is created at module top-level
-# Seperating the logic in a function also allows it to be called elsewhere, like tests
-apiserver_app, logger = create_app(lifespan)
+    return new_app
 
 
 # Should always be manually run in tests
@@ -173,13 +182,3 @@ async def app_startup(dsrc_inst: Source):
 
 async def app_shutdown(dsrc_inst: Source):
     await dsrc_inst.shutdown()
-
-
-@apiserver_app.exception_handler(RequestValidationError)
-def validation_exception_handler(request, exc: RequestValidationError):
-    # Also show debug if there is an error in the request
-    exc_str = str(exc)
-    logger.debug(str(exc))
-    return error_response_return(
-        err_status_code=400, err_type="bad_request_validation", err_desc=exc_str
-    )

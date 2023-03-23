@@ -363,6 +363,56 @@ async def add_scope(dsrc: Source, conn: AsyncConnection, user_id: str, new_scope
         raise DataError("Scope already exists on scope", "scope_duplicate")
 
 
+async def remove_scope(dsrc: Source, conn: AsyncConnection, user_id: str, old_scope: str):
+    """Whitespace (according to Unicode standard) is removed and scope is added as usph
+    """
+    wo_whitespace = replace_whitespace(old_scope)
+    # Space is added because we concatenate
+    scope_usph = usp_hex(wo_whitespace)
+
+    try:
+        data_list: list = await select_some_where(
+            dsrc, conn, USER_TABLE, {SCOPES}, USER_ID, user_id
+        )
+    except DbError as e:
+        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
+
+    if data_list is None:
+        raise NoDataError(
+            "No scope removed, user most likely does not exist", "scope_not_removed"
+        )
+
+    scope_dict = data_list[0]
+    scope_string = scope_dict['scope']
+
+    scope_list = scope_string.split(" ")
+
+    print(scope_usph)
+    print(scope_list)
+
+    try:
+        scope_list.remove(scope_usph)
+    except ValueError as e:
+        raise DataError("Scope does not exists on scope", "scope_nonexistent")
+
+    result = ' '.join([str(scope) for scope in scope_list])
+
+    print(result)
+
+    try:
+        await update_column_by_unique(
+            dsrc,
+            conn,
+            USER_TABLE,
+            SCOPES,
+            result,
+            USER_ID,
+            user_id
+        )
+    except DbError as e:
+        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
+
+
 async def get_easter_eggs_count(dsrc: Source, conn: AsyncConnection, user_id: str):
     easter_eggs_found = await select_some_where(
         dsrc,

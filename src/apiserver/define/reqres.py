@@ -13,11 +13,11 @@ class ErrorResponse(Exception):
     """
 
     def __init__(
-        self,
-        status_code: int,
-        err_type: str,
-        err_desc: str,
-        debug_key: Optional[str] = None,
+            self,
+            status_code: int,
+            err_type: str,
+            err_desc: str,
+            debug_key: Optional[str] = None,
     ):
         self.status_code = status_code
         self.err_type = err_type
@@ -26,10 +26,10 @@ class ErrorResponse(Exception):
 
 
 def error_response_return(
-    err_status_code: int,
-    err_type: str,
-    err_desc: str,
-    err_debug_key: Optional[str] = None,
+        err_status_code: int,
+        err_type: str,
+        err_desc: str,
+        err_debug_key: Optional[str] = None,
 ) -> JSONResponse:
     content = {"error": err_type, "error_description": err_desc}
     if err_debug_key is not None:
@@ -238,5 +238,10 @@ class LogoutRequest(BaseModel):
 
 
 class ScopeAddRequest(BaseModel):
+    user_id: str
+    scope: str
+
+
+class ScopeRemoveRequest(BaseModel):
     user_id: str
     scope: str

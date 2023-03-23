@@ -11,7 +11,7 @@ from apiserver.define.entities import (
     BirthdayData,
     EasterEggData,
     UserScopeData,
-    RawUserScopeData,
+    RawUserScopeData, ScopeData,
 )
 from apiserver.utilities import usp_hex, replace_whitespace, de_usp_hex
 from apiserver.data.source import Source, DataError, NoDataError
@@ -75,6 +75,13 @@ def parse_userdata(user_dict: Optional[dict]) -> UserData:
     if user_dict is None:
         raise NoDataError("UserData does not exist.", "userdata_empty")
     return UserData.parse_obj(user_dict)
+
+
+def parse_scope_data(scope_dict: Optional[dict]) -> ScopeData:
+    if scope_dict is None:
+        raise NoDataError("ScopeData does not exist.", "scope_data_empty")
+
+    return ScopeData.parse_obj(scope_dict)
 
 
 def parse_birthday_data(birthday_dict: Optional[dict]) -> BirthdayData:
@@ -364,31 +371,28 @@ async def add_scope(dsrc: Source, conn: AsyncConnection, user_id: str, new_scope
 
 
 async def remove_scope(dsrc: Source, conn: AsyncConnection, user_id: str, old_scope: str):
-    """Whitespace (according to Unicode standard) is removed and scope is added as usph
-    """
-    wo_whitespace = replace_whitespace(old_scope)
     # Space is added because we concatenate
-    scope_usph = usp_hex(wo_whitespace)
+    scope_usph = usp_hex(old_scope)
 
     try:
-        data_list: list = await select_some_where(
+        data_list: list[dict] = await select_some_where(
             dsrc, conn, USER_TABLE, {SCOPES}, USER_ID, user_id
         )
     except DbError as e:
         raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
 
-    if data_list is None:
-        raise NoDataError(
+    # With 'where USER_ID = user_id', the result should only contain one dict.
+    # Maybe in the future we can make the user_id attribute a list to bulk remove roles.
+    # For example a button to more easily change the board -> Remove role from old board
+    if len(data_list) != 1:
+        raise DataError(
             "No scope removed, user most likely does not exist", "scope_not_removed"
         )
 
-    scope_dict = data_list[0]
-    scope_string = scope_dict['scope']
+    scope_data = parse_scope_data(data_list[0])
 
+    scope_string = scope_data.scope
     scope_list = scope_string.split(" ")
-
-    print(scope_usph)
-    print(scope_list)
 
     try:
         scope_list.remove(scope_usph)
@@ -396,8 +400,6 @@ async def remove_scope(dsrc: Source, conn: AsyncConnection, user_id: str, old_sc
         raise DataError("Scope does not exists on scope", "scope_nonexistent")
 
     result = ' '.join([str(scope) for scope in scope_list])
-
-    print(result)
 
     try:
         await update_column_by_unique(

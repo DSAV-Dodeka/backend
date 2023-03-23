@@ -116,6 +116,10 @@ class UserData(BaseModel):
             return value
 
 
+class ScopeData(BaseModel):
+    scope: str
+
+
 class BirthdayData(BaseModel):
     firstname: str
     lastname: str

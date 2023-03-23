@@ -93,12 +93,12 @@ async def remove_scope(
     await require_admin(authorization, dsrc)
 
     if "admin" in scope_request.scope or "member" in scope_request.scope:
-        reason = "Cannot add fundamental roles of 'member' or 'admin'."
+        reason = "Cannot remove fundamental roles of 'member' or 'admin'."
         raise ErrorResponse(
             400,
-            err_type="invalid_scope_add",
+            err_type="invalid_scope_remove",
             err_desc=reason,
-            debug_key="scope_admin_member_add",
+            debug_key="scope_admin_member_remove",
         )
 
     async with data.get_conn(dsrc) as conn:
@@ -110,7 +110,7 @@ async def remove_scope(
         except NoDataError as e:
             logger.debug(e.message)
             raise ErrorResponse(
-                400, err_type=f"invalid_scope_add", err_desc=e.message, debug_key=e.key
+                400, err_type=f"invalid_scope_remove", err_desc=e.message, debug_key=e.key
             )
         except DataError as e:
             if e.key == "scope_nonexistent":

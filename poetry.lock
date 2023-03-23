@@ -1415,7 +1415,7 @@ idna2008 = ["idna"]
 name = "ruff"
 version = "0.0.259"
 description = "An extremely fast Python linter, written in Rust."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -1836,4 +1836,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11, <3.12"
-content-hash = "66b61faac93ef161fcb56a34afdf84bde941773e007dd53f8520ec5ed70cd28c"
+content-hash = "8ec025cef6a3f9b614469de067a168d182da56ee98f5fcd89f94caa91b851cac"

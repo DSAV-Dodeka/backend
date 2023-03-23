@@ -23,6 +23,7 @@ typing-extensions = "^4.5.0"
 psycopg2-binary = "^2.9.2"
 regex = "^2022.10.31"
 
+
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
 
@@ -43,6 +44,7 @@ mypy = "^1.0.1"
 types-redis = "^4.3.21"
 # sqlalchemy-stubs = "^0.4"
 faker = "^15.3.3"
+ruff = "^0.0.259"
 
 [tool.black]
 target-version = ['py311']
@@ -79,3 +81,18 @@ ignore_errors = true
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+
+select = ["F", "PL", "E", "W", "RUF"]
+# We ignore too-many-arguments and line length, as black fixes line length for code
+ignore = ["PLR0913", "E501"]
+ignore-init-module-imports = true
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F403"]
+
+[tool.ruff.pycodestyle]
+# We allow docs and comments to be long
+max-doc-length = 120
+

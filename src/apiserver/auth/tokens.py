@@ -92,6 +92,9 @@ def decrypt_old_refresh(
     return old_refresh
 
 
+FIRST_SIGN_TIME = 1640690242
+
+
 def verify_refresh(
     saved_refresh: SavedRefreshToken, old_refresh: RefreshToken, utc_now: int
 ) -> None:
@@ -100,7 +103,7 @@ def verify_refresh(
         or saved_refresh.family_id != old_refresh.family_id
     ):
         raise InvalidRefresh("Bad comparison")
-    elif saved_refresh.iat > utc_now or saved_refresh.iat < 1640690242:
+    elif saved_refresh.iat > utc_now or saved_refresh.iat < FIRST_SIGN_TIME:
         # sanity check
         raise InvalidRefresh
     elif utc_now > saved_refresh.exp + grace_period:
@@ -149,7 +152,8 @@ def build_refresh_token(
     new_nonce: str,
     aesgcm: AESGCM,
 ):
-    # The actual refresh token is an encrypted JSON dictionary containing the id, family_id and nonce
+    # The actual refresh token is an encrypted JSON dictionary containing the id,
+    # family_id and nonce
     refresh = RefreshToken(
         id=new_refresh_id, family_id=saved_refresh.family_id, nonce=new_nonce
     )
@@ -195,7 +199,8 @@ def create_tokens(
     # Encoded tokens to store for refresh token
     access_val_encoded = encode_token_dict(access_token_data.dict())
     id_token_val_encoded = encode_token_dict(id_token_data.dict())
-    # Each authentication creates a refresh token of a particular family, which has a static lifetime
+    # Each authentication creates a refresh token of a particular family, which
+    # has a static lifetime
     family_id = secrets.token_urlsafe(16)
     refresh_save = SavedRefreshToken(
         family_id=family_id,

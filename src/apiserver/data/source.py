@@ -21,7 +21,7 @@ from apiserver.db.admin import drop_recreate_database
 from apiserver.db.ops import DbOperations
 from apiserver.db.use import PostgresOperations
 from apiserver.env import Config
-import apiserver.data as data
+from apiserver import data
 
 __all__ = ["Source", "DataError", "Gateway", "DbOperations", "NoDataError"]
 
@@ -72,15 +72,15 @@ class Gateway:
             await self.kv.ping()
         except redis.ConnectionError:
             raise SourceError(
-                f"Unable to ping Redis server! Please check if it is running."
+                "Unable to ping Redis server! Please check if it is running."
             )
         try:
             async with self.engine.connect() as conn:
                 _ = conn.info
         except SQLAlchemyError:
             raise SourceError(
-                f"Unable to connect to DB with SQLAlchemy! Please check if it is"
-                f" running."
+                "Unable to connect to DB with SQLAlchemy! Please check if it is"
+                " running."
             )
 
     async def disconnect(self):
@@ -130,6 +130,9 @@ class Source:
         await self.gateway.shutdown()
 
 
+MAX_WAIT_INDEX = 15
+
+
 async def waiting_lock(dsrc: Source):
     await sleep(random() + 0.1)
     was_locked = await data.kv.startup_is_locked(dsrc)
@@ -139,8 +142,8 @@ async def waiting_lock(dsrc: Source):
         was_locked = True
         await sleep(1)
         i += 1
-        if i > 15:
-            raise SourceError(f"Waited too long during startup!")
+        if i > MAX_WAIT_INDEX:
+            raise SourceError("Waited too long during startup!")
     return was_locked is None
 
 

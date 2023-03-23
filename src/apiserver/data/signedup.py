@@ -2,7 +2,6 @@ from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from apiserver.define.entities import SignedUp
 from apiserver.data.source import Source, DataError
 from apiserver.data.use import (
     retrieve_by_unique,
@@ -14,14 +13,11 @@ from apiserver.data.use import (
 )
 from apiserver.db import SIGNEDUP_TABLE
 from apiserver.db.model import (
-    SU_FIRSTNAME,
-    SU_LASTNAME,
     SU_EMAIL,
-    SU_PHONE,
     SU_CONFIRMED,
 )
 from apiserver.db.ops import DbError
-
+from apiserver.define.entities import SignedUp
 
 __all__ = [
     "get_signedup_by_email",

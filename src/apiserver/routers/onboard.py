@@ -6,7 +6,7 @@ import opaquepy as opq
 from anyio import sleep
 from fastapi import APIRouter, Security, BackgroundTasks, Request
 
-import apiserver.data as data
+from apiserver import data
 import apiserver.utilities as util
 from apiserver.auth.authentication import send_register_start
 from apiserver.auth.header import auth_header
@@ -18,7 +18,7 @@ from apiserver.define import (
     credentials_url,
     loc_dict,
 )
-from apiserver.define.entities import SignedUp, UserData
+from apiserver.define.entities import SignedUp
 from apiserver.define.reqres import (
     SignupRequest,
     SignupConfirm,
@@ -117,8 +117,6 @@ async def init_signup(
         # Prevent client enumeration
         await sleep(0.00002)
 
-    return None
-
 
 @router.post("/onboard/email/")
 async def email_confirm(confirm_req: EmailConfirm, request: Request):
@@ -155,8 +153,6 @@ async def email_confirm(confirm_req: EmailConfirm, request: Request):
         else:
             logger.debug(e.message)
             raise e
-
-    return None
 
 
 @router.get("/onboard/get/", response_model=list[SignedUp])

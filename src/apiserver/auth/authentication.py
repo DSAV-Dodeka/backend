@@ -10,7 +10,7 @@ from apiserver.define import (
     FlowUser,
 )
 import apiserver.utilities as util
-import apiserver.data as data
+from apiserver import data
 from apiserver.data import Source, NoDataError
 from apiserver.routers.helper import require_user
 

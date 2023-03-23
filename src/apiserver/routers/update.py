@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 import opaquepy as opq
 from fastapi import APIRouter, Request, Security, BackgroundTasks
 
-import apiserver.data as data
+from apiserver import data
 import apiserver.utilities as util
 from apiserver.auth import authentication
 from apiserver.auth.authentication import send_register_start
@@ -262,7 +262,7 @@ async def delete_account(
 
 
 @router.post("/update/delete/check/")
-async def delete_account(delete_check: DeleteAccountCheck, request: Request):
+async def delete_account_check(delete_check: DeleteAccountCheck, request: Request):
     dsrc: Source = request.state.dsrc
 
     flow_user = await authentication.check_password(dsrc, delete_check.code)

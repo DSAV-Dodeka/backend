@@ -39,3 +39,7 @@ jobs:
       working-directory: ${{ github.workspace }}/authpage
     - name: Pytest
       run: poetry run pytest tests/app_test.py
+    - name: Black
+      run: poetry run black src tests
+    - name: Ruff
+      run: poetry run ruff src tests

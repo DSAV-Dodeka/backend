@@ -1,22 +1,16 @@
-from pathlib import Path
 import asyncio
 
 import pytest
 import pytest_asyncio
-
 from httpx import AsyncClient
 
-from apiserver.resources import project_path
 from apiserver.env import load_config
-import apiserver.utilities as util
-from apiserver.auth.tokens import create_tokens, finish_tokens
-from apiserver.data import Source
-from apiserver.auth.tokens_data import get_keys
+from apiserver.resources import project_path
 
 
 @pytest.fixture(scope="module")
 def event_loop():
-    """ Necessary for async tests with module-scoped fixtures """
+    """Necessary for async tests with module-scoped fixtures"""
     loop = asyncio.get_event_loop()
     yield loop
     loop.close()
@@ -40,7 +34,7 @@ async def test_onboard_signup(local_client: AsyncClient):
         "firstname": "mr",
         "lastname": "person",
         "email": "comcom@dsavdodeka.nl",
-        "phone": "+31068243"
+        "phone": "+31068243",
     }
     response = await local_client.post("/onboard/signup/", json=req)
     print(response.json())

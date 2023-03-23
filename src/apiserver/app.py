@@ -13,18 +13,19 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.types import ASGIApp
 from uvicorn.logging import DefaultFormatter
 
-import apiserver.routers.admin as admin
-import apiserver.routers.auth as auth
+from apiserver.routers import admin
+from apiserver.routers import auth
 
 # Router modules, each router has its own API endpoints
-import apiserver.routers.basic as basic
-import apiserver.routers.onboard as onboard
-import apiserver.routers.profile as profile
-import apiserver.routers.update as update
-import apiserver.routers.users as users
+from apiserver.routers import basic
+from apiserver.routers import onboard
+from apiserver.routers import profile
+from apiserver.routers import update
+from apiserver.routers import users
 import apiserver.utilities as util
 
-# Import types separately to make it clear in what line the module is first loaded and its top-level run
+# Import types separately to make it clear in what line the module is first loaded and
+# its top-level run
 from apiserver.data import Source
 from apiserver.define import (
     res_path,
@@ -37,9 +38,10 @@ from apiserver.define import (
 from apiserver.env import load_config, Config
 
 
-# We rely upon database parameters being set at import time, which is fragile, but the only way to easily re-use it
-# in the app state
-# In most cases this is where all environment variables and other configuration is loaded
+# We rely upon database parameters being set at import time, which is fragile,
+# but the only way to easily re-use it in the app state
+# In most cases this is where all environment variables and other configuration
+# is loaded
 
 
 def init_logging(logger_name: str, log_level: int):
@@ -150,10 +152,12 @@ def safe_startup(dsrc_inst: Source, config: Config):
 
 
 async def app_startup(dsrc_inst: Source):
-    # Only startup events that do not work in all environments or require other processes to run belong here
-    # Safe startup events with variables that depend on the environment, but should always be run, can be included in
-    # the 'safe_startup()' above
-    # Safe startup events that do not depend on the environment, can be included in the 'create_app()' above
+    # Only startup events that do not work in all environments or require other
+    # processes to run belong here
+    # Safe startup events with variables that depend on the environment, but should
+    # always be run, can be included in the 'safe_startup()' above
+    # Safe startup events that do not depend on the environment, can be included in
+    # the 'create_app()' above
     config = load_config()
     if config.APISERVER_ENV not in allowed_envs:
         raise RuntimeError(

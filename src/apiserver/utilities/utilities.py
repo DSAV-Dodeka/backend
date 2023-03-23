@@ -177,5 +177,12 @@ def when_modified(p: Path) -> int:
     return max([int(f.stat().st_mtime) if f.is_file() else 0 for f in p.rglob("*")])
 
 
-def replace_whitespace(string: str):
-    return re.sub(r"[\s\p{Z}]+", "", string)
+def strip_edge(string: str):
+    string.rstrip()
+    # \s is all whitespace
+    # \p{Z} is all unicode whitespace
+    # \p{C} is all kinds of nasty control and zero-width characters
+    match_string = r"[\s\p{Z}\p{C}]+"
+    # ^ start of string
+    # $ end of string
+    return re.sub(f"^{match_string}|{match_string}$", "", string)

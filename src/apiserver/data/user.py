@@ -14,7 +14,7 @@ from apiserver.define.entities import (
     RawUserScopeData,
     ScopeData,
 )
-from apiserver.utilities import usp_hex, replace_whitespace, de_usp_hex
+from apiserver.utilities import usp_hex, strip_edge, de_usp_hex
 from apiserver.data.source import Source, DataError, NoDataError
 from apiserver.data.use import (
     retrieve_by_unique,
@@ -350,9 +350,11 @@ async def delete_user(dsrc: Source, conn: AsyncConnection, user_id: str):
 async def add_scope(dsrc: Source, conn: AsyncConnection, user_id: str, new_scope: str):
     """Whitespace (according to Unicode standard) is removed and scope is added as usph
     """
-    wo_whitespace = replace_whitespace(new_scope)
+    # We strip whitespace and other nasty characters from start and end
+    stripped_scope = strip_edge(new_scope)
     # Space is added because we concatenate
-    scope_usph = " " + usp_hex(wo_whitespace)
+    # We usp_hex to make weird Unicode characters visible easily
+    scope_usph = " " + usp_hex(stripped_scope)
 
     try:
         final_scope: str = await concat_column_by_unique_returning(

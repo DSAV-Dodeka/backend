@@ -89,7 +89,7 @@ async def remove_scope(
     request: Request,
     authorization: str = Security(auth_header),
 ):
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
 
     if "admin" in scope_request.scope or "member" in scope_request.scope:

@@ -34,12 +34,12 @@ def test_usp_hex():
 
 
 def test_check_white_space():
-    test_str = "  s  \tas f\nabc"
-    assert util.replace_whitespace(test_str) == "sasfabc"
+    test_str = "  s  \tas f\nabc "
+    assert util.strip_edge(test_str) == "s  \tas f\nabc"
 
 
 def test_check_white_space_unicode():
-    test_str = " \nasdf \t as\t  "  # noqa: RUF001
-    replaced = util.replace_whitespace(test_str)
+    test_str = " \nasdf \n\t as\t  "
+    replaced = util.strip_edge(test_str)
     print(replaced)
-    assert replaced == "asdfas"
+    assert replaced == "asdf \n\t as"

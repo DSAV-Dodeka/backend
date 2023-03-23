@@ -39,7 +39,7 @@ def test_check_white_space():
 
 
 def test_check_white_space_unicode():
-    test_str = " \nasdf \n\t as\t  "
+    test_str = " \nasdf \n\t as\t  "  # noqa: RUF001
     replaced = util.strip_edge(test_str)
     print(replaced)
     assert replaced == "asdf \n\t as"

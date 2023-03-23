@@ -85,7 +85,7 @@ async def init_signup(
     """Signup is initiated by leaving basic information. User is redirected to AV'40 page, where they will actually
     sign up. Board can see who has signed up this way. There might not be full correspondence between exact signup and
     what is provided to AV'40. So there is a manual check."""
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
     if not signup.email.islower():
         signup.email = signup.email.lower()
 
@@ -122,7 +122,7 @@ async def init_signup(
 
 @router.post("/onboard/email/")
 async def email_confirm(confirm_req: EmailConfirm, request: Request):
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
 
     try:
         signup = await data.kv.get_email_confirmation(dsrc, confirm_req.confirm_id)
@@ -161,7 +161,7 @@ async def email_confirm(confirm_req: EmailConfirm, request: Request):
 
 @router.get("/onboard/get/", response_model=list[SignedUp])
 async def get_signedup(request: Request, authorization: str = Security(auth_header)):
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
     async with data.get_conn(dsrc) as conn:
         signed_up = await data.signedup.get_all_signedup(dsrc, conn)
@@ -176,7 +176,7 @@ async def confirm_join(
     authorization: str = Security(auth_header),
 ):
     """Board confirms data from AV`40 signup through admin tool."""
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
     signup_email = signup.email.lower()
 
@@ -234,7 +234,7 @@ async def confirm_join(
 async def start_register(register_start: RegisterRequest, request: Request):
     """First step of OPAQUE registration, requires username and client message generated in first client registration
     step."""
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
     try:
         async with data.get_conn(dsrc) as conn:
             ud = await data.user.get_userdata_by_register_id(
@@ -290,7 +290,7 @@ async def start_register(register_start: RegisterRequest, request: Request):
 async def finish_register(register_finish: FinishRequest, request: Request):
     """At this point, we have info saved under 'userdata', 'users' and short-term storage as SavedRegisterState. All
     this data must match up for there to be a successful registration."""
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
     try:
         saved_state = await data.kv.get_register_state(dsrc, register_finish.auth_id)
     except NoDataError as e:

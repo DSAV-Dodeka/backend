@@ -85,7 +85,7 @@ async def request_password_change(
     background_tasks: BackgroundTasks,
 ):
     """Initiated from authpage. Sends out e-mail with reset link."""
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
     async with data.get_conn(dsrc) as conn:
         ud = await data.user.get_userdata_by_email(dsrc, conn, change_pass.email)
     logger.debug(f"Reset requested - is_registered={ud.registered}")
@@ -104,7 +104,7 @@ async def request_password_change(
 
 @router.post("/update/password/start/")
 async def update_password_start(update_pass: UpdatePasswordRequest, request: Request):
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
 
     try:
         stored_email = await data.kv.pop_string(dsrc, update_pass.flow_id)
@@ -133,7 +133,7 @@ async def update_password_start(update_pass: UpdatePasswordRequest, request: Req
 
 @router.post("/update/password/finish/")
 async def update_password_finish(update_finish: UpdatePasswordFinish, request: Request):
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
 
     try:
         saved_state = await data.kv.get_register_state(dsrc, update_finish.auth_id)
@@ -161,7 +161,7 @@ async def update_email(
     background_tasks: BackgroundTasks,
     authorization: str = Security(auth_header),
 ):
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
     user_id = new_email.user_id
     await require_user(authorization, dsrc, user_id)
 
@@ -197,7 +197,7 @@ async def update_email(
 
 @router.post("/update/email/check/")
 async def update_email_check(update_check: UpdateEmailCheck, request: Request):
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
 
     flow_user = await authentication.check_password(dsrc, update_check.code)
 
@@ -229,7 +229,7 @@ async def delete_account(
     request: Request,
     authorization: str = Security(auth_header),
 ):
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
     user_id = delete_acc.user_id
     await require_user(authorization, dsrc, user_id)
 
@@ -263,7 +263,7 @@ async def delete_account(
 
 @router.post("/update/delete/check/")
 async def delete_account(delete_check: DeleteAccountCheck, request: Request):
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
 
     flow_user = await authentication.check_password(dsrc, delete_check.code)
 

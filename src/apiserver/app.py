@@ -1,6 +1,8 @@
 import logging
+from contextlib import asynccontextmanager
 from logging import Logger
 from pathlib import Path
+from typing import TypedDict
 
 from uvicorn.logging import DefaultFormatter
 
@@ -66,7 +68,22 @@ def init_logging(logger_name: str, log_level: int):
     return logger_init
 
 
-def create_app() -> tuple[FastAPI, Logger]:
+class State(TypedDict):
+    dsrc: Source
+    config: Config
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> State:
+    logger.info("Running startup...")
+    dsrc = Source()
+    config = await app_startup(dsrc)
+    yield {"config": config, "dsrc": dsrc}
+    logger.info("Running shutdown...")
+    await app_shutdown(dsrc)
+
+
+def create_app(app_lifespan) -> tuple[FastAPI, Logger]:
     new_logger = init_logging(LOGGER_NAME, logging.DEBUG)
 
     # TODO change all origins
@@ -92,7 +109,9 @@ def create_app() -> tuple[FastAPI, Logger]:
         Middleware(LoggerMiddleware, mw_logger=new_logger),
     ]
 
-    new_app = FastAPI(title="apiserver", routes=routes, middleware=middleware)
+    new_app = FastAPI(
+        title="apiserver", routes=routes, middleware=middleware, lifespan=app_lifespan
+    )
     new_app.include_router(basic.router)
     new_app.include_router(auth.router)
     new_app.include_router(profile.router)
@@ -105,20 +124,16 @@ def create_app() -> tuple[FastAPI, Logger]:
 
     new_logger.info("Starting...")
 
-    dsrc = Source()
-    new_app.state.dsrc = dsrc
-
     return new_app, new_logger
 
 
 # Running FastAPI relies on the fact the app is created at module top-level
 # Seperating the logic in a function also allows it to be called elsewhere, like tests
-apiserver_app, logger = create_app()
+apiserver_app, logger = create_app(lifespan)
 
 
 # Should always be manually run in tests
-def safe_startup(this_app: FastAPI, dsrc_inst: Source, config: Config):
-    this_app.state.config = config
+def safe_startup(dsrc_inst: Source, config: Config):
     dsrc_inst.init_gateway(config)
 
 
@@ -148,31 +163,16 @@ async def app_startup(dsrc_inst: Source):
                 " please run `npm run build` in /authpage directory."
             )
 
-    safe_startup(apiserver_app, dsrc_inst, config)
+    safe_startup(dsrc_inst, config)
     # Db connections, etc.
     do_recreate = config.RECREATE == "yes"
     await dsrc_inst.startup(config, do_recreate)
 
+    return config
+
 
 async def app_shutdown(dsrc_inst: Source):
     await dsrc_inst.shutdown()
-
-
-# Hooks defined by FastAPI to run on startup and shutdown
-
-
-@apiserver_app.on_event("startup")
-async def startup():
-    dsrc: Source = apiserver_app.state.dsrc
-    logger.info("Running startup...")
-    await app_startup(dsrc)
-
-
-@apiserver_app.on_event("shutdown")
-async def shutdown():
-    dsrc: Source = apiserver_app.state.dsrc
-    logger.info("Running shutdown...")
-    await app_shutdown(dsrc)
 
 
 @apiserver_app.exception_handler(RequestValidationError)

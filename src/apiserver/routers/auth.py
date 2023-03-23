@@ -39,7 +39,7 @@ logger = logging.getLogger(LOGGER_NAME)
 async def start_login(login_start: PasswordRequest, request: Request):
     """Login can be initiated in 2 different flows: the first is the OAuth 2 flow, the second is a simple password
     check flow."""
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
     login_mail = login_start.email.lower()
 
     scope = "none"
@@ -80,7 +80,7 @@ async def start_login(login_start: PasswordRequest, request: Request):
 
 @router.post("/login/finish/")
 async def finish_login(login_finish: FinishLogin, request: Request):
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
     finish_email = login_finish.email.lower()
     try:
         saved_state = await data.kv.get_state(dsrc, login_finish.auth_id)
@@ -127,7 +127,7 @@ async def oauth_endpoint(
     nonce: str,
     request: Request,
 ):
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
     try:
         auth_request = AuthRequest(
             response_type=response_type,
@@ -161,7 +161,7 @@ async def oauth_finish(flow_id: str, code: str, response: Response, request: Req
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
 
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
     try:
         auth_request = await data.kv.get_auth_request(dsrc, flow_id)
     except NoDataError as e:
@@ -182,7 +182,7 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
 
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
     # We only allow requests meant to be sent from our front end
     # This does not heighten security, only so other clients do not accidentally make requests here
     if token_request.client_id != frontend_client_id:
@@ -324,12 +324,12 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
 async def get_users(
     user: str, request: Request, authorization: str = Security(auth_header)
 ):
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
     acc = await require_user(authorization, dsrc, user)
     return acc.exp
 
 
 @router.post("/logout/delete/")
 async def delete_token(logout: LogoutRequest, request: Request):
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
     await delete_refresh(dsrc, logout.refresh_token)

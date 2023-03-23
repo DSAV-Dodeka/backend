@@ -13,7 +13,7 @@ router = APIRouter()
 async def get_user_birthdays(
     request: Request, authorization: str = Security(auth_header)
 ):
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
     await require_member(authorization, dsrc)
 
     async with data.get_conn(dsrc) as conn:
@@ -25,7 +25,7 @@ async def get_user_birthdays(
 async def get_user_rankings(
     rank_type, request: Request, authorization: str = Security(auth_header)
 ):
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
     await require_member(authorization, dsrc)
 
     if rank_type != "training" and rank_type != "points" and rank_type != "pr":
@@ -45,7 +45,7 @@ async def get_user_rankings(
 async def get_user_easter_eggs_count(
     request: Request, authorization: str = Security(auth_header)
 ):
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
     acc = await handle_auth(authorization, dsrc)
 
     async with data.get_conn(dsrc) as conn:
@@ -61,7 +61,7 @@ async def get_user_easter_eggs_count(
 async def user_easter_egg_found(
     easter_egg_id, request: Request, authorization: str = Security(auth_header)
 ):
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
     acc = await handle_auth(authorization, dsrc)
 
     async with data.get_conn(dsrc) as conn:

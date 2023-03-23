@@ -18,7 +18,7 @@ logger = logging.getLogger(LOGGER_NAME)
 
 @router.get("/admin/users/", response_model=list[UserData])
 async def get_users(request: Request, authorization: str = Security(auth_header)):
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
     async with data.get_conn(dsrc) as conn:
         user_data = await data.user.get_all_userdata(dsrc, conn)
@@ -29,7 +29,7 @@ async def get_users(request: Request, authorization: str = Security(auth_header)
 async def get_users_scopes(
     request: Request, authorization: str = Security(auth_header)
 ):
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
     async with data.get_conn(dsrc) as conn:
         user_scope_data = await data.user.get_all_users_scopes(dsrc, conn)
@@ -42,7 +42,7 @@ async def add_scope(
     request: Request,
     authorization: str = Security(auth_header),
 ):
-    dsrc: Source = request.app.state.dsrc
+    dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
 
     if "admin" in scope_request.scope or "member" in scope_request.scope:

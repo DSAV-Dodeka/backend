@@ -10,6 +10,7 @@ from pytest_mock import MockerFixture
 
 from httpx import AsyncClient
 from fastapi import status
+from fastapi.testclient import TestClient
 
 from apiserver.utilities.crypto import aes_from_symmetric
 from apiserver.auth.tokens import id_info_from_ud

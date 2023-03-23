@@ -1,14 +1,19 @@
+from typing import Annotated
+
+from fastapi.params import Security
 from fastapi.security.api_key import APIKeyHeader
 
-from apiserver.define.entities import AccessToken
 from apiserver import data
-from apiserver.data import Source, NoDataError
 from apiserver.auth.tokens import verify_access_token, BadVerification, get_kid
+from apiserver.data import Source, NoDataError
+from apiserver.define.entities import AccessToken
 
 scheme = "Bearer"
 
 # TODO modify APIKeyHeader for better status code
 auth_header = APIKeyHeader(name="Authorization", scheme_name=scheme, auto_error=True)
+
+Authorization = Annotated[str, Security(auth_header)]
 
 
 class BadAuth(Exception):

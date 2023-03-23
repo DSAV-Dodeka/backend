@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Security, Request
+from fastapi import APIRouter, Request
 
 from apiserver import data
-from apiserver.auth.header import auth_header
+from apiserver.auth.header import Authorization
 from apiserver.data import Source
 from apiserver.define import ErrorResponse
 from apiserver.define.entities import BirthdayData
@@ -11,9 +11,7 @@ router = APIRouter()
 
 
 @router.get("/members/birthdays/", response_model=list[BirthdayData])
-async def get_user_birthdays(
-    request: Request, authorization: str = Security(auth_header)
-):
+async def get_user_birthdays(request: Request, authorization: Authorization):
     dsrc: Source = request.state.dsrc
     await require_member(authorization, dsrc)
 
@@ -23,9 +21,7 @@ async def get_user_birthdays(
 
 
 @router.get("/members/rankings/{rank_type}")
-async def get_user_rankings(
-    rank_type, request: Request, authorization: str = Security(auth_header)
-):
+async def get_user_rankings(rank_type, request: Request, authorization: Authorization):
     dsrc: Source = request.state.dsrc
     await require_member(authorization, dsrc)
 
@@ -43,9 +39,7 @@ async def get_user_rankings(
 
 
 @router.get("/members/easter_eggs/get/count")
-async def get_user_easter_eggs_count(
-    request: Request, authorization: str = Security(auth_header)
-):
+async def get_user_easter_eggs_count(request: Request, authorization: Authorization):
     dsrc: Source = request.state.dsrc
     acc = await handle_auth(authorization, dsrc)
 
@@ -60,7 +54,7 @@ async def get_user_easter_eggs_count(
 
 @router.get("/members/easter_eggs/found/{easter_egg_id}")
 async def user_easter_egg_found(
-    easter_egg_id, request: Request, authorization: str = Security(auth_header)
+    easter_egg_id, request: Request, authorization: Authorization
 ):
     dsrc: Source = request.state.dsrc
     acc = await handle_auth(authorization, dsrc)

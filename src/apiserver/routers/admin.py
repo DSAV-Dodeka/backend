@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Security, Request
+from fastapi import APIRouter, Request
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from apiserver.define import LOGGER_NAME
@@ -8,7 +8,7 @@ from apiserver.define.entities import UserData, UserScopeData
 from apiserver.define.reqres import ScopeAddRequest, ErrorResponse, ScopeRemoveRequest
 from apiserver import data
 from apiserver.data import Source, DataError, NoDataError
-from apiserver.auth.header import auth_header
+from apiserver.auth.header import Authorization
 from apiserver.routers.helper import require_admin
 
 router = APIRouter()
@@ -17,7 +17,7 @@ logger = logging.getLogger(LOGGER_NAME)
 
 
 @router.get("/admin/users/", response_model=list[UserData])
-async def get_users(request: Request, authorization: str = Security(auth_header)):
+async def get_users(request: Request, authorization: Authorization):
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
     async with data.get_conn(dsrc) as conn:
@@ -26,9 +26,7 @@ async def get_users(request: Request, authorization: str = Security(auth_header)
 
 
 @router.get("/admin/scopes/all/", response_model=list[UserScopeData])
-async def get_users_scopes(
-    request: Request, authorization: str = Security(auth_header)
-):
+async def get_users_scopes(request: Request, authorization: Authorization):
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
     async with data.get_conn(dsrc) as conn:
@@ -40,7 +38,7 @@ async def get_users_scopes(
 async def add_scope(
     scope_request: ScopeAddRequest,
     request: Request,
-    authorization: str = Security(auth_header),
+    authorization: Authorization,
 ):
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
@@ -87,7 +85,7 @@ async def add_scope(
 async def remove_scope(
     scope_request: ScopeRemoveRequest,
     request: Request,
-    authorization: str = Security(auth_header),
+    authorization: Authorization,
 ):
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)

@@ -2,13 +2,13 @@ import logging
 from urllib.parse import urlencode
 
 import opaquepy as opq
-from fastapi import APIRouter, Request, Security, BackgroundTasks
+from fastapi import APIRouter, Request, BackgroundTasks
 
 from apiserver import data
 import apiserver.utilities as util
 from apiserver.auth import authentication
 from apiserver.auth.authentication import send_register_start
-from apiserver.auth.header import auth_header
+from apiserver.auth.header import Authorization
 from apiserver.data import Source, NoDataError, DataError
 from apiserver.define import (
     LOGGER_NAME,
@@ -159,7 +159,7 @@ async def update_email(
     new_email: UpdateEmail,
     request: Request,
     background_tasks: BackgroundTasks,
-    authorization: str = Security(auth_header),
+    authorization: Authorization,
 ):
     dsrc: Source = request.state.dsrc
     user_id = new_email.user_id
@@ -227,7 +227,7 @@ async def update_email_check(update_check: UpdateEmailCheck, request: Request):
 async def delete_account(
     delete_acc: DeleteAccount,
     request: Request,
-    authorization: str = Security(auth_header),
+    authorization: Authorization,
 ):
     dsrc: Source = request.state.dsrc
     user_id = delete_acc.user_id

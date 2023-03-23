@@ -4,12 +4,12 @@ from urllib.parse import urlencode
 
 import opaquepy as opq
 from anyio import sleep
-from fastapi import APIRouter, Security, BackgroundTasks, Request
+from fastapi import APIRouter, BackgroundTasks, Request
 
 from apiserver import data
 import apiserver.utilities as util
 from apiserver.auth.authentication import send_register_start
-from apiserver.auth.header import auth_header
+from apiserver.auth.header import Authorization
 from apiserver.data import DataError, Source, NoDataError
 from apiserver.define import (
     ErrorResponse,
@@ -156,7 +156,7 @@ async def email_confirm(confirm_req: EmailConfirm, request: Request):
 
 
 @router.get("/onboard/get/", response_model=list[SignedUp])
-async def get_signedup(request: Request, authorization: str = Security(auth_header)):
+async def get_signedup(request: Request, authorization: Authorization):
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
     async with data.get_conn(dsrc) as conn:
@@ -169,7 +169,7 @@ async def confirm_join(
     signup: SignupConfirm,
     request: Request,
     background_tasks: BackgroundTasks,
-    authorization: str = Security(auth_header),
+    authorization: Authorization,
 ):
     """Board confirms data from AV`40 signup through admin tool."""
     dsrc: Source = request.state.dsrc

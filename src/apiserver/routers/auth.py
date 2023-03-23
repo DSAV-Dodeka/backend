@@ -3,13 +3,13 @@ import logging
 from urllib.parse import urlencode
 
 import opaquepy as opq
-from fastapi import APIRouter, status, Response, Request, Security
+from fastapi import APIRouter, status, Response, Request
 from fastapi.responses import RedirectResponse
 from pydantic import ValidationError
 
-from apiserver import data
 import apiserver.utilities as util
-from apiserver.auth.header import auth_header
+from apiserver import data
+from apiserver.auth.header import Authorization
 from apiserver.auth.tokens import InvalidRefresh
 from apiserver.auth.tokens_data import do_refresh, new_token, delete_refresh
 from apiserver.data import NoDataError, Source
@@ -334,9 +334,7 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
 
 
 @router.get("/oauth/ping/")
-async def get_users(
-    user: str, request: Request, authorization: str = Security(auth_header)
-):
+async def get_users(user: str, request: Request, authorization: Authorization):
     dsrc: Source = request.state.dsrc
     acc = await require_user(authorization, dsrc, user)
     return acc.exp

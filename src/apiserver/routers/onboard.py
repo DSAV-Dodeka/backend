@@ -90,8 +90,8 @@ async def init_signup(
         signup.email = signup.email.lower()
 
     async with data.get_conn(dsrc) as conn:
-        u_ex = await data.user.user_exists(dsrc, conn, signup.email)
-        su_ex = await data.signedup.signedup_exists(dsrc, conn, signup.email)
+        u_ex = await data.user.user_exists(conn, signup.email)
+        su_ex = await data.signedup.signedup_exists(conn, signup.email)
 
     do_send_email = not u_ex and not su_ex
     logger.debug(f"{signup.email} /onboard/signup - do_send_email {do_send_email}")
@@ -140,7 +140,7 @@ async def email_confirm(confirm_req: EmailConfirm, request: Request):
 
     try:
         async with data.get_conn(dsrc) as conn:
-            await data.signedup.insert_su_row(dsrc, conn, signed_up.dict())
+            await data.signedup.insert_su_row(conn, signed_up.dict())
     except DataError as e:
         if e.key == "integrity_violation":
             logger.debug(e.key)
@@ -160,7 +160,7 @@ async def get_signedup(request: Request, authorization: Authorization):
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
     async with data.get_conn(dsrc) as conn:
-        signed_up = await data.signedup.get_all_signedup(dsrc, conn)
+        signed_up = await data.signedup.get_all_signedup(conn)
     return signed_up
 
 
@@ -178,9 +178,7 @@ async def confirm_join(
 
     try:
         async with data.get_conn(dsrc) as conn:
-            signed_up = await data.signedup.get_signedup_by_email(
-                dsrc, conn, signup_email
-            )
+            signed_up = await data.signedup.get_signedup_by_email(conn, signup_email)
     except DataError as e:
         if e.key == "signedup_empty":
             logger.debug(e.key)
@@ -206,7 +204,7 @@ async def confirm_join(
             av40id=signup.av40id,
             joined=signup.joined,
         )
-        await data.signedup.confirm_signup(dsrc, conn, signup_email)
+        await data.signedup.confirm_signup(conn, signup_email)
 
     config: Config = request.app.state.config
 
@@ -234,7 +232,7 @@ async def start_register(register_start: RegisterRequest, request: Request):
     try:
         async with data.get_conn(dsrc) as conn:
             ud = await data.user.get_userdata_by_register_id(
-                dsrc, conn, register_start.register_id
+                conn, register_start.register_id
             )
     except NoDataError as e:
         logger.debug(e)
@@ -248,7 +246,7 @@ async def start_register(register_start: RegisterRequest, request: Request):
 
     try:
         async with data.get_conn(dsrc) as conn:
-            u = await data.user.get_user_by_id(dsrc, conn, ud.user_id)
+            u = await data.user.get_user_by_id(conn, ud.user_id)
     except DataError as e:
         logger.debug(e)
         reason = "No registration for that user"
@@ -315,7 +313,7 @@ async def finish_register(register_finish: FinishRequest, request: Request):
     try:
         async with data.get_conn(dsrc) as conn:
             ud = await data.user.get_userdata_by_register_id(
-                dsrc, conn, register_finish.register_id
+                conn, register_finish.register_id
             )
     except NoDataError as e:
         logger.debug(e)
@@ -356,10 +354,8 @@ async def finish_register(register_finish: FinishRequest, request: Request):
     )
 
     async with data.get_conn(dsrc) as conn:
-        await data.user.update_password_file(
-            dsrc, conn, saved_state.user_id, password_file
-        )
-        await data.user.upsert_userdata(dsrc, conn, new_userdata)
-        await data.signedup.delete_signedup(dsrc, conn, ud.email)
+        await data.user.update_password_file(conn, saved_state.user_id, password_file)
+        await data.user.upsert_userdata(conn, new_userdata)
+        await data.signedup.delete_signedup(conn, ud.email)
 
     # send welcome email

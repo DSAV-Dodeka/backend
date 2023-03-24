@@ -87,7 +87,7 @@ async def request_password_change(
     """Initiated from authpage. Sends out e-mail with reset link."""
     dsrc: Source = request.state.dsrc
     async with data.get_conn(dsrc) as conn:
-        ud = await data.user.get_userdata_by_email(dsrc, conn, change_pass.email)
+        ud = await data.user.get_userdata_by_email(conn, change_pass.email)
     logger.debug(f"Reset requested - is_registered={ud.registered}")
     flow_id = util.random_time_hash_hex()
     params = {"reset_id": flow_id, "email": change_pass.email}
@@ -126,7 +126,7 @@ async def update_password_start(update_pass: UpdatePasswordRequest, request: Req
         )
 
     async with data.get_conn(dsrc) as conn:
-        u = await data.user.get_user_by_email(dsrc, conn, update_pass.email)
+        u = await data.user.get_user_by_email(conn, update_pass.email)
 
     return await send_register_start(dsrc, u.user_id, update_pass.client_request)
 
@@ -147,11 +147,9 @@ async def update_password_finish(update_finish: UpdatePasswordFinish, request: R
     password_file = opq.register_finish(update_finish.client_request)
 
     async with data.get_conn(dsrc) as conn:
-        await data.user.update_password_file(
-            dsrc, conn, saved_state.user_id, password_file
-        )
+        await data.user.update_password_file(conn, saved_state.user_id, password_file)
 
-        await data.refreshtoken.delete_by_user_id(dsrc, conn, saved_state.user_id)
+        await data.refreshtoken.delete_by_user_id(conn, saved_state.user_id)
 
 
 @router.post("/update/email/send/")
@@ -167,7 +165,7 @@ async def update_email(
 
     try:
         async with data.get_conn(dsrc) as conn:
-            u = await data.user.get_user_by_id(dsrc, conn, user_id)
+            u = await data.user.get_user_by_id(conn, user_id)
     except NoDataError:
         raise ErrorResponse(
             400, "bad_update", "User no longer exists.", "update_user_empty"
@@ -210,10 +208,10 @@ async def update_email_check(update_check: UpdateEmailCheck, request: Request):
     user_id = stored_email.user_id
 
     async with data.get_conn(dsrc) as conn:
-        await data.refreshtoken.delete_by_user_id(dsrc, conn, flow_user.user_id)
+        await data.refreshtoken.delete_by_user_id(conn, flow_user.user_id)
 
         count_ud = await data.user.update_user_email(
-            dsrc, conn, user_id, stored_email.new_email
+            conn, user_id, stored_email.new_email
         )
         if count_ud != 1:
             raise DataError("Internal data error.", "user_data_error")
@@ -235,7 +233,7 @@ async def delete_account(
 
     try:
         async with data.get_conn(dsrc) as conn:
-            ud = await data.user.get_userdata_by_id(dsrc, conn, user_id)
+            ud = await data.user.get_userdata_by_id(conn, user_id)
     except NoDataError:
         raise ErrorResponse(
             400, "bad_update", "User no longer exists.", "update_user_empty"
@@ -276,7 +274,7 @@ async def delete_account_check(delete_check: DeleteAccountCheck, request: Reques
 
     async with data.get_conn(dsrc) as conn:
         try:
-            await data.user.delete_user(dsrc, conn, stored_user_id)
+            await data.user.delete_user(conn, stored_user_id)
             return DeleteAccount(user_id=stored_user_id)
         except NoDataError:
             reason = "User for delete request does not exist!"

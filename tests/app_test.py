@@ -15,7 +15,6 @@ from apiserver.app import create_app
 from apiserver.auth.tokens import id_info_from_ud
 from apiserver.data import Source
 from apiserver.data.user import gen_id_name
-from apiserver.db.ops import DbOperations
 from apiserver.define import (
     FlowUser,
     AuthRequest,
@@ -55,7 +54,6 @@ def lifespan_fixture(api_config, module_mocker: MockerFixture):
     async def mock_lifespan(app: FastAPI) -> State:
         dsrc_inst = Source()
         dsrc_inst.gateway = module_mocker.MagicMock(spec=dsrc_inst.gateway)
-        dsrc_inst.gateway.ops = module_mocker.MagicMock(spec=DbOperations)
         safe_startup(dsrc_inst, api_config)
 
         yield {"config": api_config, "dsrc": dsrc_inst}
@@ -301,7 +299,7 @@ def test_refresh(test_client, mocker: MockerFixture, mock_get_keys, fake_tokens)
     get_r = mocker.patch("apiserver.data.refreshtoken.get_refresh_by_id")
     get_refr = mocker.patch("apiserver.data.refreshtoken.insert_refresh_row")
 
-    def side_effect(f_dsrc, conn, id_int):
+    def side_effect(f_conn, id_int):
         if id_int == fake_token_id:
             return SavedRefreshToken(
                 family_id=fake_tokens["family_id"],
@@ -346,7 +344,7 @@ def test_auth_code(test_client, mocker: MockerFixture, mock_get_keys):
 
     get_auth.side_effect = auth_side_effect
 
-    def ud_side_effect(f_dsrc, conn, u_id):
+    def ud_side_effect(conn, u_id):
         if u_id == mock_flow_user.user_id:
             return mock_userdata
 
@@ -437,7 +435,7 @@ def test_start_register(test_client, mocker: MockerFixture, register_state_store
         "8c01e95c6021f62f7fc7a0c6149df725129fa4ea846edc1cdc0b13905e880f0c"
     )
 
-    def ud_side_effect(f_dsrc, conn, register_id):
+    def ud_side_effect(conn, register_id):
         if register_id == test_register_id:
             return UserData(
                 user_id=test_user_id,
@@ -456,7 +454,7 @@ def test_start_register(test_client, mocker: MockerFixture, register_state_store
 
     g_u = mocker.patch("apiserver.data.user.get_user_by_id")
 
-    def u_side_effect(f_dsrc, conn, user_id):
+    def u_side_effect(conn, user_id):
         if user_id == test_user_id:
             return User(
                 id=test_user_id_int,
@@ -511,7 +509,7 @@ def test_finish_register(test_client, mocker: MockerFixture):
         if auth_id == test_auth_id:
             return SavedRegisterState(user_id=test_user_id)
 
-    def ud_side_effect(f_dsrc, conn, r_id):
+    def ud_side_effect(conn, r_id):
         if r_id == test_r_id:
             return UserData(
                 user_id=test_user_id,
@@ -568,7 +566,7 @@ def test_start_login(test_client, mocker: MockerFixture, state_store: dict):
     fake_password_file = "GLgWMaiuTTs2NyK9gvrhbtUMTrHLy2erbEwPnzwFDQ6i5EuUyWEN9yqEarTqxprZ205gkQoY_yks3-1jr3XuTfKfh1byl9LZHFpDA-FWNyc5wV5CBYz_jzruanzI-yFCPt7fPglNFs7mnwPbZaraoKMJX5prMMrULtDF4KlZuv2szqISaM3d9kiVUEgXzNAPh6EMuN1GCySL8gimFyfZxfrk3QCeQJKudx2YZYz9ReBs7EkmAwTCHxeiCmYaDdlu"
     correct_password_file = "6sr_nvpqPqB-GCjj091vbsIsKYdHX2BE_9ICHT-8o329Wn_-9F4gCjfFD1GsPGayGF1oJ2FzyZXLzUS-MmaHO2pTGoD_QyGBiIV9s7LBYxFM_fciaaI08ZahLfj4kmXJfzqcWVSecc7uqgzR5DVamDHlmQUOT6QjXcDmbuPm8eDu1hBdD65ZWmpUz16DK3-k6uBLjQ1fKYj8o3xBShhRQCKpm0PFCjk4uABkXgdzy5EWoKkTZ8cslYe450nAdOqv"
 
-    def pw_side_effect(f_dsrc, f_conn, user_id):
+    def pw_side_effect(f_conn, user_id):
         if user_id == "1_fakerecord":
             return User(
                 id=1,
@@ -581,7 +579,7 @@ def test_start_login(test_client, mocker: MockerFixture, state_store: dict):
 
     g_pw.side_effect = pw_side_effect
 
-    def pw_em_side_effect(f_dsrc, f_conn, user_email):
+    def pw_em_side_effect(f_conn, user_email):
         if user_email == test_user_email:
             return User(
                 id=test_user_id_int,
@@ -627,8 +625,8 @@ def test_finish_login(test_client, mocker: MockerFixture, flow_store: dict):
     user_fn = "test"
     user_ln = "namerf"
     test_user_id_int = 40
-    gen_id_name(user_fn, user_ln)
-    test_user_id = cr_user_id(test_user_id_int, gen_id_name)
+    g_id_name = gen_id_name(user_fn, user_ln)
+    test_user_id = cr_user_id(test_user_id_int, g_id_name)
     test_email = "finish@login.nl"
 
     # password 'clientele' with mock_opq_key

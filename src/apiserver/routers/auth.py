@@ -45,13 +45,13 @@ async def start_login(login_start: PasswordRequest, request: Request):
     scope = "none"
     async with data.get_conn(dsrc) as conn:
         # We get server setup required for using OPAQUE protocol
-        opaque_setup = await data.opaquesetup.get_setup(dsrc, conn)
+        opaque_setup = await data.opaquesetup.get_setup(conn)
 
         # We start with a fakerecord
-        u = await data.user.get_user_by_id(dsrc, conn, "1_fakerecord")
+        u = await data.user.get_user_by_id(conn, "1_fakerecord")
         password_file = u.password_file
         try:
-            ru = await data.user.get_user_by_email(dsrc, conn, login_mail)
+            ru = await data.user.get_user_by_email(conn, login_mail)
             # If the user exists and has a password set (meaning they are registered), we perform the check with the
             # actual password
             if ru.password_file:

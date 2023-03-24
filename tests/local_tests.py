@@ -96,7 +96,7 @@ async def admin_access(local_dsrc):
 async def test_generate_admin():
     admin_password = "admin"
     # async with data.get_conn(local_dsrc) as conn:
-    #     setup = await data.opaquesetup.get_setup(local_dsrc, conn)
+    #     setup = await data.opaquesetup.get_setup(conn)
 
     setup = ""
 
@@ -112,7 +112,7 @@ async def test_generate_admin():
 async def test_generate_dummies(local_dsrc: Source, faker: Faker):
     admin_password = "admin"
     async with data.get_conn(local_dsrc) as conn:
-        setup = await data.opaquesetup.get_setup(local_dsrc, conn)
+        setup = await data.opaquesetup.get_setup(conn)
 
     # setup = ""
     faker_u = faker.unique
@@ -155,9 +155,9 @@ async def test_generate_dummies(local_dsrc: Source, faker: Faker):
                 show_age=True,
             )
 
-            await data.user.update_password_file(local_dsrc, conn, uid, pw_file)
-            await data.user.upsert_userdata(local_dsrc, conn, new_ud)
-            await data.signedup.delete_signedup(local_dsrc, conn, email)
+            await data.user.update_password_file(conn, uid, pw_file)
+            await data.user.upsert_userdata(conn, new_ud)
+            await data.signedup.delete_signedup(conn, email)
 
 
 @pytest.mark.asyncio
@@ -169,7 +169,7 @@ async def test_generate_rand():
 @pytest.mark.asyncio
 async def test_delete(local_dsrc: Source):
     async with data.get_conn(local_dsrc) as conn:
-        await data.user.delete_user(local_dsrc, conn, "4_t_tb")
+        await data.user.delete_user(conn, "4_t_tb")
 
 
 @pytest.mark.asyncio

@@ -22,7 +22,7 @@ async def send_register_start(dsrc: Source, user_id: str, client_request: str):
     auth_id = util.random_time_hash_hex(user_id)
 
     async with data.get_conn(dsrc) as conn:
-        opaque_setup = await data.opaquesetup.get_setup(dsrc, conn)
+        opaque_setup = await data.opaquesetup.get_setup(conn)
 
     response = opq.register(opaque_setup, client_request, user_id)
     saved_state = SavedRegisterState(user_id=user_id)

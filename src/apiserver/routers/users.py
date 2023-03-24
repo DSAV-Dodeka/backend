@@ -16,7 +16,7 @@ async def get_user_birthdays(request: Request, authorization: Authorization):
     await require_member(authorization, dsrc)
 
     async with data.get_conn(dsrc) as conn:
-        birthday_data = await data.user.get_all_birthdays(dsrc, conn)
+        birthday_data = await data.user.get_all_birthdays(conn)
     return birthday_data
 
 
@@ -45,7 +45,7 @@ async def get_user_easter_eggs_count(request: Request, authorization: Authorizat
 
     async with data.get_conn(dsrc) as conn:
         easter_eggs_get_count_data = await data.user.get_easter_eggs_count(
-            dsrc, conn, acc.sub
+            conn, acc.sub
         )
 
     # Count all the found eggs and return total?
@@ -61,6 +61,6 @@ async def user_easter_egg_found(
 
     async with data.get_conn(dsrc) as conn:
         # Function needs to be implemented, insert into database
-        await data.user.found_easter_egg(dsrc, conn, acc.sub, easter_egg_id)
+        await data.user.found_easter_egg(conn, acc.sub, easter_egg_id)
 
     return "To be implemented.."

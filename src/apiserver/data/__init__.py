@@ -1,5 +1,5 @@
 from apiserver.data.source import Source, NoDataError, DataError
-from apiserver.data.use import get_conn
+from apiserver.data.db import get_conn
 from apiserver.data import kv
 from apiserver.data import user
 from apiserver.data import key

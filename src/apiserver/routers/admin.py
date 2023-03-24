@@ -21,7 +21,7 @@ async def get_users(request: Request, authorization: Authorization):
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
     async with data.get_conn(dsrc) as conn:
-        user_data = await data.user.get_all_userdata(dsrc, conn)
+        user_data = await data.user.get_all_userdata(conn)
     return user_data
 
 
@@ -30,7 +30,7 @@ async def get_users_scopes(request: Request, authorization: Authorization):
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
     async with data.get_conn(dsrc) as conn:
-        user_scope_data = await data.user.get_all_users_scopes(dsrc, conn)
+        user_scope_data = await data.user.get_all_users_scopes(conn)
     return user_scope_data
 
 
@@ -55,9 +55,7 @@ async def add_scope(
     async with data.get_conn(dsrc) as conn:
         conn: AsyncConnection = conn
         try:
-            await data.user.add_scope(
-                dsrc, conn, scope_request.user_id, scope_request.scope
-            )
+            await data.user.add_scope(conn, scope_request.user_id, scope_request.scope)
         except NoDataError as e:
             logger.debug(e.message)
             raise ErrorResponse(
@@ -103,7 +101,7 @@ async def remove_scope(
         conn: AsyncConnection = conn
         try:
             await data.user.remove_scope(
-                dsrc, conn, scope_request.user_id, scope_request.scope
+                conn, scope_request.user_id, scope_request.scope
             )
         except NoDataError as e:
             logger.debug(e.message)

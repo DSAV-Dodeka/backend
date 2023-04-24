@@ -10,11 +10,13 @@ from httpx import codes
 
 import apiserver.utilities as util
 from apiserver import data
-from apiserver.auth.tokens import create_tokens, finish_tokens
-from apiserver.auth.tokens_data import get_keys
+
+from apiserver.define.entities import SignedUp
 from apiserver.data import Source
 from apiserver.data.user import new_userdata
-from apiserver.define.entities import SignedUp
+from apiserver.data.classifications import insert_classification
+from apiserver.auth.tokens import create_tokens, finish_tokens
+from apiserver.auth.tokens_data import get_keys
 from apiserver.env import load_config
 from apiserver.utilities.crypto import encrypt_dict, aes_from_symmetric, decrypt_dict
 
@@ -158,6 +160,11 @@ async def test_generate_dummies(local_dsrc: Source, faker: Faker):
             await data.user.update_password_file(conn, uid, pw_file)
             await data.user.upsert_userdata(conn, new_ud)
             await data.signedup.delete_signedup(conn, email)
+
+@pytest.mark.asyncio
+async def test_bulk(local_dsrc):
+    async with data.get_conn(local_dsrc) as conn:
+        await insert_classification(conn)
 
 
 @pytest.mark.asyncio

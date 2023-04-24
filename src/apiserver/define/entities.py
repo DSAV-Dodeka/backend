@@ -172,3 +172,11 @@ class PEMKey(BaseModel):
 class A256GCMKey(BaseModel):
     kid: str
     symmetric: str  # base64url encoded symmetric 256-bit key
+
+
+class Classification(BaseModel):
+    type: str
+    start_date: date
+    end_date: date
+    hidden_date: date
+    last_updated: date

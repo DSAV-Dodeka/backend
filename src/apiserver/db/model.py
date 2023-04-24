@@ -190,35 +190,12 @@ KC_LAST_UPDATED = "last_updated"
 klassement_classification = sqla.Table(
     KLASSEMENT_CLASSIFICATION_TABLE,
     metadata,
-    sqla.Column(
-        KC_ID,
-        sqla.Integer,
-        primary_key=True),
-    sqla.Column(
-        KC_TYPE,
-        sqla.String(length=100),
-        nullable=False
-    ),
-    sqla.Column(
-        KC_START_DATE,
-        sqla.DateTime,
-        nullable=False
-    ),
-    sqla.Column(
-        KC_END_DATE,
-        sqla.DateTime,
-        nullable=False
-    ),
-    sqla.Column(
-        KC_HIDDEN_DATE,
-        sqla.DateTime,
-        nullable=False
-    ),
-    sqla.Column(
-        KC_LAST_UPDATED,
-        sqla.DateTime,
-        nullable=False
-    )
+    sqla.Column(KC_ID, sqla.Integer, primary_key=True),
+    sqla.Column(KC_TYPE, sqla.String(length=100), nullable=False),
+    sqla.Column(KC_START_DATE, sqla.DateTime, nullable=False),
+    sqla.Column(KC_END_DATE, sqla.DateTime, nullable=False),
+    sqla.Column(KC_HIDDEN_DATE, sqla.DateTime, nullable=False),
+    sqla.Column(KC_LAST_UPDATED, sqla.DateTime, nullable=False),
 )
 
 KLASSEMENT_EVENTS_TABLE = "class_events"
@@ -240,37 +217,21 @@ klassement_events = sqla.Table(
     sqla.Column(
         USER_ID,
         sqla.String(length=150),
-        sqla.ForeignKey(
-            f"{USER_TABLE}.{USER_ID}", ondelete="CASCADE"),
-        nullable=False
+        sqla.ForeignKey(f"{USER_TABLE}.{USER_ID}", ondelete="CASCADE"),
+        nullable=False,
     ),
     sqla.Column(
         KC_ID,
         sqla.Integer,
         sqla.ForeignKey(
-            f"{KLASSEMENT_CLASSIFICATION_TABLE}.{KC_ID}",
-            ondelete="CASCADE"),
-        nullable=False
+            f"{KLASSEMENT_CLASSIFICATION_TABLE}.{KC_ID}", ondelete="CASCADE"
+        ),
+        nullable=False,
     ),
-    sqla.Column(
-        KE_CATEGORY,
-        sqla.String(length=100),
-        nullable=False
-    ),
-    sqla.Column(
-        KE_DESCRIPTION,
-        sqla.String(length=500)
-    ),
-    sqla.Column(
-        KE_DATE,
-        sqla.DateTime,
-        nullable=False
-    ),
-    sqla.Column(
-        KE_POINTS,
-        sqla.Integer,
-        nullable=False
-    )
+    sqla.Column(KE_CATEGORY, sqla.String(length=100), nullable=False),
+    sqla.Column(KE_DESCRIPTION, sqla.String(length=500)),
+    sqla.Column(KE_DATE, sqla.DateTime, nullable=False),
+    sqla.Column(KE_POINTS, sqla.Integer, nullable=False),
 )
 
 KLASSEMENT_POINTS_TABLE = "class_points"
@@ -284,27 +245,17 @@ klassement_punten = sqla.Table(
     sqla.Column(
         USER_ID,
         sqla.String(length=150),
-        sqla.ForeignKey(
-            f"{USER_TABLE}.{USER_ID}", ondelete="CASCADE"),
-        primary_key=True
+        sqla.ForeignKey(f"{USER_TABLE}.{USER_ID}", ondelete="CASCADE"),
+        primary_key=True,
     ),
     sqla.Column(
         KC_ID,
         sqla.Integer,
         sqla.ForeignKey(
-            f"{KLASSEMENT_CLASSIFICATION_TABLE}.{KC_ID}",
-            ondelete="CASCADE"
+            f"{KLASSEMENT_CLASSIFICATION_TABLE}.{KC_ID}", ondelete="CASCADE"
         ),
-        primary_key=True
+        primary_key=True,
     ),
-    sqla.Column(
-        KP_TRUE_POINTS,
-        sqla.Integer,
-        nullable=False
-    ),
-    sqla.Column(
-        KP_DISPLAY_POINTS,
-        sqla.Integer,
-        nullable=False
-    )
+    sqla.Column(KP_TRUE_POINTS, sqla.Integer, nullable=False),
+    sqla.Column(KP_DISPLAY_POINTS, sqla.Integer, nullable=False),
 )

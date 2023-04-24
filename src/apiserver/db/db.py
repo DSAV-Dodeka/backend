@@ -1,8 +1,12 @@
-from typing import Optional, Any
+from typing import Optional, Any, TypeVar
 
+from pydantic import BaseModel
 from sqlalchemy import CursorResult, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection
+
+
+M = TypeVar("S", bound=BaseModel)
 
 
 def _row_keys_vars_set(row: dict):
@@ -261,6 +265,14 @@ async def delete_by_column(
     query = text(f"DELETE FROM {table} WHERE {column} = :val;")
     res: CursorResult = await conn.execute(query, parameters={"val": column_val})
     return row_cnt(res)
+
+
+async def insert_many(conn: AsyncConnection, table: str, model_list: list[M]):
+    row_list = [r.dict() for r in model_list]
+    row_keys, row_keys_vars, _ = _row_keys_vars_set(row_list[0])
+    query = text(f"INSERT INTO {table} ({row_keys}) VALUES ({row_keys_vars});")
+
+    await execute_catch_conn(conn, query, params=row_list)
 
 
 class DbError(Exception):

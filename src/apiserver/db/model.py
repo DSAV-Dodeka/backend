@@ -180,7 +180,7 @@ userdata = sqla.Table(
     sqla.Column(SHOW_AGE, sqla.Boolean),
 )
 
-KLASSEMENT_CLASSIFICATION_TABLE = "klassement_classification"
+KLASSEMENT_CLASSIFICATION_TABLE = "classifications"
 KC_ID = "classification_id"
 KC_TYPE = "type"
 KC_START_DATE = "start_date"
@@ -221,7 +221,7 @@ klassement_classification = sqla.Table(
     )
 )
 
-KLASSEMENT_EVENTS_TABLE = "klassement_events"
+KLASSEMENT_EVENTS_TABLE = "class_events"
 KE_ID = "event_id"
 # USER_ID is foreign key
 # CLASSIFICATION_ID is foreign key
@@ -273,7 +273,7 @@ klassement_events = sqla.Table(
     )
 )
 
-KLASSEMENT_POINTS_TABLE = "klassement_punten"
+KLASSEMENT_POINTS_TABLE = "class_points"
 # USER_ID is foreign key
 # KC_ID is foreign key
 KP_TRUE_POINTS = "true_points"

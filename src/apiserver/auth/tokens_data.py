@@ -44,7 +44,7 @@ async def do_refresh(dsrc: Source, old_refresh_token: str):
         try:
             # See if previous refresh exists
             saved_refresh = await data.refreshtoken.get_refresh_by_id(
-                dsrc, conn, old_refresh.id
+                conn, old_refresh.id
             )
         except DataError as e:
             if e.key != "refresh_empty":
@@ -54,7 +54,7 @@ async def do_refresh(dsrc: Source, old_refresh_token: str):
             # So if someone possesses some deleted token family member, it is most
             # likely an attacker. For this reason, all tokens in the family are
             # invalidated to prevent further compromise
-            await data.refreshtoken.delete_family(dsrc, conn, old_refresh.family_id)
+            await data.refreshtoken.delete_family(conn, old_refresh.family_id)
             raise InvalidRefresh("Not recent")
 
     verify_refresh(saved_refresh, old_refresh, utc_now)
@@ -71,9 +71,9 @@ async def do_refresh(dsrc: Source, old_refresh_token: str):
     # Deletes previous token, saves new one, only succeeds if all components of the
     # transaction succeed
     async with data.get_conn(dsrc) as conn:
-        await data.refreshtoken.delete_refresh_by_id(dsrc, conn, saved_refresh.id)
+        await data.refreshtoken.delete_refresh_by_id(conn, saved_refresh.id)
         new_refresh_id = await data.refreshtoken.insert_refresh_row(
-            dsrc, conn, new_refresh_save
+            conn, new_refresh_save
         )
 
     refresh_token, access_token, id_token = finish_tokens(
@@ -98,16 +98,14 @@ async def new_token(
     utc_now = utc_timestamp()
 
     async with data.get_conn(dsrc) as conn:
-        ud = await data.user.get_userdata_by_id(dsrc, conn, user_id)
+        ud = await data.user.get_userdata_by_id(conn, user_id)
         id_info = id_info_from_ud(ud)
 
         access_token_data, id_token_data, access_scope, refresh_save = create_tokens(
             user_id, scope, auth_time, id_nonce, utc_now, id_info
         )
 
-        refresh_id = await data.refreshtoken.insert_refresh_row(
-            dsrc, conn, refresh_save
-        )
+        refresh_id = await data.refreshtoken.insert_refresh_row(conn, refresh_save)
 
     refresh_token, access_token, id_token = finish_tokens(
         refresh_id,
@@ -133,4 +131,4 @@ async def delete_refresh(dsrc: Source, refresh_token: str):
         return None
 
     async with data.get_conn(dsrc) as conn:
-        await data.refreshtoken.delete_family(dsrc, conn, refresh.family_id)
+        await data.refreshtoken.delete_family(conn, refresh.family_id)

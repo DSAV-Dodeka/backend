@@ -1,4 +1,4 @@
-from typing import Type, Optional
+from typing import Optional
 from dataclasses import dataclass
 from random import random
 from datetime import date
@@ -18,12 +18,10 @@ from apiserver.utilities.crypto import aes_from_symmetric, decrypt_dict, encrypt
 from apiserver.utilities.keys import ed448_private_to_pem
 import apiserver.db.model as db_model
 from apiserver.db.admin import drop_recreate_database
-from apiserver.db.ops import DbOperations
-from apiserver.db.use import PostgresOperations
 from apiserver.env import Config
 from apiserver import data
 
-__all__ = ["Source", "DataError", "Gateway", "DbOperations", "NoDataError"]
+__all__ = ["Source", "DataError", "Gateway", "NoDataError"]
 
 
 logger = logging.getLogger(LOGGER_NAME)
@@ -46,13 +44,8 @@ class NoDataError(DataError):
 
 
 class Gateway:
-    engine: Optional[AsyncEngine] = None
+    db: Optional[AsyncEngine] = None
     kv: Optional[Redis] = None
-    # Just store the class/type since we only use static methods
-    ops: Type["DbOperations"]
-
-    def __init__(self, ops: Type[DbOperations] = None):
-        self.ops = PostgresOperations
 
     def init_objects(self, config: Config):
         db_cluster = (
@@ -63,7 +56,7 @@ class Gateway:
         self.kv = Redis(
             host=config.KV_HOST, port=int(config.KV_PORT), db=0, password=config.KV_PASS
         )
-        self.engine: AsyncEngine = create_async_engine(f"postgresql+asyncpg://{db_url}")
+        self.db: AsyncEngine = create_async_engine(f"postgresql+asyncpg://{db_url}")
 
     async def connect(self):
         try:
@@ -75,7 +68,7 @@ class Gateway:
                 "Unable to ping Redis server! Please check if it is running."
             )
         try:
-            async with self.engine.connect() as conn:
+            async with self.db.connect() as conn:
                 _ = conn.info
         except SQLAlchemyError:
             raise SourceError(
@@ -179,13 +172,13 @@ async def initial_population(dsrc: Source, config: Config):
 
     reencrypted_key_set = encrypt_dict(runtime_key, jwk_set.dict())
     async with data.get_conn(dsrc) as conn:
-        await data.key.insert_jwk(dsrc, conn, reencrypted_key_set)
-        await data.key.insert_key(dsrc, conn, kid1, utc_now, "enc")
-        await data.key.insert_key(dsrc, conn, kid2, utc_now + 1, "enc")
-        await data.key.insert_key(dsrc, conn, kid3, utc_now, "sig")
+        await data.key.insert_jwk(conn, reencrypted_key_set)
+        await data.key.insert_key(conn, kid1, utc_now, "enc")
+        await data.key.insert_key(conn, kid2, utc_now + 1, "enc")
+        await data.key.insert_key(conn, kid3, utc_now, "sig")
 
         opaque_setup = util.keys.new_opaque_setup(0)
-        await data.opaquesetup.insert_opaque_row(dsrc, conn, opaque_setup)
+        await data.opaquesetup.insert_opaque_row(conn, opaque_setup)
 
     fake_record_pass = f"{util.random_time_hash_hex()}{util.random_time_hash_hex()}"
     fake_pw_file = util.keys.gen_pw_file(
@@ -223,9 +216,9 @@ async def initial_population(dsrc: Source, config: Config):
     )
 
     async with data.get_conn(dsrc) as conn:
-        await data.user.insert_user(dsrc, conn, admin_user)
-        await data.user.insert_userdata(dsrc, conn, admin_userdata)
-        user_id = await data.user.insert_return_user_id(dsrc, conn, fake_user)
+        await data.user.insert_user(conn, admin_user)
+        await data.user.insert_userdata(conn, admin_userdata)
+        user_id = await data.user.insert_return_user_id(conn, fake_user)
         assert user_id == "1_fakerecord"
 
 
@@ -233,18 +226,16 @@ async def load_keys(dsrc: Source, config: Config):
     # Key used to decrypt the keys stored in the database
     runtime_key = aes_from_symmetric(config.KEY_PASS)
     async with data.get_conn(dsrc) as conn:
-        encrypted_key_set = await data.key.get_jwk(dsrc, conn)
+        encrypted_key_set = await data.key.get_jwk(conn)
         key_set_dict = decrypt_dict(runtime_key, encrypted_key_set)
         key_set: JWKSet = JWKSet.parse_obj(key_set_dict)
         # We re-encrypt as is required when using AES encryption
         reencrypted_key_set = encrypt_dict(runtime_key, key_set_dict)
-        await data.key.update_jwk(dsrc, conn, reencrypted_key_set)
+        await data.key.update_jwk(conn, reencrypted_key_set)
         # We get the Key IDs (kid) of the newest keys and also previous symmetric key
         # These newest ones will be used for signing new tokens
-        new_pem_kid = await data.key.get_newest_pem(dsrc, conn)
-        new_symmetric_kid, old_symmetric_kid = await data.key.get_newest_symmetric(
-            dsrc, conn
-        )
+        new_pem_kid = await data.key.get_newest_pem(conn)
+        new_symmetric_kid, old_symmetric_kid = await data.key.get_newest_symmetric(conn)
 
     pem_keys = []
     symmetric_keys = []

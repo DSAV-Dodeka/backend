@@ -12,6 +12,7 @@ convention = {
 metadata = sqla.MetaData(naming_convention=convention)
 
 EASTER_EGG_TABLE = "easter_eggs"
+
 USER_TABLE = "users"
 USER_INT_ID = "id"
 USER_NAME_ID = "id_name"
@@ -177,4 +178,133 @@ userdata = sqla.Table(
     sqla.Column(EDUCATION_INSTITUTION, sqla.String(length=100)),
     sqla.Column(USER_REGISTERED, sqla.Boolean, nullable=False),
     sqla.Column(SHOW_AGE, sqla.Boolean),
+)
+
+KLASSEMENT_CLASSIFICATION_TABLE = "klassement_classification"
+KC_ID = "classification_id"
+KC_TYPE = "type"
+KC_START_DATE = "start_date"
+KC_END_DATE = "end_date"
+KC_HIDDEN_DATE = "hidden_date"
+KC_LAST_UPDATED = "last_updated"
+klassement_classification = sqla.Table(
+    KLASSEMENT_CLASSIFICATION_TABLE,
+    metadata,
+    sqla.Column(
+        KC_ID,
+        sqla.Integer,
+        primary_key=True),
+    sqla.Column(
+        KC_TYPE,
+        sqla.String(length=100),
+        nullable=False
+    ),
+    sqla.Column(
+        KC_START_DATE,
+        sqla.DateTime,
+        nullable=False
+    ),
+    sqla.Column(
+        KC_END_DATE,
+        sqla.DateTime,
+        nullable=False
+    ),
+    sqla.Column(
+        KC_HIDDEN_DATE,
+        sqla.DateTime,
+        nullable=False
+    ),
+    sqla.Column(
+        KC_LAST_UPDATED,
+        sqla.DateTime,
+        nullable=False
+    )
+)
+
+KLASSEMENT_EVENTS_TABLE = "klassement_events"
+KE_ID = "event_id"
+# USER_ID is foreign key
+# CLASSIFICATION_ID is foreign key
+KE_CATEGORY = "category"
+KE_DESCRIPTION = "description"
+KE_DATE = "date"
+KE_POINTS = "points"
+klassement_events = sqla.Table(
+    KLASSEMENT_EVENTS_TABLE,
+    metadata,
+    sqla.Column(
+        KE_ID,
+        sqla.Integer,
+        primary_key=True,
+    ),
+    sqla.Column(
+        USER_ID,
+        sqla.String(length=150),
+        sqla.ForeignKey(
+            f"{USER_TABLE}.{USER_ID}", ondelete="CASCADE"),
+        nullable=False
+    ),
+    sqla.Column(
+        KC_ID,
+        sqla.Integer,
+        sqla.ForeignKey(
+            f"{KLASSEMENT_CLASSIFICATION_TABLE}.{KC_ID}",
+            ondelete="CASCADE"),
+        nullable=False
+    ),
+    sqla.Column(
+        KE_CATEGORY,
+        sqla.String(length=100),
+        nullable=False
+    ),
+    sqla.Column(
+        KE_DESCRIPTION,
+        sqla.String(length=500)
+    ),
+    sqla.Column(
+        KE_DATE,
+        sqla.DateTime,
+        nullable=False
+    ),
+    sqla.Column(
+        KE_POINTS,
+        sqla.Integer,
+        nullable=False
+    )
+)
+
+KLASSEMENT_POINTS_TABLE = "klassement_punten"
+# USER_ID is foreign key
+# KC_ID is foreign key
+KP_TRUE_POINTS = "true_points"
+KP_DISPLAY_POINTS = "display_points"
+klassement_punten = sqla.Table(
+    KLASSEMENT_POINTS_TABLE,
+    metadata,
+    sqla.Column(
+        USER_ID,
+        sqla.String(length=150),
+        sqla.ForeignKey(
+            f"{USER_TABLE}.{USER_ID}", ondelete="CASCADE"),
+        primary_key=True
+    ),
+    sqla.Column(
+        KC_ID,
+        sqla.Integer,
+        sqla.ForeignKey(
+            f"{KLASSEMENT_CLASSIFICATION_TABLE}.{KC_ID}",
+            ondelete="CASCADE"
+        ),
+        primary_key=True
+    ),
+    sqla.Column(
+        KP_TRUE_POINTS,
+        sqla.Integer,
+        nullable=False
+    ),
+    sqla.Column(
+        KP_DISPLAY_POINTS,
+        sqla.Integer,
+        nullable=False
+    )
 )

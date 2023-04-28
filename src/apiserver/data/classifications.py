@@ -2,7 +2,7 @@ from datetime import date
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from apiserver.db.model import KLASSEMENT_CLASSIFICATION_TABLE
+from apiserver.db.model import CLASSIFICATION_TABLE
 from apiserver.define.entities import Classification
 from apiserver.db.db import insert_many
 
@@ -15,4 +15,4 @@ async def insert_classification(conn: AsyncConnection):
         end_date=date.today(),
         hidden_date=date.today(),
     )
-    await insert_many(conn, KLASSEMENT_CLASSIFICATION_TABLE, [a])
+    return await insert_many(conn, CLASSIFICATION_TABLE, [a])

@@ -5,8 +5,10 @@ from sqlalchemy import CursorResult, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-
-M = TypeVar("S", bound=BaseModel)
+# Model type
+# Ensure the type of model is never user-defined, as attribute (column) names are used as strings
+#
+M = TypeVar("M", bound=BaseModel)
 
 
 def _row_keys_vars_set(row: dict):
@@ -28,7 +30,7 @@ def select_set(columns: set[str]):
 
 
 async def execute_catch_conn(
-    conn: AsyncConnection, query, params: dict
+    conn: AsyncConnection, query, params: dict | list[dict]
 ) -> CursorResult:
     try:
         result = await conn.execute(query, parameters=params)
@@ -272,7 +274,7 @@ async def insert_many(conn: AsyncConnection, table: str, model_list: list[M]):
     row_keys, row_keys_vars, _ = _row_keys_vars_set(row_list[0])
     query = text(f"INSERT INTO {table} ({row_keys}) VALUES ({row_keys_vars});")
 
-    await execute_catch_conn(conn, query, params=row_list)
+    return await execute_catch_conn(conn, query, params=row_list)
 
 
 class DbError(Exception):

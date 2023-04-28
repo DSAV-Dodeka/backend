@@ -180,37 +180,37 @@ userdata = sqla.Table(
     sqla.Column(SHOW_AGE, sqla.Boolean),
 )
 
-KLASSEMENT_CLASSIFICATION_TABLE = "classifications"
-KC_ID = "classification_id"
-KC_TYPE = "type"
-KC_START_DATE = "start_date"
-KC_END_DATE = "end_date"
-KC_HIDDEN_DATE = "hidden_date"
-KC_LAST_UPDATED = "last_updated"
-klassement_classification = sqla.Table(
-    KLASSEMENT_CLASSIFICATION_TABLE,
+CLASSIFICATION_TABLE = "classifications"
+CLASS_ID = "classification_id"
+CLASS_TYPE = "type"
+CLASS_START_DATE = "start_date"
+CLASS_END_DATE = "end_date"
+CLASS_HIDDEN_DATE = "hidden_date"
+CLASS_LAST_UPDATED = "last_updated"
+classification = sqla.Table(
+    CLASSIFICATION_TABLE,
     metadata,
-    sqla.Column(KC_ID, sqla.Integer, primary_key=True),
-    sqla.Column(KC_TYPE, sqla.String(length=100), nullable=False),
-    sqla.Column(KC_START_DATE, sqla.DateTime, nullable=False),
-    sqla.Column(KC_END_DATE, sqla.DateTime, nullable=False),
-    sqla.Column(KC_HIDDEN_DATE, sqla.DateTime, nullable=False),
-    sqla.Column(KC_LAST_UPDATED, sqla.DateTime, nullable=False),
+    sqla.Column(CLASS_ID, sqla.Integer, primary_key=True),
+    sqla.Column(CLASS_TYPE, sqla.String(length=100), nullable=False),
+    sqla.Column(CLASS_START_DATE, sqla.DateTime, nullable=False),
+    sqla.Column(CLASS_END_DATE, sqla.DateTime, nullable=False),
+    sqla.Column(CLASS_HIDDEN_DATE, sqla.DateTime, nullable=False),
+    sqla.Column(CLASS_LAST_UPDATED, sqla.DateTime, nullable=False),
 )
 
-KLASSEMENT_EVENTS_TABLE = "class_events"
-KE_ID = "event_id"
+CLASS_EVENTS_TABLE = "class_events"
+C_EVENTS_ID = "event_id"
 # USER_ID is foreign key
 # CLASSIFICATION_ID is foreign key
-KE_CATEGORY = "category"
-KE_DESCRIPTION = "description"
-KE_DATE = "date"
-KE_POINTS = "points"
-klassement_events = sqla.Table(
-    KLASSEMENT_EVENTS_TABLE,
+C_EVENTS_CATEGORY = "category"
+C_EVENTS_DESCRIPTION = "description"
+C_EVENTS_DATE = "date"
+C_EVENTS_POINTS = "points"
+class_events = sqla.Table(
+    CLASS_EVENTS_TABLE,
     metadata,
     sqla.Column(
-        KE_ID,
+        C_EVENTS_ID,
         sqla.Integer,
         primary_key=True,
     ),
@@ -218,29 +218,27 @@ klassement_events = sqla.Table(
         USER_ID,
         sqla.String(length=150),
         sqla.ForeignKey(f"{USER_TABLE}.{USER_ID}", ondelete="CASCADE"),
-        nullable=False,
+        primary_key=True,
     ),
     sqla.Column(
-        KC_ID,
+        CLASS_ID,
         sqla.Integer,
-        sqla.ForeignKey(
-            f"{KLASSEMENT_CLASSIFICATION_TABLE}.{KC_ID}", ondelete="CASCADE"
-        ),
+        sqla.ForeignKey(f"{CLASSIFICATION_TABLE}.{CLASS_ID}", ondelete="CASCADE"),
         nullable=False,
     ),
-    sqla.Column(KE_CATEGORY, sqla.String(length=100), nullable=False),
-    sqla.Column(KE_DESCRIPTION, sqla.String(length=500)),
-    sqla.Column(KE_DATE, sqla.DateTime, nullable=False),
-    sqla.Column(KE_POINTS, sqla.Integer, nullable=False),
+    sqla.Column(C_EVENTS_CATEGORY, sqla.String(length=100), nullable=False),
+    sqla.Column(C_EVENTS_DESCRIPTION, sqla.String(length=500)),
+    sqla.Column(C_EVENTS_DATE, sqla.DateTime, nullable=False),
+    sqla.Column(C_EVENTS_POINTS, sqla.Integer, nullable=False),
 )
 
-KLASSEMENT_POINTS_TABLE = "class_points"
+CLASS_POINTS_TABLE = "class_points"
 # USER_ID is foreign key
 # KC_ID is foreign key
-KP_TRUE_POINTS = "true_points"
-KP_DISPLAY_POINTS = "display_points"
-klassement_punten = sqla.Table(
-    KLASSEMENT_POINTS_TABLE,
+TRUE_POINTS = "true_points"
+DISPLAY_POINTS = "display_points"
+class_punten = sqla.Table(
+    CLASS_POINTS_TABLE,
     metadata,
     sqla.Column(
         USER_ID,
@@ -249,13 +247,11 @@ klassement_punten = sqla.Table(
         primary_key=True,
     ),
     sqla.Column(
-        KC_ID,
+        CLASS_ID,
         sqla.Integer,
-        sqla.ForeignKey(
-            f"{KLASSEMENT_CLASSIFICATION_TABLE}.{KC_ID}", ondelete="CASCADE"
-        ),
+        sqla.ForeignKey(f"{CLASSIFICATION_TABLE}.{CLASS_ID}", ondelete="CASCADE"),
         primary_key=True,
     ),
-    sqla.Column(KP_TRUE_POINTS, sqla.Integer, nullable=False),
-    sqla.Column(KP_DISPLAY_POINTS, sqla.Integer, nullable=False),
+    sqla.Column(TRUE_POINTS, sqla.Integer, nullable=False),
+    sqla.Column(DISPLAY_POINTS, sqla.Integer, nullable=False),
 )

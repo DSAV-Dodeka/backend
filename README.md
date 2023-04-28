@@ -88,6 +88,15 @@ First you need to have the Poetry environment running as described earlier and e
 
 Always add a trailing "/" to endpoints.
 
+### Before you commit
+
+We use [`black`](https://github.com/psf/black) for code formatting and [`ruff`](https://github.com/charliermarsh/ruff) for linting.
+
+```
+poetry run black src tests
+poetry run ruff src tests
+```
+
 ## Background info
 
 ### Why did we choose \<x\>?

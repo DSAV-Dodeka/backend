@@ -77,7 +77,7 @@ class State(TypedDict):
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> State:
+async def lifespan(_app: FastAPI) -> State:
     logger.info("Running startup...")
     dsrc = Source()
     config = await app_startup(dsrc)
@@ -86,7 +86,7 @@ async def lifespan(app: FastAPI) -> State:
     await app_shutdown(dsrc)
 
 
-def validation_exception_handler(request, exc: RequestValidationError):
+async def validation_exception_handler(_request, exc: RequestValidationError):
     # Also show debug if there is an error in the request
     exc_str = str(exc)
     logger.debug(str(exc))
@@ -95,7 +95,7 @@ def validation_exception_handler(request, exc: RequestValidationError):
     )
 
 
-def create_app(app_lifespan) -> tuple[FastAPI, Logger]:
+def create_app(app_lifespan) -> FastAPI:
     # TODO change all origins
     origins = [
         "*",

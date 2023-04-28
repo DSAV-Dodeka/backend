@@ -1,12 +1,12 @@
 from apiserver.data.source import Source, NoDataError, DataError
-from apiserver.data.db import get_conn
-from apiserver.data import kv
-from apiserver.data import user
-from apiserver.data import key
-from apiserver.data import signedup
-from apiserver.data import refreshtoken
-from apiserver.data import opaquesetup
-from apiserver.data import file
+from apiserver.data.connection.db import get_conn
+from apiserver.data.api import kv
+from apiserver.data.api import user
+from apiserver.data.api import key
+from apiserver.data.api import signedup
+from apiserver.data.api import refreshtoken
+from apiserver.data.api import opaquesetup
+from apiserver.data.api import file
 
 __all__ = [
     "get_conn",

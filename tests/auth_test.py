@@ -1,7 +1,7 @@
 import opaquepy.lib as opq
 import pytest
 
-import apiserver.utilities as util
+import apiserver.lib.utilities as util
 
 
 @pytest.fixture(scope="module")

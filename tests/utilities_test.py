@@ -1,7 +1,7 @@
 import pytest_asyncio
 from pytest_mock import MockerFixture
 
-import apiserver.utilities as util
+import apiserver.lib.utilities as util
 
 
 @pytest_asyncio.fixture

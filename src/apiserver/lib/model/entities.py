@@ -213,3 +213,11 @@ class Signup(BaseModel):
     lastname: str
     email: str
     phone: str
+
+
+class Classification(BaseModel):
+    type: str
+    start_date: date
+    end_date: date
+    hidden_date: date
+    last_updated: date

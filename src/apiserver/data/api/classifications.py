@@ -2,9 +2,9 @@ from datetime import date
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from apiserver.db.model import CLASSIFICATION_TABLE
-from apiserver.define.entities import Classification
-from apiserver.db.db import insert_many
+from apiserver.data.db.model import CLASSIFICATION_TABLE
+from apiserver.lib.model.entities import Classification
+from apiserver.data.db.ops import insert_many
 
 
 async def insert_classification(conn: AsyncConnection):

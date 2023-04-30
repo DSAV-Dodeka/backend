@@ -11,14 +11,19 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine
 
-from apiserver.define import LOGGER_NAME
-from apiserver.define.entities import JWKSet, A256GCMKey, User, UserData
-import apiserver.utilities as util
-from apiserver.utilities.crypto import aes_from_symmetric, decrypt_dict, encrypt_dict
-from apiserver.utilities.keys import ed448_private_to_pem
-import apiserver.db.model as db_model
-from apiserver.db.admin import drop_recreate_database
-from apiserver.env import Config
+from apiserver.app.define import LOGGER_NAME
+from apiserver.lib.model.entities import JWKSet, A256GCMKey, User, UserData
+import apiserver.lib.utilities as util
+from apiserver.lib.utilities.crypto import (
+    aes_from_symmetric,
+    decrypt_dict,
+    encrypt_dict,
+)
+from apiserver.lib.model.fn.keys import ed448_private_to_pem
+from apiserver.lib.model.fn import keys
+import apiserver.data.db.model as db_model
+from apiserver.data.db.admin import drop_recreate_database
+from apiserver.app.env import Config
 from apiserver import data
 
 __all__ = ["Source", "DataError", "Gateway", "NoDataError"]
@@ -108,7 +113,7 @@ class Source:
         first_lock = await waiting_lock(self)
         logger.debug(f"{first_lock} - lock status")
         # Set lock
-        await data.kv.set_startup_lock(self)
+        await data.trs.startup.set_startup_lock(self)
         if first_lock and recreate:
             logger.debug("Dropping and recreating...")
             drop_create_database(config)
@@ -117,7 +122,7 @@ class Source:
             await initial_population(self, config)
         await load_keys(self, config)
         # Release lock
-        await data.kv.set_startup_lock(self, "not")
+        await data.trs.startup.set_startup_lock(self, "not")
 
     async def shutdown(self):
         await self.gateway.shutdown()
@@ -128,10 +133,10 @@ MAX_WAIT_INDEX = 15
 
 async def waiting_lock(dsrc: Source):
     await sleep(random() + 0.1)
-    was_locked = await data.kv.startup_is_locked(dsrc)
+    was_locked = await data.trs.startup.startup_is_locked(dsrc)
     logger.debug(f"{was_locked} - was_locked init")
     i = 0
-    while was_locked and await data.kv.startup_is_locked(dsrc):
+    while was_locked and await data.trs.startup.startup_is_locked(dsrc):
         was_locked = True
         await sleep(1)
         i += 1
@@ -159,9 +164,9 @@ def drop_create_database(config: Config):
 
 async def initial_population(dsrc: Source, config: Config):
     kid1, kid2, kid3 = (util.random_time_hash_hex(short=True) for _ in range(3))
-    old_symmetric = util.keys.new_symmetric_key(kid1)
-    new_symmetric = util.keys.new_symmetric_key(kid2)
-    signing_key = util.keys.new_ed448_keypair(kid3)
+    old_symmetric = keys.new_symmetric_key(kid1)
+    new_symmetric = keys.new_symmetric_key(kid2)
+    signing_key = keys.new_ed448_keypair(kid3)
 
     jwk_set = JWKSet(keys=[old_symmetric, new_symmetric, signing_key])
 
@@ -177,11 +182,11 @@ async def initial_population(dsrc: Source, config: Config):
         await data.key.insert_key(conn, kid2, utc_now + 1, "enc")
         await data.key.insert_key(conn, kid3, utc_now, "sig")
 
-        opaque_setup = util.keys.new_opaque_setup(0)
+        opaque_setup = keys.new_opaque_setup(0)
         await data.opaquesetup.insert_opaque_row(conn, opaque_setup)
 
     fake_record_pass = f"{util.random_time_hash_hex()}{util.random_time_hash_hex()}"
-    fake_pw_file = util.keys.gen_pw_file(
+    fake_pw_file = keys.gen_pw_file(
         opaque_setup.value, fake_record_pass, "1_fakerecord"
     )
 
@@ -258,9 +263,9 @@ async def load_keys(dsrc: Source, config: Config):
     public_jwk_set = JWKSet(keys=public_keys)
 
     # Store in KV for quick access
-    await data.kv.store_pem_keys(dsrc, pem_keys)
-    await data.kv.store_symmetric_keys(dsrc, symmetric_keys)
-    await data.kv.store_jwks(dsrc, public_jwk_set)
+    await data.trs.key.store_pem_keys(dsrc, pem_keys)
+    await data.trs.key.store_symmetric_keys(dsrc, symmetric_keys)
+    await data.trs.key.store_jwks(dsrc, public_jwk_set)
     # We don't store these in the KV since that is an additional roundtrip that is not worth it
     # Consequently, they can only be refreshed at restart
     dsrc.state.current_pem = new_pem_kid

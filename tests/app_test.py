@@ -10,28 +10,33 @@ from fastapi.testclient import TestClient
 from httpx import codes
 from pytest_mock import MockerFixture
 
-from apiserver.app import State, safe_startup
-from apiserver.app import create_app
-from apiserver.auth.tokens import id_info_from_ud
-from apiserver.data import Source
-from apiserver.data.user import gen_id_name
-from apiserver.define import (
-    FlowUser,
-    AuthRequest,
-    SavedState,
-    SavedRegisterState,
+from apiserver.app.define import (
     frontend_client_id,
+    issuer,
+    backend_client_id,
+    refresh_exp,
+    access_exp,
+    id_exp,
 )
-from apiserver.define.entities import (
+from apiserver.app_def import State, safe_startup, create_app
+from apiserver.data.api.user import gen_id_name
+from apiserver.lib.model.fn.tokens import id_info_from_ud
+from apiserver.data import Source
+
+from apiserver.lib.model.entities import (
     SavedRefreshToken,
     UserData,
     User,
     PEMKey,
     A256GCMKey,
+    SavedRegisterState,
+    SavedState,
+    FlowUser,
+    AuthRequest,
 )
-from apiserver.env import load_config
-from apiserver.utilities import utc_timestamp
-from apiserver.utilities.crypto import aes_from_symmetric
+from apiserver.app.env import load_config
+from apiserver.lib.utilities import utc_timestamp
+from apiserver.lib.utilities.crypto import aes_from_symmetric
 
 
 @pytest.fixture(scope="module")
@@ -193,9 +198,9 @@ mock_token_key = {
 
 @pytest.fixture
 def mock_get_keys(mocker: MockerFixture):
-    get_k_s = mocker.patch("apiserver.data.kv.get_symmetric_key")
+    get_k_s = mocker.patch("apiserver.data.trs.key.get_symmetric_key")
     get_k_s.return_value = A256GCMKey(kid="b", symmetric=mock_symm_key["private"])
-    get_k_p = mocker.patch("apiserver.data.kv.get_pem_key")
+    get_k_p = mocker.patch("apiserver.data.trs.key.get_pem_key")
     get_k_p.return_value = PEMKey(
         kid="a", public=mock_token_key["public"], private=mock_token_key["private"]
     )
@@ -250,7 +255,11 @@ fake_token_id = 44
 
 @pytest.fixture
 def fake_tokens():
-    from apiserver.auth.tokens import create_tokens, finish_tokens, encode_token_dict
+    from apiserver.lib.model.fn.tokens import (
+        create_tokens,
+        finish_tokens,
+        encode_token_dict,
+    )
 
     utc_now = utc_timestamp()
     mock_id_info = id_info_from_ud(mock_userdata)
@@ -261,6 +270,10 @@ def fake_tokens():
         mock_auth_request.nonce,
         utc_now,
         mock_id_info,
+        issuer,
+        frontend_client_id,
+        backend_client_id,
+        refresh_exp,
     )
 
     acc_val = encode_token_dict(access_token_data.dict())
@@ -279,6 +292,8 @@ def fake_tokens():
         id_token_data,
         utc_now,
         signing_key,
+        access_exp,
+        id_exp,
         nonce="",
     )
     yield {
@@ -327,8 +342,8 @@ def test_refresh(test_client, mocker: MockerFixture, mock_get_keys, fake_tokens)
 
 
 def test_auth_code(test_client, mocker: MockerFixture, mock_get_keys):
-    get_flow = mocker.patch("apiserver.data.kv.pop_flow_user")
-    get_auth = mocker.patch("apiserver.data.kv.get_auth_request")
+    get_flow = mocker.patch("apiserver.data.trs.auth.pop_flow_user")
+    get_auth = mocker.patch("apiserver.data.trs.auth.get_auth_request")
     get_ud = mocker.patch("apiserver.data.user.get_userdata_by_id")
     r_save = mocker.patch("apiserver.data.refreshtoken.insert_refresh_row")
 
@@ -380,7 +395,7 @@ def store_fix():
 
 @pytest.fixture
 def state_store(store_fix, mocker: MockerFixture):
-    s_store = mocker.patch("apiserver.data.kv.store_auth_state")
+    s_store = mocker.patch("apiserver.data.trs.auth.store_auth_state")
 
     def store_side_effect(f_dsrc, auth_id, state):
         store_fix[auth_id] = state
@@ -392,7 +407,7 @@ def state_store(store_fix, mocker: MockerFixture):
 
 @pytest.fixture
 def register_state_store(store_fix, mocker: MockerFixture):
-    s_store = mocker.patch("apiserver.data.kv.store_auth_register_state")
+    s_store = mocker.patch("apiserver.data.trs.reg.store_auth_register_state")
 
     def store_side_effect(f_dsrc, auth_id, state):
         store_fix[auth_id] = state
@@ -404,7 +419,7 @@ def register_state_store(store_fix, mocker: MockerFixture):
 
 @pytest.fixture
 def flow_store(store_fix, mocker: MockerFixture):
-    f_store = mocker.patch("apiserver.data.kv.store_flow_user")
+    f_store = mocker.patch("apiserver.data.trs.auth.store_flow_user")
 
     def store_side_effect(f_dsrc, s_key, flow_user):
         store_fix[s_key] = flow_user
@@ -415,7 +430,7 @@ def flow_store(store_fix, mocker: MockerFixture):
 
 
 def test_start_register(test_client, mocker: MockerFixture, register_state_store: dict):
-    t_hash = mocker.patch("apiserver.utilities.random_time_hash_hex")
+    t_hash = mocker.patch("apiserver.lib.utilities.random_time_hash_hex")
     test_user_email = "start@loginer.nl"
     user_fn = "terst"
     user_ln = "nagmer"
@@ -502,7 +517,7 @@ def test_finish_register(test_client, mocker: MockerFixture):
     # password 'clientele'
     # test_state = "n-aQ8YSkFMbIoTJPS46lBeO4X4v5KbQ52ztB9-xP8wg"
 
-    g_state = mocker.patch("apiserver.data.kv.get_register_state")
+    g_state = mocker.patch("apiserver.data.trs.reg.get_register_state")
     g_ud_rid = mocker.patch("apiserver.data.user.get_userdata_by_register_id")
 
     def state_side_effect(f_dsrc, auth_id):
@@ -592,7 +607,7 @@ def test_start_login(test_client, mocker: MockerFixture, state_store: dict):
 
     g_pw_email.side_effect = pw_em_side_effect
 
-    t_hash = mocker.patch("apiserver.utilities.random_time_hash_hex")
+    t_hash = mocker.patch("apiserver.lib.utilities.random_time_hash_hex")
     test_auth_id = "d7a822c06ca8faa0e1df42fe3cbb0371"
 
     def hash_side_effect(user_usph):
@@ -630,7 +645,7 @@ def test_finish_login(test_client, mocker: MockerFixture, flow_store: dict):
     test_email = "finish@login.nl"
 
     # password 'clientele' with mock_opq_key
-    g_state = mocker.patch("apiserver.data.kv.get_state")
+    g_state = mocker.patch("apiserver.data.trs.auth.get_state")
     test_state = "NxOxeb4oKwirncPlH1SlCbE_md8lH767HsgGv57G1l3aMinOwsi9BDWQW054L-iqZh9le2YqQ4LI10kCbfh4ijIV36HPrGDZg1ObZKx4U1Mgg-5wnLKZx-qtUukSWgON8a0fkN7_C_Jazl8oZxKC4fXBbJj1NKKn2xZM0yrezur9PbOOAi8m9g4WTgKcEwyHGXz41dey2QetWH2GnK-w540e3mdi5vP9q7NPGXOJ-I6TIqvU9tp5B3539LnwwTE1"
 
     def state_side_effect(f_dsrc, auth_id):
@@ -665,7 +680,7 @@ def test_finish_login(test_client, mocker: MockerFixture, flow_store: dict):
 
 @pytest.fixture
 def req_store(store_fix, mocker: MockerFixture):
-    r_store = mocker.patch("apiserver.data.kv.store_auth_request")
+    r_store = mocker.patch("apiserver.data.trs.auth.store_auth_request")
 
     def store_side_effect(f_dsrc, flow_id, req):
         store_fix[flow_id] = req
@@ -695,7 +710,7 @@ def test_oauth_callback(test_client: TestClient, mocker: MockerFixture):
     test_flow_id = "1cd7afeca7eb420201ea69e06d9085ae2b8dd84adaae8d27c89746aab75d1dff"
     test_code = "zySjwa5CpddMzSydqKOvXZHQrtRK-VD83aOPMAB_1gEVxSscBywmS8XxZze3letN9whXUiRfSEfGel9e-5XGgQ"
 
-    get_auth = mocker.patch("apiserver.data.kv.get_auth_request")
+    get_auth = mocker.patch("apiserver.data.trs.auth.get_auth_request")
 
     def auth_side_effect(f_dsrc, flow_id):
         if flow_id == test_flow_id:

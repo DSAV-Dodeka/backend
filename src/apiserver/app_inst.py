@@ -1,5 +1,5 @@
-from apiserver.app import create_app
-from apiserver.app import lifespan
+from apiserver.app_def import create_app
+from apiserver.app_def import lifespan
 
 
 # Running FastAPI relies on the fact the app is created at module top-level

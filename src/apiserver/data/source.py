@@ -19,8 +19,8 @@ from apiserver.lib.utilities.crypto import (
     decrypt_dict,
     encrypt_dict,
 )
-from apiserver.lib.model.procedures.keys import ed448_private_to_pem
-from apiserver.lib.model.procedures import keys
+from apiserver.lib.model.fn.keys import ed448_private_to_pem
+from apiserver.lib.model.fn import keys
 import apiserver.data.db.model as db_model
 from apiserver.data.db.admin import drop_recreate_database
 from apiserver.app.env import Config
@@ -113,7 +113,7 @@ class Source:
         first_lock = await waiting_lock(self)
         logger.debug(f"{first_lock} - lock status")
         # Set lock
-        await data.kv.set_startup_lock(self)
+        await data.trs.startup.set_startup_lock(self)
         if first_lock and recreate:
             logger.debug("Dropping and recreating...")
             drop_create_database(config)
@@ -122,7 +122,7 @@ class Source:
             await initial_population(self, config)
         await load_keys(self, config)
         # Release lock
-        await data.kv.set_startup_lock(self, "not")
+        await data.trs.startup.set_startup_lock(self, "not")
 
     async def shutdown(self):
         await self.gateway.shutdown()
@@ -133,10 +133,10 @@ MAX_WAIT_INDEX = 15
 
 async def waiting_lock(dsrc: Source):
     await sleep(random() + 0.1)
-    was_locked = await data.kv.startup_is_locked(dsrc)
+    was_locked = await data.trs.startup.startup_is_locked(dsrc)
     logger.debug(f"{was_locked} - was_locked init")
     i = 0
-    while was_locked and await data.kv.startup_is_locked(dsrc):
+    while was_locked and await data.trs.startup.startup_is_locked(dsrc):
         was_locked = True
         await sleep(1)
         i += 1
@@ -263,9 +263,9 @@ async def load_keys(dsrc: Source, config: Config):
     public_jwk_set = JWKSet(keys=public_keys)
 
     # Store in KV for quick access
-    await data.kv.store_pem_keys(dsrc, pem_keys)
-    await data.kv.store_symmetric_keys(dsrc, symmetric_keys)
-    await data.kv.store_jwks(dsrc, public_jwk_set)
+    await data.trs.key.store_pem_keys(dsrc, pem_keys)
+    await data.trs.key.store_symmetric_keys(dsrc, symmetric_keys)
+    await data.trs.key.store_jwks(dsrc, public_jwk_set)
     # We don't store these in the KV since that is an additional roundtrip that is not worth it
     # Consequently, they can only be refreshed at restart
     dsrc.state.current_pem = new_pem_kid

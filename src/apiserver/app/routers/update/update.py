@@ -3,28 +3,18 @@ from urllib.parse import urlencode
 
 import opaquepy as opq
 from fastapi import APIRouter, Request, BackgroundTasks
+from pydantic import BaseModel
 
 from apiserver import data
 import apiserver.lib.utilities as util
 from apiserver.app.error import ErrorResponse
-from apiserver.app.ops.mail import send_email
+from apiserver.app.ops.mail import send_change_email_email, send_reset_email
 from apiserver.app.routers.helper import authentication
 from apiserver.app.routers.helper.authentication import send_register_start
 from apiserver.app.ops.header import Authorization
 from apiserver.data import Source, NoDataError, DataError
 from apiserver.app.define import LOGGER_NAME, credentials_url
-from apiserver.app.model.models import (
-    UpdatePasswordRequest,
-    ChangePasswordRequest,
-    UpdatePasswordFinish,
-    UpdateEmail,
-    UpdateEmailCheck,
-    ChangedEmailResponse,
-    UpdateEmailState,
-    DeleteAccount,
-    DeleteAccountCheck,
-    DeleteUrlResponse,
-)
+from apiserver.lib.model.entities import UpdateEmailState
 from apiserver.app.env import Config
 from apiserver.app.routers.helper import require_user
 
@@ -33,49 +23,8 @@ router = APIRouter()
 logger = logging.getLogger(LOGGER_NAME)
 
 
-def send_reset_email(
-    background_tasks: BackgroundTasks, receiver: str, mail_pass: str, reset_link: str
-):
-    add_vars = {
-        "reset_link": reset_link,
-    }
-
-    def send_lam():
-        send_email(
-            logger,
-            "passwordchange.jinja2",
-            receiver,
-            mail_pass,
-            "Request for password reset",
-            add_vars=add_vars,
-        )
-
-    background_tasks.add_task(send_lam)
-
-
-def send_change_email_email(
-    background_tasks: BackgroundTasks,
-    receiver: str,
-    mail_pass: str,
-    reset_link: str,
-    old_email: str,
-):
-    add_vars = {
-        "old_email": old_email,
-        "reset_link": reset_link,
-    }
-
-    def send_lam():
-        send_email(
-            logger,
-            "emailchange.jinja2",
-            receiver,
-            mail_pass,
-            "Please confirm your new email",
-            add_vars=add_vars,
-        )
-
-    background_tasks.add_task(send_lam)
+class ChangePasswordRequest(BaseModel):
+    email: str
 
 
 @router.post("/update/password/reset/")
@@ -93,7 +42,7 @@ async def request_password_change(
     params = {"reset_id": flow_id, "email": change_pass.email}
     reset_url = f"{credentials_url}reset/?{urlencode(params)}"
 
-    await data.kv.store_string(dsrc, flow_id, change_pass.email, 1000)
+    await data.trs.store_string(dsrc, flow_id, change_pass.email, 1000)
 
     config: Config = request.state.config
     if ud.registered:
@@ -102,12 +51,18 @@ async def request_password_change(
         )
 
 
+class UpdatePasswordRequest(BaseModel):
+    email: str
+    flow_id: str
+    client_request: str
+
+
 @router.post("/update/password/start/")
 async def update_password_start(update_pass: UpdatePasswordRequest, request: Request):
     dsrc: Source = request.state.dsrc
 
     try:
-        stored_email = await data.kv.pop_string(dsrc, update_pass.flow_id)
+        stored_email = await data.trs.pop_string(dsrc, update_pass.flow_id)
     except NoDataError as e:
         logger.debug(e.message)
         reason = "No reset has been requested for this user."
@@ -131,12 +86,17 @@ async def update_password_start(update_pass: UpdatePasswordRequest, request: Req
     return await send_register_start(dsrc, u.user_id, update_pass.client_request)
 
 
+class UpdatePasswordFinish(BaseModel):
+    auth_id: str
+    client_request: str
+
+
 @router.post("/update/password/finish/")
 async def update_password_finish(update_finish: UpdatePasswordFinish, request: Request):
     dsrc: Source = request.state.dsrc
 
     try:
-        saved_state = await data.kv.get_register_state(dsrc, update_finish.auth_id)
+        saved_state = await data.trs.reg.get_register_state(dsrc, update_finish.auth_id)
     except NoDataError as e:
         logger.debug(e.message)
         reason = "Reset not initialized or expired."
@@ -150,6 +110,11 @@ async def update_password_finish(update_finish: UpdatePasswordFinish, request: R
         await data.user.update_password_file(conn, saved_state.user_id, password_file)
 
         await data.refreshtoken.delete_by_user_id(conn, saved_state.user_id)
+
+
+class UpdateEmail(BaseModel):
+    user_id: str
+    new_email: str
 
 
 @router.post("/update/email/send/")
@@ -190,7 +155,17 @@ async def update_email(
         old_email=old_email, new_email=new_email.new_email, user_id=user_id
     )
 
-    await data.kv.store_update_email(dsrc, flow_id, state)
+    await data.trs.reg.store_update_email(dsrc, flow_id, state)
+
+
+class UpdateEmailCheck(BaseModel):
+    flow_id: str
+    code: str
+
+
+class ChangedEmailResponse(BaseModel):
+    old_email: str
+    new_email: str
 
 
 @router.post("/update/email/check/")
@@ -200,7 +175,7 @@ async def update_email_check(update_check: UpdateEmailCheck, request: Request):
     flow_user = await authentication.check_password(dsrc, update_check.code)
 
     try:
-        stored_email = await data.kv.get_update_email(dsrc, update_check.flow_id)
+        stored_email = await data.trs.reg.get_update_email(dsrc, update_check.flow_id)
     except NoDataError:
         reason = "Update request has expired, please try again!"
         logger.debug(reason + f" {flow_user.user_id}")
@@ -219,6 +194,14 @@ async def update_email_check(update_check: UpdateEmailCheck, request: Request):
     return ChangedEmailResponse(
         old_email=stored_email.old_email, new_email=stored_email.new_email
     )
+
+
+class DeleteAccount(BaseModel):
+    user_id: str
+
+
+class DeleteUrlResponse(BaseModel):
+    delete_url: str
 
 
 @router.post("/update/delete/url/")
@@ -254,9 +237,14 @@ async def delete_account(
     }
     delete_url = f"{credentials_url}?{urlencode(params)}"
 
-    await data.kv.store_string(dsrc, flow_id, user_id, 1000)
+    await data.trs.store_string(dsrc, flow_id, user_id, 1000)
 
     return DeleteUrlResponse(delete_url=delete_url)
+
+
+class DeleteAccountCheck(BaseModel):
+    flow_id: str
+    code: str
 
 
 @router.post("/update/delete/check/")
@@ -266,7 +254,7 @@ async def delete_account_check(delete_check: DeleteAccountCheck, request: Reques
     flow_user = await authentication.check_password(dsrc, delete_check.code)
 
     try:
-        stored_user_id = await data.kv.pop_string(dsrc, delete_check.flow_id)
+        stored_user_id = await data.trs.pop_string(dsrc, delete_check.flow_id)
     except NoDataError:
         reason = "Delete request has expired, please try again!"
         logger.debug(reason + f" {flow_user.user_id}")

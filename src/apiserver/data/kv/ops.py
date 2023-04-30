@@ -7,7 +7,7 @@ __all__ = [
     "store_json",
     "get_json",
     "store_kv",
-    "get_kv",
+    "get_val_kv",
     "pop_json",
     "store_json_perm",
     "store_json_multi",
@@ -69,7 +69,7 @@ async def store_kv_perm(kv: Redis, key: str, value):
     return await kv.set(key, value)
 
 
-async def get_kv(kv: Redis, key: str) -> Optional[bytes]:
+async def get_val_kv(kv: Redis, key: str) -> Optional[bytes]:
     return await kv.get(key)
 
 

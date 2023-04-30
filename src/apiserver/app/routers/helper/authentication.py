@@ -8,10 +8,9 @@ from apiserver import data
 
 from apiserver.data import Source, NoDataError
 from apiserver.app.model.models import (
-    SavedRegisterState,
     PasswordResponse,
-    FlowUser,
 )
+from apiserver.lib.model.entities import SavedRegisterState, FlowUser
 from apiserver.app.define import LOGGER_NAME
 from apiserver.app.error import ErrorResponse
 from apiserver.app.routers.helper.helper import require_user
@@ -28,7 +27,7 @@ async def send_register_start(dsrc: Source, user_id: str, client_request: str):
 
     response = opq.register(opaque_setup, client_request, user_id)
     saved_state = SavedRegisterState(user_id=user_id)
-    await data.kv.store_auth_register_state(dsrc, auth_id, saved_state)
+    await data.trs.reg.store_auth_register_state(dsrc, auth_id, saved_state)
 
     return PasswordResponse(server_message=response, auth_id=auth_id)
 
@@ -37,7 +36,7 @@ async def check_password(
     dsrc: Source, auth_code: str, authorization: str = None
 ) -> FlowUser:
     try:
-        flow_user = await data.kv.pop_flow_user(dsrc, auth_code)
+        flow_user = await data.trs.auth.pop_flow_user(dsrc, auth_code)
     except NoDataError as e:
         logger.debug(e.message)
         reason = "Expired or missing auth code"

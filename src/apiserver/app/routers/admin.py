@@ -1,12 +1,12 @@
 import logging
 
 from fastapi import APIRouter, Request
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from apiserver.app.define import LOGGER_NAME
 from apiserver.app.error import ErrorResponse
 from apiserver.lib.model.entities import UserData, UserScopeData
-from apiserver.app.model.models import ScopeAddRequest, ScopeRemoveRequest
 from apiserver import data
 from apiserver.data import Source, DataError, NoDataError
 from apiserver.app.ops.header import Authorization
@@ -33,6 +33,11 @@ async def get_users_scopes(request: Request, authorization: Authorization):
     async with data.get_conn(dsrc) as conn:
         user_scope_data = await data.user.get_all_users_scopes(conn)
     return user_scope_data
+
+
+class ScopeAddRequest(BaseModel):
+    user_id: str
+    scope: str
 
 
 @router.post("/admin/scopes/add/")
@@ -78,6 +83,11 @@ async def add_scope(
             )
 
     return {}
+
+
+class ScopeRemoveRequest(BaseModel):
+    user_id: str
+    scope: str
 
 
 @router.post("/admin/scopes/remove/")

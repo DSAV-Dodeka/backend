@@ -1,82 +1,44 @@
 import json
 import logging
+from datetime import date
 from urllib.parse import urlencode
 
 import opaquepy as opq
 from anyio import sleep
 from fastapi import APIRouter, BackgroundTasks, Request
+from pydantic import BaseModel
 
-from apiserver import data
 import apiserver.lib.utilities as util
-from apiserver.app.ops.mail import send_email
-from apiserver.app.error import ErrorResponse
-from apiserver.app.routers.helper.authentication import send_register_start
-from apiserver.app.ops.header import Authorization
-from apiserver.data import DataError, Source, NoDataError
+from apiserver import data
 from apiserver.app.define import (
     LOGGER_NAME,
     signup_url,
     credentials_url,
-    loc_dict,
-)
-from apiserver.lib.model.entities import SignedUp
-from apiserver.app.model.models import (
-    SignupRequest,
-    SignupConfirm,
-    PasswordResponse,
-    RegisterRequest,
-    FinishRequest,
-    EmailConfirm,
+    email_expiration,
 )
 from apiserver.app.env import Config
+from apiserver.app.error import ErrorResponse
+from apiserver.app.model.models import PasswordResponse
+from apiserver.app.ops.header import Authorization
 from apiserver.app.routers.helper import require_admin
+from apiserver.app.routers.helper.authentication import send_register_start
+from apiserver.app.ops.mail import (
+    send_signup_email,
+    send_register_email,
+)
+from apiserver.data import DataError, Source, NoDataError
+from apiserver.lib.model.entities import SignedUp, Signup
 
 router = APIRouter()
 
 logger = logging.getLogger(LOGGER_NAME)
 
 
-def send_signup_email(
-    background_tasks: BackgroundTasks,
-    receiver: str,
-    receiver_name: str,
-    mail_pass: str,
-    redirect_link: str,
-    signup_link: str,
-):
-    add_vars = {"redirect_link": redirect_link, "signup_link": signup_link}
-
-    def send_lam():
-        send_email(
-            logger,
-            "confirm.jinja2",
-            receiver,
-            mail_pass,
-            "Please confirm your email",
-            receiver_name,
-            add_vars=add_vars,
-        )
-
-    background_tasks.add_task(send_lam)
-
-
-def send_register_email(
-    background_tasks: BackgroundTasks, receiver: str, mail_pass: str, register_link: str
-):
-    add_vars = {"register_link": register_link}
-
-    def send_lam():
-        org_name = loc_dict["loc"]["org_name"]
-        send_email(
-            logger,
-            "register.jinja2",
-            receiver,
-            mail_pass,
-            f"Welcome to {org_name}",
-            add_vars=add_vars,
-        )
-
-    background_tasks.add_task(send_lam)
+class SignupRequest(BaseModel):
+    firstname: str
+    lastname: str
+    email: str
+    phone: str
 
 
 @router.post("/onboard/signup/")
@@ -99,7 +61,9 @@ async def init_signup(
 
     confirm_id = util.random_time_hash_hex()
 
-    await data.kv.store_email_confirmation(dsrc, confirm_id, signup)
+    await data.trs.reg.store_email_confirmation(
+        dsrc, confirm_id, Signup.parse_obj(signup), email_expiration
+    )
     config: Config = request.state.config
 
     params = {"confirm_id": confirm_id}
@@ -119,12 +83,16 @@ async def init_signup(
         await sleep(0.00002)
 
 
+class EmailConfirm(BaseModel):
+    confirm_id: str
+
+
 @router.post("/onboard/email/")
 async def email_confirm(confirm_req: EmailConfirm, request: Request):
     dsrc: Source = request.state.dsrc
 
     try:
-        signup = await data.kv.get_email_confirmation(dsrc, confirm_req.confirm_id)
+        signup = await data.trs.reg.get_email_confirmation(dsrc, confirm_req.confirm_id)
     except NoDataError as e:
         logger.debug(e.message)
         reason = "Incorrect confirm ID or expired."
@@ -163,6 +131,12 @@ async def get_signedup(request: Request, authorization: Authorization):
     async with data.get_conn(dsrc) as conn:
         signed_up = await data.signedup.get_all_signedup(conn)
     return signed_up
+
+
+class SignupConfirm(BaseModel):
+    email: str
+    av40id: int
+    joined: date
 
 
 @router.post("/onboard/confirm/")
@@ -225,6 +199,12 @@ async def confirm_join(
     )
 
 
+class RegisterRequest(BaseModel):
+    email: str
+    client_request: str
+    register_id: str
+
+
 @router.post("/onboard/register/", response_model=PasswordResponse)
 async def start_register(register_start: RegisterRequest, request: Request):
     """First step of OPAQUE registration, requires username and client message generated in first client registration
@@ -281,13 +261,26 @@ async def start_register(register_start: RegisterRequest, request: Request):
     return await send_register_start(dsrc, ud.user_id, register_start.client_request)
 
 
+class FinishRequest(BaseModel):
+    auth_id: str
+    email: str
+    client_request: str
+    register_id: str
+    callname: str
+    eduinstitution: str
+    birthdate: date
+    age_privacy: bool
+
+
 @router.post("/onboard/finish/")
 async def finish_register(register_finish: FinishRequest, request: Request):
     """At this point, we have info saved under 'userdata', 'users' and short-term storage as SavedRegisterState. All
     this data must match up for there to be a successful registration."""
     dsrc: Source = request.state.dsrc
     try:
-        saved_state = await data.kv.get_register_state(dsrc, register_finish.auth_id)
+        saved_state = await data.trs.reg.get_register_state(
+            dsrc, register_finish.auth_id
+        )
     except NoDataError as e:
         logger.debug(e.message)
         reason = "Registration not initialized or expired."

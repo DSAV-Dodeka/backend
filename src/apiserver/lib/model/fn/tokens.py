@@ -14,16 +14,6 @@ from jwt import (
     InvalidTokenError,
 )
 
-from apiserver.app.define import (
-    LOGGER_NAME,
-    id_exp,
-    access_exp,
-    refresh_exp,
-    grace_period,
-    frontend_client_id,
-    backend_client_id,
-    issuer,
-)
 import apiserver.lib.utilities as util
 from apiserver.lib.errors import InvalidRefresh
 from apiserver.lib.utilities.crypto import encrypt_dict, decrypt_dict
@@ -50,8 +40,6 @@ __all__ = [
     "id_info_from_ud",
     "get_kid",
 ]
-
-logger = logging.getLogger(LOGGER_NAME)
 
 
 def encrypt_refresh(aesgcm: AESGCM, refresh: RefreshToken) -> str:
@@ -90,7 +78,10 @@ FIRST_SIGN_TIME = 1640690242
 
 
 def verify_refresh(
-    saved_refresh: SavedRefreshToken, old_refresh: RefreshToken, utc_now: int
+    saved_refresh: SavedRefreshToken,
+    old_refresh: RefreshToken,
+    utc_now: int,
+    grace_period: int,
 ) -> None:
     if (
         saved_refresh.nonce != old_refresh.nonce
@@ -174,6 +165,10 @@ def create_tokens(
     id_nonce: str,
     utc_now: int,
     id_info: IdInfo,
+    issuer: str,
+    frontend_client_id: str,
+    backend_client_id: str,
+    refresh_exp: int,
 ):
     # Build new tokens
     access_token_data, id_token_data = id_access_tokens(
@@ -216,6 +211,8 @@ def finish_tokens(
     id_token_data: IdToken,
     utc_now: int,
     signing_key: PEMKey,
+    access_exp: int,
+    id_exp: int,
     *,
     nonce: str,
 ):
@@ -297,7 +294,13 @@ def get_kid(access_token: str):
         raise BadVerification("other")
 
 
-def verify_access_token(public_key: str, access_token: str):
+def verify_access_token(
+    public_key: str,
+    access_token: str,
+    grace_period: int,
+    issuer: str,
+    backend_client_id: str,
+):
     try:
         decoded_payload = jwt.decode(
             access_token,

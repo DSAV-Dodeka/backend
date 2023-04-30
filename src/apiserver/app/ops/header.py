@@ -4,8 +4,9 @@ from fastapi.params import Security
 from fastapi.security.api_key import APIKeyHeader
 
 from apiserver import data
+from apiserver.app.define import grace_period, issuer, backend_client_id
 from apiserver.app.ops.errors import BadAuth
-from apiserver.lib.model.procedures.tokens import (
+from apiserver.lib.model.fn.tokens import (
     verify_access_token,
     BadVerification,
     get_kid,
@@ -33,8 +34,10 @@ async def handle_header(authorization: str, dsrc: Source) -> AccessToken:
 
     try:
         kid = get_kid(token)
-        public_key = await data.kv.get_pem_key(dsrc, kid)
-        return verify_access_token(public_key.public, token)
+        public_key = await data.trs.key.get_pem_key(dsrc, kid)
+        return verify_access_token(
+            public_key.public, token, grace_period, issuer, backend_client_id
+        )
     except NoDataError as e:
         raise BadAuth(
             err_type="invalid_token",

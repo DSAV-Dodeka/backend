@@ -4,7 +4,7 @@ from apiserver.lib.errors import InvalidRefresh
 from apiserver.lib.utilities.crypto import aes_from_symmetric
 from apiserver.lib.utilities import utc_timestamp
 from apiserver.lib.model.entities import PEMKey
-from apiserver.lib.model.procedures.tokens import (
+from apiserver.lib.model.fn.tokens import (
     decrypt_old_refresh,
     verify_refresh,
     build_refresh_save,
@@ -14,7 +14,15 @@ from apiserver.lib.model.procedures.tokens import (
 )
 from apiserver import data
 from apiserver.data import Source, DataError
-from apiserver.app.define import id_exp
+from apiserver.app.define import (
+    id_exp,
+    grace_period,
+    issuer,
+    backend_client_id,
+    refresh_exp,
+    frontend_client_id,
+    access_exp,
+)
 from apiserver.app.ops.errors import RefreshOperationError
 
 
@@ -24,13 +32,13 @@ async def get_keys(dsrc: Source) -> tuple[AESGCM, AESGCM, PEMKey]:
     signing_kid = dsrc.state.current_pem
 
     # Symmetric key used to verify and encrypt/decrypt refresh tokens
-    symmetric_key = await data.kv.get_symmetric_key(dsrc, symmetric_kid)
+    symmetric_key = await data.trs.key.get_symmetric_key(dsrc, symmetric_kid)
     aesgcm = aes_from_symmetric(symmetric_key.symmetric)
-    old_symmetric_key = await data.kv.get_symmetric_key(dsrc, old_symmetric_kid)
+    old_symmetric_key = await data.trs.key.get_symmetric_key(dsrc, old_symmetric_kid)
     old_aesgcm = aes_from_symmetric(old_symmetric_key.symmetric)
     # Asymmetric private key used for signing access and ID tokens
     # A public key is then used to verify them
-    signing_key = await data.kv.get_pem_key(dsrc, signing_kid)
+    signing_key = await data.trs.key.get_pem_key(dsrc, signing_kid)
 
     return aesgcm, old_aesgcm, signing_key
 
@@ -58,7 +66,7 @@ async def do_refresh(dsrc: Source, old_refresh_token: str):
             await data.refreshtoken.delete_family(conn, old_refresh.family_id)
             raise RefreshOperationError("Not recent")
 
-    verify_refresh(saved_refresh, old_refresh, utc_now)
+    verify_refresh(saved_refresh, old_refresh, utc_now, grace_period)
 
     (
         access_token_data,
@@ -85,6 +93,8 @@ async def do_refresh(dsrc: Source, old_refresh_token: str):
         id_token_data,
         utc_now,
         signing_key,
+        access_exp,
+        id_exp,
         nonce=new_nonce,
     )
 
@@ -103,7 +113,16 @@ async def new_token(
         id_info = id_info_from_ud(ud)
 
         access_token_data, id_token_data, access_scope, refresh_save = create_tokens(
-            user_id, scope, auth_time, id_nonce, utc_now, id_info
+            user_id,
+            scope,
+            auth_time,
+            id_nonce,
+            utc_now,
+            id_info,
+            issuer,
+            frontend_client_id,
+            backend_client_id,
+            refresh_exp,
         )
 
         refresh_id = await data.refreshtoken.insert_refresh_row(conn, refresh_save)
@@ -116,6 +135,8 @@ async def new_token(
         id_token_data,
         utc_now,
         signing_key,
+        access_exp,
+        id_exp,
         nonce="",
     )
 

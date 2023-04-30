@@ -11,7 +11,7 @@ from httpx import codes
 import apiserver.lib.utilities as util
 from apiserver import data
 from apiserver.data.api.user import new_userdata
-from apiserver.lib.model.procedures.tokens import create_tokens, finish_tokens
+from apiserver.lib.model.fn.tokens import create_tokens, finish_tokens
 from apiserver.app.ops.tokens import get_keys
 from apiserver.data import Source
 from apiserver.lib.model.entities import SignedUp

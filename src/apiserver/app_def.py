@@ -26,7 +26,15 @@ from apiserver.app.error import (
     ErrorResponse,
     error_response_handler,
 )
-from apiserver.app.routers import admin, auth, basic, onboard, update, profile, users
+from apiserver.app.routers import (
+    admin,
+    basic,
+    update_router,
+    profile,
+    users,
+    onboard_router,
+    auth_router,
+)
 from apiserver.app.env import load_config, Config
 
 
@@ -115,10 +123,10 @@ def create_app(app_lifespan) -> FastAPI:
         exception_handlers=exception_handlers,
     )
     new_app.include_router(basic.router)
-    new_app.include_router(auth.router)
+    new_app.include_router(auth_router)
     new_app.include_router(profile.router)
-    new_app.include_router(onboard.router)
-    new_app.include_router(update.router)
+    new_app.include_router(onboard_router)
+    new_app.include_router(update_router)
     new_app.include_router(admin.router)
     new_app.include_router(users.router)
     new_app.add_exception_handler(ErrorResponse, handler=error_response_handler)

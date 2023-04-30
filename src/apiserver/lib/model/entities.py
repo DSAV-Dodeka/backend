@@ -172,3 +172,44 @@ class PEMKey(BaseModel):
     kid: str
     public: str  # PEM encoded X509PKCS#1 as unicode
     private: str  # PEM encoded PKCS#8 as unicode
+
+
+class AuthRequest(BaseModel):
+    response_type: str
+    client_id: str
+    redirect_uri: str
+    state: str
+    code_challenge: str
+    code_challenge_method: str
+    nonce: str
+
+
+class SavedRegisterState(BaseModel):
+    user_id: str
+
+
+class SavedState(BaseModel):
+    user_id: str
+    user_email: str
+    scope: str
+    state: str
+
+
+class FlowUser(BaseModel):
+    user_id: str
+    scope: str
+    flow_id: str
+    auth_time: int
+
+
+class UpdateEmailState(BaseModel):
+    user_id: str
+    old_email: str
+    new_email: str
+
+
+class Signup(BaseModel):
+    firstname: str
+    lastname: str
+    email: str
+    phone: str

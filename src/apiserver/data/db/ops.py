@@ -145,13 +145,15 @@ async def get_largest_where(
     where_val,
     order_col: str,
     num: int,
+    descending: bool = True,
 ) -> list[Any]:
     """Ensure `table`, `sel_col`, `where_col`, `order_col` and `num` are never user-defined.
     """
     some = select_set(sel_col)
+    desc_str = "DESC" if descending else "ASC"
     query = text(
         f"SELECT {some} FROM {table} where {where_col} = :where_val ORDER BY"
-        f" {order_col} DESC LIMIT {num};"
+        f" {order_col} {desc_str} LIMIT {num};"
     )
     res: CursorResult = await conn.execute(query, parameters={"where_val": where_val})
     return list(res.scalars().all())

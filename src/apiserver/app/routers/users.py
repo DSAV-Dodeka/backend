@@ -37,3 +37,9 @@ async def get_user_rankings(rank_type, request: Request, authorization: Authoriz
 
     ranking_data = await data.file.load_json(rank_type)
     return ranking_data
+
+
+@router.get("/members/class/training")
+async def get_training_rankings(request: Request, authorization: Authorization):
+    dsrc: Source = request.state.dsrc
+    await require_member(authorization, dsrc)

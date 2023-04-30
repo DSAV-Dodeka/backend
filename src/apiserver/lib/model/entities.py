@@ -221,3 +221,10 @@ class Classification(BaseModel):
     end_date: date
     hidden_date: date
     last_updated: date
+
+
+class ClassPoints(BaseModel):
+    user_id: str
+    classification_id: str
+    true_points: str
+    display_points: str

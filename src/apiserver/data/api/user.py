@@ -1,20 +1,9 @@
 import re
-from typing import Optional
 from datetime import date
+from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from apiserver.lib.model.entities import (
-    User,
-    SignedUp,
-    UserData,
-    BirthdayData,
-    EasterEggData,
-    UserScopeData,
-    RawUserScopeData,
-    ScopeData,
-)
-from apiserver.lib.utilities import usp_hex, strip_edge, de_usp_hex
 from apiserver.data.db.model import (
     USER_TABLE,
     USERDATA_TABLE,
@@ -47,8 +36,19 @@ from apiserver.data.db.ops import (
     select_some_join_where,
     DbError,
 )
-from apiserver.data.source import Source, DataError, NoDataError
-
+from apiserver.data.source import DataError, NoDataError
+from apiserver.lib.model.entities import (
+    User,
+    SignedUp,
+    UserData,
+    BirthdayData,
+    EasterEggData,
+    UserScopeData,
+    RawUserScopeData,
+    ScopeData,
+    UserID,
+)
+from apiserver.lib.utilities import usp_hex, strip_edge, de_usp_hex
 
 __all__ = [
     "get_user_by_id",
@@ -226,7 +226,6 @@ def gen_id_name(first_name: str, last_name: str):
 
 
 async def new_user(
-    dsrc: Source,
     conn: AsyncConnection,
     signed_up: SignedUp,
     register_id: str,
@@ -288,7 +287,15 @@ async def update_user_email(
 
 async def get_all_userdata(conn: AsyncConnection) -> list[UserData]:
     all_userdata = await select_where(conn, USERDATA_TABLE, UD_ACTIVE, True)
-    return [parse_userdata(ud_dct) for ud_dct in all_userdata]
+    return [parse_userdata(dict(ud_dct)) for ud_dct in all_userdata]
+
+
+async def get_all_user_ids(conn: AsyncConnection) -> list[UserID]:
+    all_user_ids = await select_some_where(
+        conn, USERDATA_TABLE, {USER_ID}, UD_ACTIVE, True
+    )
+    # This is the fastest way to parse in pure Python, although converting to dict is only slightly faster
+    return [UserID(user_id=u_id_r["user_id"]) for u_id_r in all_user_ids]
 
 
 async def get_all_birthdays(conn: AsyncConnection) -> list[BirthdayData]:
@@ -301,7 +308,7 @@ async def get_all_birthdays(conn: AsyncConnection) -> list[BirthdayData]:
         SHOW_AGE,
         True,
     )
-    return [parse_birthday_data(bd_dct) for bd_dct in all_birthdays]
+    return [parse_birthday_data(dict(bd_dct)) for bd_dct in all_birthdays]
 
 
 async def get_all_users_scopes(conn: AsyncConnection) -> list[UserScopeData]:
@@ -320,7 +327,8 @@ async def get_all_users_scopes(conn: AsyncConnection) -> list[UserScopeData]:
     )
 
     return [
-        parse_users_scopes_data(u_ud_scope_dct) for u_ud_scope_dct in all_users_scopes
+        parse_users_scopes_data(dict(u_ud_scope_dct))
+        for u_ud_scope_dct in all_users_scopes
     ]
 
 
@@ -361,7 +369,7 @@ async def remove_scope(conn: AsyncConnection, user_id: str, old_scope: str):
     scope_usph = usp_hex(old_scope)
 
     try:
-        data_list: list[dict] = await select_some_where(
+        data_list = await select_some_where(
             conn, USER_TABLE, {SCOPES}, USER_ID, user_id
         )
     except DbError as e:
@@ -375,7 +383,7 @@ async def remove_scope(conn: AsyncConnection, user_id: str, old_scope: str):
             "No scope removed, user most likely does not exist", "scope_not_removed"
         )
 
-    scope_data = parse_scope_data(data_list[0])
+    scope_data = parse_scope_data(dict(data_list[0]))
 
     scope_string = scope_data.scope
     scope_list = scope_string.split(" ")
@@ -404,7 +412,7 @@ async def get_easter_eggs_count(conn: AsyncConnection, user_id: str):
         user_id,
     )
 
-    return [parse_easter_egg_data(eed_dct) for eed_dct in easter_eggs_found]
+    return [parse_easter_egg_data(dict(eed_dct)) for eed_dct in easter_eggs_found]
 
 
 async def found_easter_egg(conn: AsyncConnection, user_id: str, egg_id: str):

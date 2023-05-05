@@ -137,7 +137,6 @@ async def test_generate_dummies(local_dsrc: Source, faker: Faker):
         joined = faker.date()
         async with data.get_conn(local_dsrc) as conn:
             uid = await data.user.new_user(
-                local_dsrc,
                 conn,
                 su,
                 register_id=register_id,

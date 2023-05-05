@@ -1,12 +1,13 @@
 import logging
 
 from fastapi import APIRouter, Request
+from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from apiserver.app.define import LOGGER_NAME
 from apiserver.app.error import ErrorResponse
-from apiserver.lib.model.entities import UserData, UserScopeData
+from apiserver.lib.model.entities import UserData, UserScopeData, UserID
 from apiserver import data
 from apiserver.data import Source, DataError, NoDataError
 from apiserver.app.ops.header import Authorization
@@ -23,7 +24,7 @@ async def get_users(request: Request, authorization: Authorization):
     await require_admin(authorization, dsrc)
     async with data.get_conn(dsrc) as conn:
         user_data = await data.user.get_all_userdata(conn)
-    return user_data
+    return ORJSONResponse([ud.dict() for ud in user_data])
 
 
 @router.get("/admin/scopes/all/", response_model=list[UserScopeData])
@@ -32,7 +33,7 @@ async def get_users_scopes(request: Request, authorization: Authorization):
     await require_admin(authorization, dsrc)
     async with data.get_conn(dsrc) as conn:
         user_scope_data = await data.user.get_all_users_scopes(conn)
-    return user_scope_data
+    return ORJSONResponse([usd.dict() for usd in user_scope_data])
 
 
 class ScopeAddRequest(BaseModel):
@@ -138,3 +139,12 @@ async def remove_scope(
             )
 
     return {}
+
+
+@router.get("/admin/users/ids/", response_model=list[UserID])
+async def get_user_ids(request: Request, authorization: Authorization):
+    dsrc: Source = request.state.dsrc
+    await require_admin(authorization, dsrc)
+    async with data.get_conn(dsrc) as conn:
+        user_ids = await data.user.get_all_user_ids(conn)
+    return ORJSONResponse([u_id.dict() for u_id in user_ids])

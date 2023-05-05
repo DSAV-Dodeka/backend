@@ -228,3 +228,7 @@ class ClassPoints(BaseModel):
     classification_id: str
     true_points: str
     display_points: str
+
+
+class UserID(BaseModel):
+    user_id: str

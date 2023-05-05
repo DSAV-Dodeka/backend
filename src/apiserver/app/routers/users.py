@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Request
+from fastapi.responses import ORJSONResponse
 
 from apiserver import data
 from apiserver.lib.model.entities import BirthdayData
@@ -18,7 +19,7 @@ async def get_user_birthdays(request: Request, authorization: Authorization):
 
     async with data.get_conn(dsrc) as conn:
         birthday_data = await data.user.get_all_birthdays(conn)
-    return birthday_data
+    return ORJSONResponse([bd.dict() for bd in birthday_data])
 
 
 @router.get("/members/rankings/{rank_type}")

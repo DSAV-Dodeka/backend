@@ -47,7 +47,7 @@ async def confirm_signup(conn: AsyncConnection, email: str):
 
 async def get_all_signedup(conn: AsyncConnection) -> list[SignedUp]:
     all_signed_up = await select_where(conn, SIGNEDUP_TABLE, SU_CONFIRMED, False)
-    return [parse_signedup(su_dct) for su_dct in all_signed_up]
+    return [parse_signedup(dict(su_dct)) for su_dct in all_signed_up]
 
 
 async def signedup_exists(conn: AsyncConnection, email: str) -> bool:

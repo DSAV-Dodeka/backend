@@ -1,7 +1,7 @@
-from typing import Optional, Any, TypeVar
+from typing import Optional, Any, TypeVar, Callable
 
 from pydantic import BaseModel
-from sqlalchemy import CursorResult, text
+from sqlalchemy import CursorResult, text, RowMapping
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection
 
@@ -47,9 +47,8 @@ def first_or_none(res: CursorResult) -> Optional[dict]:
     return dict(row) if row is not None else None
 
 
-def all_rows(res: CursorResult) -> list[dict]:
-    rows = res.mappings().all()
-    return [dict(row) for row in rows]
+def all_rows(res: CursorResult) -> list[RowMapping]:
+    return list(res.mappings().all())
 
 
 def row_cnt(res: CursorResult) -> int:
@@ -80,7 +79,7 @@ async def select_some_where(
     sel_col: set[str],
     where_col: str,
     where_value,
-) -> list[dict]:
+) -> list[RowMapping]:
     """Ensure `table`, `where_col` and `sel_col` are never user-defined."""
     some = select_set(sel_col)
     query = text(f"SELECT {some} FROM {table} WHERE {where_col} = :val;")
@@ -96,7 +95,7 @@ async def select_some_two_where(
     where_value1,
     where_col2: str,
     where_value2,
-) -> list[dict]:
+) -> list[RowMapping]:
     """Ensure `table`, `where_col` and `sel_col` are never user-defined."""
     some = select_set(sel_col)
     query = text(
@@ -109,7 +108,9 @@ async def select_some_two_where(
     return all_rows(res)
 
 
-async def select_where(conn: AsyncConnection, table: str, column, value) -> list[dict]:
+async def select_where(
+    conn: AsyncConnection, table: str, column, value
+) -> list[RowMapping]:
     """Ensure `table` and `column` are never user-defined."""
     query = text(f"SELECT * FROM {table} WHERE {column} = :val;")
     res = await conn.execute(query, parameters={"val": value})
@@ -125,7 +126,7 @@ async def select_some_join_where(
     join_col_2: str,
     where_col: str,
     value,
-) -> list[dict]:
+) -> list[RowMapping]:
     """Ensure columsn and atbles are never user-defined. If some select column exists in both tables, they must be
     namespaced: i.e. <table_1 name>.column, <table_2 name>.column."""
     some = select_set(sel_col)

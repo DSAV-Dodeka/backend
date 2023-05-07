@@ -47,6 +47,7 @@ from apiserver.lib.model.entities import (
     RawUserScopeData,
     ScopeData,
     UserID,
+    UserNames,
 )
 from apiserver.lib.utilities import usp_hex, strip_edge, de_usp_hex
 
@@ -295,7 +296,22 @@ async def get_all_user_ids(conn: AsyncConnection) -> list[UserID]:
         conn, USERDATA_TABLE, {USER_ID}, UD_ACTIVE, True
     )
     # This is the fastest way to parse in pure Python, although converting to dict is only slightly faster
-    return [UserID(user_id=u_id_r["user_id"]) for u_id_r in all_user_ids]
+    return [UserID(user_id=u_id_r[USER_ID]) for u_id_r in all_user_ids]
+
+
+async def get_all_user_names(conn: AsyncConnection) -> list[UserNames]:
+    all_user_names = await select_some_where(
+        conn, USERDATA_TABLE, {USER_ID, UD_FIRSTNAME, UD_LASTNAME}, UD_ACTIVE, True
+    )
+
+    return [
+        UserNames(
+            user_id=u_names[USER_ID],
+            firstname=u_names[UD_FIRSTNAME],
+            lastname=u_names[UD_LASTNAME],
+        )
+        for u_names in all_user_names
+    ]
 
 
 async def get_all_birthdays(conn: AsyncConnection) -> list[BirthdayData]:

@@ -148,3 +148,31 @@ async def get_user_ids(request: Request, authorization: Authorization):
     async with data.get_conn(dsrc) as conn:
         user_ids = await data.user.get_all_user_ids(conn)
     return ORJSONResponse([u_id.dict() for u_id in user_ids])
+
+
+@router.get("/admin/users/names/", response_model=list[UserID])
+async def get_user_names(request: Request, authorization: Authorization):
+    dsrc: Source = request.state.dsrc
+    await require_admin(authorization, dsrc)
+    async with data.get_conn(dsrc) as conn:
+        user_names = await data.user.get_all_user_names(conn)
+    return ORJSONResponse([u_n.dict() for u_n in user_names])
+
+
+class UserPoints(BaseModel):
+    user_id: str
+    points: str
+
+
+class RankingUpdate(BaseModel):
+    users: list[UserPoints]
+    # TODO add the rest
+
+
+@router.post("/admin/ranking/update/")
+async def update_ranking(
+    update: RankingUpdate, request: Request, authorization: Authorization
+):
+    dsrc: Source = request.state.dsrc
+    await require_admin(authorization, dsrc)
+    print(update.dict())

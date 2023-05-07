@@ -232,3 +232,9 @@ class ClassPoints(BaseModel):
 
 class UserID(BaseModel):
     user_id: str
+
+
+class UserNames(BaseModel):
+    user_id: str
+    firstname: str
+    lastname: str

@@ -147,7 +147,7 @@ async def get_largest_where(
     order_col: str,
     num: int,
     descending: bool = True,
-) -> list[Any]:
+) -> list[RowMapping]:
     """Ensure `table`, `sel_col`, `where_col`, `order_col` and `num` are never user-defined.
     """
     some = select_set(sel_col)
@@ -157,7 +157,7 @@ async def get_largest_where(
         f" {order_col} {desc_str} LIMIT {num};"
     )
     res: CursorResult = await conn.execute(query, parameters={"where_val": where_val})
-    return list(res.scalars().all())
+    return all_rows(res)
 
 
 async def exists_by_unique(

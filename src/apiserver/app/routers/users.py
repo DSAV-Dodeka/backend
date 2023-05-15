@@ -44,3 +44,24 @@ async def get_user_rankings(rank_type, request: Request, authorization: Authoriz
 async def get_training_rankings(request: Request, authorization: Authorization):
     dsrc: Source = request.state.dsrc
     await require_member(authorization, dsrc)
+
+
+@router.get("/members/classification/{rank_type}")
+async def get_classification(rank_type, request: Request, authorization: Authorization):
+    dsrc: Source = request.state.dsrc
+    await require_member(authorization, dsrc)
+
+    if rank_type != "training" and rank_type != "points":
+        reason = f"Ranking {rank_type} is unknown!"
+        raise ErrorResponse(
+            status_code=400,
+            err_type="invalid_ranking",
+            err_desc=reason,
+            debug_key="bad_ranking",
+        )
+    async with data.get_conn(dsrc) as conn:
+        class_view = await data.classifications.recent_class_id_updated(conn, rank_type)
+        user_points = await data.classifications.all_points_in_class(
+            conn, class_view.classification_id
+        )
+    return ORJSONResponse([up.dict() for up in user_points])

@@ -30,7 +30,7 @@ async def get_newest_symmetric(conn: AsyncConnection) -> tuple[str, str]:
             message="There should be at least two symmetric keys.",
             key="missing_symmetric_keys",
         )
-    return results[0], results[1]
+    return results[0][KEY_ID], results[1][KEY_ID]
 
 
 async def get_newest_pem(conn: AsyncConnection) -> str:
@@ -38,7 +38,7 @@ async def get_newest_pem(conn: AsyncConnection) -> str:
         await get_largest_where(
             conn, KEY_TABLE, {KEY_ID}, KEY_USE, "sig", KEY_ISSUED, 1
         )
-    )[0]
+    )[0][KEY_ID]
 
 
 async def insert_key(conn: AsyncConnection, kid: str, iat: int, use: str) -> int:

@@ -7,6 +7,7 @@ from apiserver.data.api import signedup
 from apiserver.data.api import refreshtoken
 from apiserver.data.api import opaquesetup
 from apiserver.data.api import file
+from apiserver.data.api import classifications
 from apiserver.data import trs
 
 __all__ = [

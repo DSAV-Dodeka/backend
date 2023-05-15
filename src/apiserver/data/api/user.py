@@ -124,7 +124,7 @@ def parse_easter_egg_data(easter_egg_dict: Optional[dict]) -> EasterEggData:
 
 
 def new_userdata(
-        su: SignedUp, user_id: str, register_id: str, av40id: int, joined: date
+    su: SignedUp, user_id: str, register_id: str, av40id: int, joined: date
 ):
     return UserData(
         user_id=user_id,
@@ -142,7 +142,7 @@ def new_userdata(
 
 
 def finished_userdata(
-        ud: UserData, callname: str, eduinstitution: str, birthdate: date, show_age: bool
+    ud: UserData, callname: str, eduinstitution: str, birthdate: date, show_age: bool
 ):
     return UserData(
         user_id=ud.user_id,
@@ -182,7 +182,7 @@ async def get_userdata_by_email(conn: AsyncConnection, email: str) -> UserData:
 
 
 async def get_userdata_by_register_id(
-        conn: AsyncConnection, register_id: str
+    conn: AsyncConnection, register_id: str
 ) -> UserData:
     userdata_row = await retrieve_by_unique(
         conn, USERDATA_TABLE, REGISTER_ID, register_id
@@ -228,11 +228,11 @@ def gen_id_name(first_name: str, last_name: str):
 
 
 async def new_user(
-        conn: AsyncConnection,
-        signed_up: SignedUp,
-        register_id: str,
-        av40id: int,
-        joined: date,
+    conn: AsyncConnection,
+    signed_up: SignedUp,
+    register_id: str,
+    av40id: int,
+    joined: date,
 ):
     id_name = gen_id_name(signed_up.firstname, signed_up.lastname)
 
@@ -276,7 +276,7 @@ async def update_ud_email(conn: AsyncConnection, user_id: str, new_email: str) -
 
 
 async def update_user_email(
-        conn: AsyncConnection, user_id: str, new_email: str
+    conn: AsyncConnection, user_id: str, new_email: str
 ) -> bool:
     try:
         count = await update_column_by_unique(
@@ -449,15 +449,15 @@ async def found_easter_egg(conn: AsyncConnection, user_id: str, egg_id: str):
 
 
 async def add_points_to_class_events(
-        conn: AsyncConnection,
-        event_id: str,
-        user_id: str,
-        classification_id: str,
-        category: str,
-        description: str,
-        date: datetime.date,
-        points: int):
-
+    conn: AsyncConnection,
+    event_id: str,
+    user_id: str,
+    classification_id: str,
+    category: str,
+    description: str,
+    date: datetime.date,
+    points: int,
+):
     # TODO: Add points to database
     print("Yes, " + user_id + " got their points!")
 

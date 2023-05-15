@@ -189,7 +189,8 @@ async def update_ranking(
                 "category",
                 "description",
                 update.date,
-                user.points)
+                user.points,
+            )
 
     # Calculate total and add to class_points database.
     # TODO: Calculate total points per user.

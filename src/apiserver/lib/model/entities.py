@@ -238,3 +238,13 @@ class UserNames(BaseModel):
     user_id: str
     firstname: str
     lastname: str
+
+
+class ClassView(BaseModel):
+    classification_id: int
+    last_updated: date
+
+
+class UserPoints(BaseModel):
+    name: str
+    points: int

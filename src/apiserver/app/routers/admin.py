@@ -179,8 +179,8 @@ async def update_ranking(
     await require_admin(authorization, dsrc)
 
     # Add points per user to class_events database.
-    for user in update.users:
-        async with data.get_conn(dsrc) as conn:
+    async with data.get_conn(dsrc) as conn:
+        for user in update.users:
             await data.user.add_points_to_class_events(
                 conn,
                 "event_id",
@@ -194,4 +194,4 @@ async def update_ranking(
     # Calculate total and add to class_points database.
     # TODO: Calculate total points per user.
 
-    # Leander is een papzakje - Jevri
+    # Leander is een papzakje - Jefry

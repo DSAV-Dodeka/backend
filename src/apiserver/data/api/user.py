@@ -1,3 +1,4 @@
+import datetime
 import re
 from datetime import date
 from typing import Optional
@@ -445,3 +446,17 @@ async def found_easter_egg(conn: AsyncConnection, user_id: str, egg_id: str):
     # )
 
     return None
+
+async def add_points_to_class_events(
+        conn: AsyncConnection,
+        event_id: str,
+        user_id: str,
+        classification_id: str,
+        category: str,
+        description: str,
+        date: datetime.date,
+        points: int):
+
+    # TODO: Add points to database
+
+    return

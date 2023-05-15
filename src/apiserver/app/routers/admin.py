@@ -1,3 +1,4 @@
+import datetime
 import logging
 
 from fastapi import APIRouter, Request
@@ -161,12 +162,13 @@ async def get_user_names(request: Request, authorization: Authorization):
 
 class UserPoints(BaseModel):
     user_id: str
-    points: str
+    points: int
 
 
 class RankingUpdate(BaseModel):
     users: list[UserPoints]
-    # TODO add the rest
+    date: datetime.date
+    event: str
 
 
 @router.post("/admin/ranking/update/")
@@ -175,4 +177,21 @@ async def update_ranking(
 ):
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
-    print(update.dict())
+
+    # Add points per user to class_events database.
+    for user in update.users:
+        async with data.get_conn(dsrc) as conn:
+            await data.user.add_points_to_class_events(
+                conn,
+                "event_id",
+                user.user_id,
+                "classification_id",
+                "category",
+                "description",
+                update.date,
+                user.points)
+
+    # Calculate total and add to class_points database.
+    # TODO: Calculate total points per user.
+
+    # Leander is een papzakje - Jevri

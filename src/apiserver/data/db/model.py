@@ -190,18 +190,22 @@ CLASS_LAST_UPDATED = "last_updated"
 classification = sqla.Table(
     CLASSIFICATION_TABLE,
     metadata,
+    # Maybe we want to change this (the id) to a String
+    # So we can have an ID like: Training_2023
+    # That will make it more usable for non programmers.
     sqla.Column(CLASS_ID, sqla.Integer, primary_key=True),
     sqla.Column(CLASS_TYPE, sqla.String(length=100), nullable=False),
     sqla.Column(CLASS_START_DATE, sqla.DateTime, nullable=False),
     sqla.Column(CLASS_END_DATE, sqla.DateTime, nullable=False),
     sqla.Column(CLASS_HIDDEN_DATE, sqla.DateTime, nullable=False),
-    sqla.Column(CLASS_LAST_UPDATED, sqla.DateTime, nullable=False),
+    sqla.Column(CLASS_LAST_UPDATED, sqla.DateTime, nullable=True),
 )
 
 CLASS_EVENTS_TABLE = "class_events"
 C_EVENTS_ID = "event_id"
-# USER_ID is foreign key
-# CLASSIFICATION_ID is foreign key
+# Refactoring the variables named below won't update the comment :(
+# USER_ID is a foreign key
+# CLASS_ID is a foreign key
 C_EVENTS_CATEGORY = "category"
 C_EVENTS_DESCRIPTION = "description"
 C_EVENTS_DATE = "date"

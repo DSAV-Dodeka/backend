@@ -21,6 +21,12 @@ from apiserver.data.db.model import (
     EASTER_EGG_TABLE,
     EE_EGG_ID,
     SCOPES,
+    CLASS_EVENTS_TABLE,
+    C_EVENTS_CATEGORY,
+    C_EVENTS_DESCRIPTION,
+    C_EVENTS_DATE,
+    C_EVENTS_POINTS,
+    CLASS_ID, C_EVENTS_ID,
 )
 from apiserver.data.db.ops import (
     retrieve_by_unique,
@@ -432,33 +438,25 @@ async def get_easter_eggs_count(conn: AsyncConnection, user_id: str):
     return [parse_easter_egg_data(dict(eed_dct)) for eed_dct in easter_eggs_found]
 
 
-async def found_easter_egg(conn: AsyncConnection, user_id: str, egg_id: str):
-    # Insert into database?
-
-    # await insert_value_where(
-    #
-    #     conn,
-    #     EASTER_EGG_TABLE,
-    #     EE_EGG_ID,
-    #     egg_id,
-    #     USER_ID,
-    #     user_id,
-    # )
-
-    return None
-
-
 async def add_points_to_class_events(
     conn: AsyncConnection,
-    event_id: str,
     user_id: str,
-    classification_id: str,
+    classification_id: int,
     category: str,
     description: str,
-    date: datetime.date,
+    event_date: datetime.date,
     points: int,
 ):
-    # TODO: Add points to database
-    print("Yes, " + user_id + " got their points!")
+    points_row = {
+        USER_ID: user_id,
+        CLASS_ID: classification_id,
+        C_EVENTS_CATEGORY: category,
+        C_EVENTS_DATE: event_date,
+        C_EVENTS_POINTS: points
+    }
+    if description != "Empty":
+        points_row[C_EVENTS_DESCRIPTION] = description
 
+    await insert(conn, CLASS_EVENTS_TABLE, points_row)
+    print("Yes, " + user_id + " got their points!")
     return

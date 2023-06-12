@@ -167,6 +167,9 @@ class UserPoints(BaseModel):
 
 class RankingUpdate(BaseModel):
     users: list[UserPoints]
+    classification_id: int
+    category: str
+    description: str = "Empty"
     date: datetime.date
     event: str
 
@@ -183,11 +186,10 @@ async def update_ranking(
         for user in update.users:
             await data.user.add_points_to_class_events(
                 conn,
-                "event_id",
                 user.user_id,
-                "classification_id",
-                "category",
-                "description",
+                update.classification_id,
+                update.category,
+                update.description,
                 update.date,
                 user.points,
             )
@@ -196,3 +198,4 @@ async def update_ranking(
     # TODO: Calculate total points per user.
 
     # Leander is een papzakje - Jefry
+    return

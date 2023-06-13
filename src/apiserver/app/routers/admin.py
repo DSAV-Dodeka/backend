@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 
 from apiserver.app.define import LOGGER_NAME
 from apiserver.app.error import ErrorResponse
+from apiserver.data.api.classifications import check_user_in_class
 from apiserver.lib.model.entities import UserData, UserScopeData, UserID
 from apiserver import data
 from apiserver.data import Source, DataError, NoDataError
@@ -181,10 +182,13 @@ async def update_ranking(
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
 
-    # Add points per user to class_events database.
+    # Add points per user to class_events database. (loop)
+    # Before adding the points I should check if the date
+    # on the date on the update_ranking is within
+    # the given timeframe.
     async with data.get_conn(dsrc) as conn:
         for user in update.users:
-            await data.user.add_points_to_class_events(
+            await data.classifications.add_class_event(
                 conn,
                 user.user_id,
                 update.classification_id,
@@ -194,8 +198,14 @@ async def update_ranking(
                 user.points,
             )
 
-    # Calculate total and add to class_points database.
-    # TODO: Calculate total points per user.
+            # I will check if there exist a row in the database.
+            # If on signup and on the creation of the classification
+            # you add a row with value zero that won't be needed.
 
-    # Leander is een papzakje - Jefry
+            # Check if user is in database
+            is_in_database = await check_user_in_class(
+                conn, user.user_id, update.classification_id)
+
+            # Update or insert in database.
+
     return

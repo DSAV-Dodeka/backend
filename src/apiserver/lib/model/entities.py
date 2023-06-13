@@ -248,3 +248,7 @@ class ClassView(BaseModel):
 class UserPoints(BaseModel):
     name: str
     points: int
+
+
+# class PointsData(BaseModel):
+#     points: int

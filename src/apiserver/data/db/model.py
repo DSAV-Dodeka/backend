@@ -238,7 +238,7 @@ class_events = sqla.Table(
 
 CLASS_POINTS_TABLE = "class_points"
 # USER_ID is foreign key
-# KC_ID is foreign key
+# CLASS_ID is foreign key
 TRUE_POINTS = "true_points"
 DISPLAY_POINTS = "display_points"
 class_punten = sqla.Table(

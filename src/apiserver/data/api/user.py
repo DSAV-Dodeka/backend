@@ -436,27 +436,3 @@ async def get_easter_eggs_count(conn: AsyncConnection, user_id: str):
     )
 
     return [parse_easter_egg_data(dict(eed_dct)) for eed_dct in easter_eggs_found]
-
-
-async def add_points_to_class_events(
-    conn: AsyncConnection,
-    user_id: str,
-    classification_id: int,
-    category: str,
-    description: str,
-    event_date: datetime.date,
-    points: int,
-):
-    points_row = {
-        USER_ID: user_id,
-        CLASS_ID: classification_id,
-        C_EVENTS_CATEGORY: category,
-        C_EVENTS_DATE: event_date,
-        C_EVENTS_POINTS: points
-    }
-    if description != "Empty":
-        points_row[C_EVENTS_DESCRIPTION] = description
-
-    await insert(conn, CLASS_EVENTS_TABLE, points_row)
-    print("Yes, " + user_id + " got their points!")
-    return

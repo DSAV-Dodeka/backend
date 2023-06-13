@@ -1,6 +1,7 @@
 from datetime import date, datetime
 from typing import Literal, Optional
 
+from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncConnection
 
@@ -16,14 +17,14 @@ from apiserver.data.db.model import (
     USER_ID,
     USERDATA_TABLE,
     UD_FIRSTNAME,
-    UD_LASTNAME, C_EVENTS_CATEGORY, C_EVENTS_DATE, C_EVENTS_POINTS, C_EVENTS_DESCRIPTION, CLASS_EVENTS_TABLE,
-    TRUE_POINTS,
+    UD_LASTNAME, C_EVENTS_CATEGORY, C_EVENTS_DATE, C_EVENTS_DESCRIPTION, CLASS_EVENTS_TABLE,
+    TRUE_POINTS, C_EVENTS_ID, C_EVENTS_POINTS_POINTS, CLASS_EVENTS_POINTS_TABLE, CLASS_HIDDEN_DATE,
 )
 from apiserver.data.db.ops import (
     insert_many,
     get_largest_where,
     select_some_where,
-    select_some_join_where, insert, retrieve_by_unique, select_some_two_where,
+    select_some_join_where, insert, retrieve_by_unique, select_some_two_where, insert_return_col,
 )
 from apiserver.lib.model.entities import Classification, ClassView, UserPoints
 
@@ -90,24 +91,35 @@ async def all_points_in_class(conn: AsyncConnection, class_id: int) -> list[User
 
 async def add_class_event(
         conn: AsyncConnection,
-        user_id: str,
         classification_id: int,
         category: str,
         description: str,
         event_date: datetime.date,
-        points: int,
-):
+) -> int:
     points_row = {
-        USER_ID: user_id,
         CLASS_ID: classification_id,
         C_EVENTS_CATEGORY: category,
         C_EVENTS_DATE: event_date,
-        C_EVENTS_POINTS: points
     }
     if description != "Empty":
         points_row[C_EVENTS_DESCRIPTION] = description
 
-    await insert(conn, CLASS_EVENTS_TABLE, points_row)
+    return await insert_return_col(conn, CLASS_EVENTS_TABLE, points_row, C_EVENTS_ID)
+
+
+async def add_points_to_event(
+        conn: AsyncConnection,
+        event_id: int,
+        user_id: str,
+        points: int
+):
+    row_to_insert = {
+        USER_ID: user_id,
+        C_EVENTS_ID: event_id,
+        C_EVENTS_POINTS_POINTS: points
+    }
+
+    await insert(conn, CLASS_EVENTS_POINTS_TABLE, row_to_insert)
     return
 
 
@@ -128,10 +140,19 @@ async def check_user_in_class(
 
     return data is not None
 
-async def get_all_user_class_points(
-        conn: AsyncConnection,
-        user_id: str,
-        classification_id: int,
-) -> int:
 
-    return 1
+async def get_hidden_date(
+        conn: AsyncConnection,
+        classification_id: int
+) -> str:
+
+    hidden_date_data = await select_some_where(
+        conn,
+        CLASSIFICATION_TABLE,
+        {CLASS_HIDDEN_DATE},
+        CLASS_ID,
+        classification_id
+    )
+
+    print(ORJSONResponse([hidden_date.dict() for hidden_date in hidden_date_data]))
+    return "str"

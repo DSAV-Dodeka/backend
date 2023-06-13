@@ -203,25 +203,17 @@ classification = sqla.Table(
 
 CLASS_EVENTS_TABLE = "class_events"
 C_EVENTS_ID = "event_id"
-# Refactoring the variables named below won't update the comment :(
-# USER_ID is a foreign key
+# Refactoring the variable named below won't update the comment :(
 # CLASS_ID is a foreign key
 C_EVENTS_CATEGORY = "category"
 C_EVENTS_DESCRIPTION = "description"
 C_EVENTS_DATE = "date"
-C_EVENTS_POINTS = "points"
 class_events = sqla.Table(
     CLASS_EVENTS_TABLE,
     metadata,
     sqla.Column(
         C_EVENTS_ID,
         sqla.Integer,
-        primary_key=True,
-    ),
-    sqla.Column(
-        USER_ID,
-        sqla.String(length=150),
-        sqla.ForeignKey(f"{USER_TABLE}.{USER_ID}", ondelete="CASCADE"),
         primary_key=True,
     ),
     sqla.Column(
@@ -233,7 +225,28 @@ class_events = sqla.Table(
     sqla.Column(C_EVENTS_CATEGORY, sqla.String(length=100), nullable=False),
     sqla.Column(C_EVENTS_DESCRIPTION, sqla.String(length=500)),
     sqla.Column(C_EVENTS_DATE, sqla.DateTime, nullable=False),
-    sqla.Column(C_EVENTS_POINTS, sqla.Integer, nullable=False),
+)
+
+CLASS_EVENTS_POINTS_TABLE = "class_event_points"
+# C_EVENTS_ID is foreign key
+# USER_ID is foreign key
+C_EVENTS_POINTS_POINTS = "points"
+class_events_points = sqla.Table(
+    CLASS_EVENTS_POINTS_TABLE,
+    metadata,
+    sqla.Column(
+        USER_ID,
+        sqla.String(length=150),
+        sqla.ForeignKey(f"{USER_TABLE}.{USER_ID}", ondelete="CASCADE"),
+        primary_key=True
+    ),
+    sqla.Column(
+        C_EVENTS_ID,
+        sqla.Integer,
+        sqla.ForeignKey(f"{CLASS_EVENTS_TABLE}.{C_EVENTS_ID}", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    sqla.Column(C_EVENTS_POINTS_POINTS, sqla.Integer, nullable=False),
 )
 
 CLASS_POINTS_TABLE = "class_points"
@@ -259,3 +272,4 @@ class_punten = sqla.Table(
     sqla.Column(TRUE_POINTS, sqla.Integer, nullable=False),
     sqla.Column(DISPLAY_POINTS, sqla.Integer, nullable=False),
 )
+

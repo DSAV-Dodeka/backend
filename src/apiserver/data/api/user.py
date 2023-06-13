@@ -21,12 +21,6 @@ from apiserver.data.db.model import (
     EASTER_EGG_TABLE,
     EE_EGG_ID,
     SCOPES,
-    CLASS_EVENTS_TABLE,
-    C_EVENTS_CATEGORY,
-    C_EVENTS_DESCRIPTION,
-    C_EVENTS_DATE,
-    C_EVENTS_POINTS,
-    CLASS_ID, C_EVENTS_ID,
 )
 from apiserver.data.db.ops import (
     retrieve_by_unique,

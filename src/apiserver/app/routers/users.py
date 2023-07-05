@@ -19,7 +19,7 @@ async def get_user_birthdays(request: Request, authorization: Authorization):
 
     async with data.get_conn(dsrc) as conn:
         birthday_data = await data.user.get_all_birthdays(conn)
-    return ORJSONResponse([bd.dict() for bd in birthday_data])
+    return ORJSONResponse([bd.model_dump() for bd in birthday_data])
 
 
 @router.get("/members/rankings/{rank_type}")
@@ -64,4 +64,4 @@ async def get_classification(rank_type, request: Request, authorization: Authori
         user_points = await data.classifications.all_points_in_class(
             conn, class_view.classification_id
         )
-    return ORJSONResponse([up.dict() for up in user_points])
+    return ORJSONResponse([up.model_dump() for up in user_points])

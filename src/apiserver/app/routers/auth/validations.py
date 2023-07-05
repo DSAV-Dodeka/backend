@@ -3,7 +3,7 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter
-from pydantic import BaseModel, validator, ValidationError
+from pydantic import field_validator, BaseModel, ValidationError
 
 import apiserver.lib.utilities as util
 from apiserver.lib.model.entities import AuthRequest
@@ -20,10 +20,10 @@ logger = logging.getLogger(LOGGER_NAME)
 class TokenRequest(BaseModel):
     client_id: str
     grant_type: str
-    code: Optional[str]
-    redirect_uri: Optional[str]
-    code_verifier: Optional[str]
-    refresh_token: Optional[str]
+    code: Optional[str] = None
+    redirect_uri: Optional[str] = None
+    code_verifier: Optional[str] = None
+    refresh_token: Optional[str] = None
 
 
 class TokenResponse(BaseModel):
@@ -41,28 +41,28 @@ CODE_CHALLENGE_MIN = 43
 
 
 class AuthRequestValidator(AuthRequest):
-    @validator("response_type")
+    @field_validator("response_type")
     def check_type(cls, v: str) -> str:
         assert v == "code", "'response_type' must be 'code'"
         return v
 
-    @validator("client_id")
+    @field_validator("client_id")
     def check_client(cls, v: str) -> str:
         assert v == frontend_client_id, "Unrecognized client ID!"
         return v
 
-    @validator("redirect_uri")
+    @field_validator("redirect_uri")
     def check_redirect(cls, v: str) -> str:
         assert v in valid_redirects, "Unrecognized redirect!"
         return v
 
-    @validator("state")
+    @field_validator("state")
     def check_state(cls, v: str) -> str:
         assert len(v) < MAX_STR_LEN, "State must not be too long!"
         return v
 
     # possibly replace for performance
-    @validator("code_challenge")
+    @field_validator("code_challenge")
     def check_challenge(cls, v: str) -> str:
         assert (
             CODE_CHALLENGE_MAX >= len(v) >= CODE_CHALLENGE_MIN
@@ -71,12 +71,12 @@ class AuthRequestValidator(AuthRequest):
             assert c.isalnum() or c in "-._~", "Invalid character in challenge!"
         return v
 
-    @validator("code_challenge_method")
+    @field_validator("code_challenge_method")
     def check_method(cls, v: str) -> str:
         assert v == "S256", "Only S256 is supported!"
         return v
 
-    @validator("nonce")
+    @field_validator("nonce")
     def check_nonce(cls, v: str) -> str:
         assert len(v) < MAX_STR_LEN, "Nonce must not be too long!"
         return v

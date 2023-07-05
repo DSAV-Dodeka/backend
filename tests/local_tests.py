@@ -205,7 +205,7 @@ async def test_fill_signedup():
         ]
     }
 
-    # key_set: JWKSet = JWKSet.parse_obj(key_set_dict)
+    # key_set: JWKSet = JWKSet.model_validate(key_set_dict)
     runtime_key = aes_from_symmetric("AT_av0v62Z3hQH50VYwKBks1-VSukK9xDN_Ur34mdZ4")
     reencrypted_key_set = encrypt_dict(runtime_key, key_set_dict)
     decrypt_dict(runtime_key, reencrypted_key_set)

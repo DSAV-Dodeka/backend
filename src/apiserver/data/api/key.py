@@ -61,4 +61,4 @@ async def get_jwk(conn: AsyncConnection) -> str:
     row_dict = await retrieve_by_id(conn, JWK_TABLE, 1)
     if row_dict is None:
         raise DataError(message="JWK Set missing.", key="missing_jwks")
-    return JWKSRow.parse_obj(row_dict).encrypted_value
+    return JWKSRow.model_validate(row_dict).encrypted_value

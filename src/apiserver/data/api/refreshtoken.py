@@ -21,7 +21,7 @@ async def insert_refresh_row(conn: AsyncConnection, refresh: SavedRefreshToken) 
 def parse_refresh(refresh_dict: Optional[dict]) -> SavedRefreshToken:
     if refresh_dict is None:
         raise DataError("Refresh Token does not exist.", "refresh_empty")
-    return SavedRefreshToken.parse_obj(refresh_dict)
+    return SavedRefreshToken.model_validate(refresh_dict)
 
 
 async def get_refresh_by_id(conn: AsyncConnection, id_int: int) -> SavedRefreshToken:

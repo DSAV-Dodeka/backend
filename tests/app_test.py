@@ -500,7 +500,7 @@ def test_start_register(test_client, mocker: MockerFixture, register_state_store
     # GGnMPMzUGlKDTd0O4Yjw2S3sNrte4a1ybatXCr_-cRvyxVgYqutFLW3oUC5bmAczDl2DMzPRvmukMc-eKmSsZg
     assert res_j["auth_id"] == test_auth_id
     assert response.status_code == codes.OK
-    saved_state = SavedRegisterState.parse_obj(register_state_store[test_auth_id])
+    saved_state = SavedRegisterState.model_validate(register_state_store[test_auth_id])
     assert saved_state.user_id == test_user_id
 
 
@@ -672,7 +672,7 @@ def test_finish_login(test_client, mocker: MockerFixture, flow_store: dict):
     response = test_client.post("/login/finish/", json=req)
 
     assert session_key in flow_store.keys()
-    flow_user = FlowUser.parse_obj(flow_store[session_key])
+    flow_user = FlowUser.model_validate(flow_store[session_key])
     assert flow_user.flow_id == flow_id
     assert flow_user.scope == fake_token_scope
     assert response.status_code == codes.OK

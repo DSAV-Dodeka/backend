@@ -7,14 +7,14 @@ authors = ["Tip ten Brink <75669206+tiptenbrink@users.noreply.github.com>"]
 [tool.poetry.dependencies]
 python = ">=3.11, <3.12"
 tomli = "2.0.1"
-fastapi = "^0.95.1"
+fastapi = "0.100.0-beta2"
 uvicorn = { extras = ["standard"], version = "^0.21.1" }
 asyncpg = "^0.27.0"
 gunicorn = "^20.1.0"
 redis = "^4.5.1"
 PyJWT = "2.6.0"
-cryptography = "40.0.2"
-pydantic = "^1.10.5"
+cryptography = "41.0.1"
+pydantic = "^2.0.1"
 jinja2 = "^3.1.2"
 anyio = "^3.6.1"
 opaquepy = "^0.3.4"
@@ -23,6 +23,7 @@ typing-extensions = "^4.5.0"
 psycopg2-binary = "^2.9.2"
 regex = "^2023.3.23"
 orjson = "^3.8.11"
+bump-pydantic = "^0.1.0"
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"

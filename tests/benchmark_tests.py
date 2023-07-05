@@ -53,7 +53,7 @@ async def get_all_user_ids(conn: AsyncConnection) -> list[UserID]:
         conn, USERDATA_TABLE, {USER_ID}, UD_ACTIVE, True
     )
     return all_user_ids
-    # return parse_obj_as(list[UserID], all_user_ids)
+    # return model_validate_as(list[UserID], all_user_ids)
 
 
 async def local_dsrc():

@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Optional, Literal
 
-from pydantic import BaseModel, validator
+from pydantic import field_validator, BaseModel
 
 
 class User(BaseModel):
@@ -103,8 +103,8 @@ class UserData(BaseModel):
     showage: bool
 
     # Coerces null in database to false
-    @validator("showage", pre=True)
-    def parse_field3_as_bar(cls, value):
+    @field_validator("showage")
+    def coerce_showage(cls, value):
         if value is None:
             return False
         else:
@@ -158,10 +158,10 @@ class JWK(BaseModel):
     use: Literal["sig", "enc"]
     alg: Literal["EdDSA", "A256GCM"]
     kid: str
-    crv: Optional[Literal["Ed448"]]
-    k: Optional[str]  # symmetric key base64url bytes
-    x: Optional[str]  # public asymmetric key base64url bytes
-    d: Optional[str]  # private asymmetric key base64url bytes
+    crv: Optional[Literal["Ed448"]] = None
+    k: Optional[str] = None  # symmetric key base64url bytes
+    x: Optional[str] = None  # public asymmetric key base64url bytes
+    d: Optional[str] = None  # private asymmetric key base64url bytes
 
 
 class JWKSet(BaseModel):

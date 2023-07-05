@@ -1,11 +1,10 @@
 from datetime import date, datetime
-from typing import Literal, Optional
+from typing import Literal
 
 from fastapi.responses import ORJSONResponse
-from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from apiserver.data import DataError, NoDataError
+from apiserver.data import DataError
 from apiserver.data.db.model import (
     CLASSIFICATION_TABLE,
     CLASS_TYPE,
@@ -17,14 +16,25 @@ from apiserver.data.db.model import (
     USER_ID,
     USERDATA_TABLE,
     UD_FIRSTNAME,
-    UD_LASTNAME, C_EVENTS_CATEGORY, C_EVENTS_DATE, C_EVENTS_DESCRIPTION, CLASS_EVENTS_TABLE,
-    TRUE_POINTS, C_EVENTS_ID, C_EVENTS_POINTS_POINTS, CLASS_EVENTS_POINTS_TABLE, CLASS_HIDDEN_DATE,
+    UD_LASTNAME,
+    C_EVENTS_CATEGORY,
+    C_EVENTS_DATE,
+    C_EVENTS_DESCRIPTION,
+    CLASS_EVENTS_TABLE,
+    TRUE_POINTS,
+    C_EVENTS_ID,
+    C_EVENTS_POINTS_POINTS,
+    CLASS_EVENTS_POINTS_TABLE,
+    CLASS_HIDDEN_DATE,
 )
 from apiserver.data.db.ops import (
     insert_many,
     get_largest_where,
     select_some_where,
-    select_some_join_where, insert, retrieve_by_unique, select_some_two_where, insert_return_col,
+    select_some_join_where,
+    insert,
+    select_some_two_where,
+    insert_return_col,
 )
 from apiserver.lib.model.entities import Classification, ClassView, UserPoints
 
@@ -41,7 +51,7 @@ async def insert_classification(conn: AsyncConnection):
 
 
 async def recent_class_id_updated(
-        conn: AsyncConnection, class_type: Literal["training"] | Literal["points"]
+    conn: AsyncConnection, class_type: Literal["training"] | Literal["points"]
 ) -> ClassView:
     if class_type == "training":
         query_class_type = "training"
@@ -68,7 +78,7 @@ async def recent_class_id_updated(
             "no_most_recent_training_class",
         )
 
-    return ClassView.parse_obj(largest_class_list[0])
+    return ClassView.model_validate(largest_class_list[0])
 
 
 async def all_points_in_class(conn: AsyncConnection, class_id: int) -> list[UserPoints]:
@@ -90,11 +100,11 @@ async def all_points_in_class(conn: AsyncConnection, class_id: int) -> list[User
 
 
 async def add_class_event(
-        conn: AsyncConnection,
-        classification_id: int,
-        category: str,
-        description: str,
-        event_date: datetime.date,
+    conn: AsyncConnection,
+    classification_id: int,
+    category: str,
+    description: str,
+    event_date: datetime.date,
 ) -> int:
     points_row = {
         CLASS_ID: classification_id,
@@ -108,15 +118,12 @@ async def add_class_event(
 
 
 async def add_points_to_event(
-        conn: AsyncConnection,
-        event_id: int,
-        user_id: str,
-        points: int
+    conn: AsyncConnection, event_id: int, user_id: str, points: int
 ):
     row_to_insert = {
         USER_ID: user_id,
         C_EVENTS_ID: event_id,
-        C_EVENTS_POINTS_POINTS: points
+        C_EVENTS_POINTS_POINTS: points,
     }
 
     await insert(conn, CLASS_EVENTS_POINTS_TABLE, row_to_insert)
@@ -124,9 +131,9 @@ async def add_points_to_event(
 
 
 async def check_user_in_class(
-        conn: AsyncConnection,
-        user_id: str,
-        classification_id: int,
+    conn: AsyncConnection,
+    user_id: str,
+    classification_id: int,
 ) -> bool:
     data = await select_some_two_where(
         conn,
@@ -135,24 +142,18 @@ async def check_user_in_class(
         USER_ID,
         user_id,
         CLASS_ID,
-        classification_id
+        classification_id,
     )
 
     return data is not None
 
 
-async def get_hidden_date(
-        conn: AsyncConnection,
-        classification_id: int
-) -> str:
-
+async def get_hidden_date(conn: AsyncConnection, classification_id: int) -> str:
     hidden_date_data = await select_some_where(
-        conn,
-        CLASSIFICATION_TABLE,
-        {CLASS_HIDDEN_DATE},
-        CLASS_ID,
-        classification_id
+        conn, CLASSIFICATION_TABLE, {CLASS_HIDDEN_DATE}, CLASS_ID, classification_id
     )
 
-    print(ORJSONResponse([hidden_date.dict() for hidden_date in hidden_date_data]))
+    print(
+        ORJSONResponse([hidden_date.model_dump() for hidden_date in hidden_date_data])
+    )
     return "str"

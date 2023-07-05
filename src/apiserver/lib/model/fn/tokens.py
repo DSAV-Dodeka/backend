@@ -43,12 +43,12 @@ __all__ = [
 
 
 def encrypt_refresh(aesgcm: AESGCM, refresh: RefreshToken) -> str:
-    return encrypt_dict(aesgcm, refresh.dict())
+    return encrypt_dict(aesgcm, refresh.model_dump())
 
 
 def decrypt_refresh(aesgcm: AESGCM, refresh_token) -> RefreshToken:
     refresh_dict = decrypt_dict(aesgcm, refresh_token)
-    return RefreshToken.parse_obj(refresh_dict)
+    return RefreshToken.model_validate(refresh_dict)
 
 
 def decrypt_old_refresh(
@@ -186,8 +186,8 @@ def create_tokens(
     access_scope = access_token_data.scope
 
     # Encoded tokens to store for refresh token
-    access_val_encoded = encode_token_dict(access_token_data.dict())
-    id_token_val_encoded = encode_token_dict(id_token_data.dict())
+    access_val_encoded = encode_token_dict(access_token_data.model_dump())
+    id_token_val_encoded = encode_token_dict(id_token_data.model_dump())
     # Each authentication creates a refresh token of a particular family, which
     # has a static lifetime
     family_id = secrets.token_urlsafe(16)
@@ -220,9 +220,11 @@ def finish_tokens(
     refresh_token = encrypt_refresh(aesgcm, refresh)
 
     access_token = finish_encode_token(
-        access_token_data.dict(), utc_now, access_exp, signing_key
+        access_token_data.model_dump(), utc_now, access_exp, signing_key
     )
-    id_token = finish_encode_token(id_token_data.dict(), utc_now, id_exp, signing_key)
+    id_token = finish_encode_token(
+        id_token_data.model_dump(), utc_now, id_exp, signing_key
+    )
 
     return refresh_token, access_token, id_token
 
@@ -233,7 +235,7 @@ def id_access_tokens(
     """Create ID and access token objects."""
     access_core = SavedAccessToken(sub=sub, iss=iss, aud=aud_access, scope=scope)
     id_core = IdToken(
-        **id_info.dict(),
+        **id_info.model_dump(),
         sub=sub,
         iss=iss,
         aud=aud_id,
@@ -267,9 +269,9 @@ def finish_encode_token(token_val: dict, utc_now: int, exp: int, key: PEMKey):
 
 def decode_refresh(rt: SavedRefreshToken):
     saved_access_dict = util.dec_dict(util.dec_b64url(rt.access_value))
-    saved_access = SavedAccessToken.parse_obj(saved_access_dict)
+    saved_access = SavedAccessToken.model_validate(saved_access_dict)
     saved_id_token_dict = util.dec_dict(util.dec_b64url(rt.id_token_value))
-    saved_id_token = IdToken.parse_obj(saved_id_token_dict)
+    saved_id_token = IdToken.model_validate(saved_id_token_dict)
 
     return saved_access, saved_id_token
 
@@ -323,4 +325,4 @@ def verify_access_token(
         logging.debug(e)
         raise BadVerification("other")
 
-    return AccessToken.parse_obj(decoded_payload)
+    return AccessToken.model_validate(decoded_payload)

@@ -31,7 +31,7 @@ __all__ = [
 def parse_signedup(signedup_dict: Optional[dict]) -> SignedUp:
     if signedup_dict is None:
         raise DataError("User does not exist.", "signedup_empty")
-    return SignedUp.parse_obj(signedup_dict)
+    return SignedUp.model_validate(signedup_dict)
 
 
 async def get_signedup_by_email(conn: AsyncConnection, email: str) -> SignedUp:

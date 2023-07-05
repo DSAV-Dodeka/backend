@@ -273,7 +273,7 @@ async def delete_by_column(
 
 
 async def insert_many(conn: AsyncConnection, table: str, model_list: list[M]):
-    row_list = [r.dict() for r in model_list]
+    row_list = [r.model_dump() for r in model_list]
     row_keys, row_keys_vars, _ = _row_keys_vars_set(row_list[0])
     query = text(f"INSERT INTO {table} ({row_keys}) VALUES ({row_keys_vars});")
 

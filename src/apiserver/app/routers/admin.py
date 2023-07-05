@@ -26,7 +26,7 @@ async def get_users(request: Request, authorization: Authorization):
     await require_admin(authorization, dsrc)
     async with data.get_conn(dsrc) as conn:
         user_data = await data.user.get_all_userdata(conn)
-    return ORJSONResponse([ud.dict() for ud in user_data])
+    return ORJSONResponse([ud.model_dump() for ud in user_data])
 
 
 @router.get("/admin/scopes/all/", response_model=list[UserScopeData])
@@ -35,7 +35,7 @@ async def get_users_scopes(request: Request, authorization: Authorization):
     await require_admin(authorization, dsrc)
     async with data.get_conn(dsrc) as conn:
         user_scope_data = await data.user.get_all_users_scopes(conn)
-    return ORJSONResponse([usd.dict() for usd in user_scope_data])
+    return ORJSONResponse([usd.model_dump() for usd in user_scope_data])
 
 
 class ScopeAddRequest(BaseModel):
@@ -149,7 +149,7 @@ async def get_user_ids(request: Request, authorization: Authorization):
     await require_admin(authorization, dsrc)
     async with data.get_conn(dsrc) as conn:
         user_ids = await data.user.get_all_user_ids(conn)
-    return ORJSONResponse([u_id.dict() for u_id in user_ids])
+    return ORJSONResponse([u_id.model_dump() for u_id in user_ids])
 
 
 @router.get("/admin/users/names/", response_model=list[UserID])
@@ -158,7 +158,7 @@ async def get_user_names(request: Request, authorization: Authorization):
     await require_admin(authorization, dsrc)
     async with data.get_conn(dsrc) as conn:
         user_names = await data.user.get_all_user_names(conn)
-    return ORJSONResponse([u_n.dict() for u_n in user_names])
+    return ORJSONResponse([u_n.model_dump() for u_n in user_names])
 
 
 class UserPoints(BaseModel):
@@ -197,10 +197,7 @@ async def update_ranking(
 
         for user in update.users:
             await data.classifications.add_points_to_event(
-                conn,
-                event_id,
-                user.user_id,
-                user.points
+                conn, event_id, user.user_id, user.points
             )
 
             # I will check if there exist a row in the database.
@@ -208,14 +205,14 @@ async def update_ranking(
             # you add a row with value zero that won't be needed.
 
             is_in_database = await check_user_in_class(
-                conn, user.user_id, update.classification_id)
+                conn, user.user_id, update.classification_id
+            )
 
             # Update or insert in database.
 
             # See if hidden_date has past.
             hidden_date = await data.classifications.get_hidden_date(
-                conn,
-                update.classification_id
+                conn, update.classification_id
             )
 
     return

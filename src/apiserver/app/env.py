@@ -36,12 +36,12 @@ class Config(BaseModel):
     # RECOMMENDED TO LOAD AS ENVIRON
     DB_PASS: str
     DB_HOST: str
-    DB_PORT: str
+    DB_PORT: int
     DB_NAME: str
     DB_NAME_ADMIN: str
 
     KV_HOST: str
-    KV_PORT: str
+    KV_PORT: int
     # 'envless' MUST BE DUMMY
     # RECOMMENDED TO LOAD AS ENVIRON
     KV_PASS: str
@@ -72,4 +72,4 @@ def load_config(config_path_name: Optional[os.PathLike] = None) -> Config:
     # Config will contain all variables in a dict
     config |= os.environ  # override loaded values with environment variables
 
-    return Config.parse_obj(config)
+    return Config.model_validate(config)

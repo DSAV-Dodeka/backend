@@ -22,12 +22,12 @@ async def _get_opaque_setup(conn: AsyncConnection) -> OpaqueSetup:
     opaque_row = await _get_opaque_row(conn, id_int)
     if opaque_row is None:
         # new_setup = new_opaque_setup(0)
-        # await upsert_opaque_row(dsrc, new_setup.dict())
+        # await upsert_opaque_row(dsrc, new_setup.model_dump())
         # opaque_row = await _get_opaque_row(dsrc, id_int)
         raise DataError(
             message=f"Opaque setup missing for id {id_int}", key="missing_opaque_setup"
         )
-    return OpaqueSetup.parse_obj(opaque_row)
+    return OpaqueSetup.model_validate(opaque_row)
 
 
 async def get_setup(conn: AsyncConnection) -> str:
@@ -35,4 +35,4 @@ async def get_setup(conn: AsyncConnection) -> str:
 
 
 async def insert_opaque_row(conn: AsyncConnection, opaque_setup: OpaqueSetup):
-    return await insert(conn, OPAQUE_SETUP_TABLE, opaque_setup.dict())
+    return await insert(conn, OPAQUE_SETUP_TABLE, opaque_setup.model_dump())

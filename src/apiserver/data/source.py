@@ -59,7 +59,7 @@ class Gateway:
         db_url = f"{db_cluster}/{config.DB_NAME}"
         # Connections are not actually established, it simply initializes the connection parameters
         self.kv = Redis(
-            host=config.KV_HOST, port=int(config.KV_PORT), db=0, password=config.KV_PASS
+            host=config.KV_HOST, port=config.KV_PORT, db=0, password=config.KV_PASS
         )
         self.db: AsyncEngine = create_async_engine(f"postgresql+asyncpg://{db_url}")
 
@@ -175,7 +175,7 @@ async def initial_population(dsrc: Source, config: Config):
 
     utc_now = util.utc_timestamp()
 
-    reencrypted_key_set = encrypt_dict(runtime_key, jwk_set.dict())
+    reencrypted_key_set = encrypt_dict(runtime_key, jwk_set.model_dump())
     async with data.get_conn(dsrc) as conn:
         await data.key.insert_jwk(conn, reencrypted_key_set)
         await data.key.insert_key(conn, kid1, utc_now, "enc")
@@ -233,7 +233,7 @@ async def load_keys(dsrc: Source, config: Config):
     async with data.get_conn(dsrc) as conn:
         encrypted_key_set = await data.key.get_jwk(conn)
         key_set_dict = decrypt_dict(runtime_key, encrypted_key_set)
-        key_set: JWKSet = JWKSet.parse_obj(key_set_dict)
+        key_set: JWKSet = JWKSet.model_validate(key_set_dict)
         # We re-encrypt as is required when using AES encryption
         reencrypted_key_set = encrypt_dict(runtime_key, key_set_dict)
         await data.key.update_jwk(conn, reencrypted_key_set)
@@ -253,7 +253,9 @@ async def load_keys(dsrc: Source, config: Config):
             pem_keys.append(pem_key)
             # The public keys we will store in raw format, we want to exclude the private key as we want to be able to
             # publish these keys
-            public_key_dict: dict = key.copy(exclude={"d"}).dict()
+            public_key_dict: dict = key.model_copy().model_dump(
+                exclude={"d"}, round_trip=True
+            )
             public_keys.append(public_key_dict)
         elif key.alg == "A256GCM":
             symmetric_key = A256GCMKey(kid=key.kid, symmetric=key.k)

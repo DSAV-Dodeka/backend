@@ -73,26 +73,26 @@ __all__ = [
 def parse_user(user_dict: Optional[dict]) -> User:
     if user_dict is None:
         raise NoDataError("User does not exist.", "user_empty")
-    return User.parse_obj(user_dict)
+    return User.model_validate(user_dict)
 
 
 def parse_userdata(user_dict: Optional[dict]) -> UserData:
     if user_dict is None:
         raise NoDataError("UserData does not exist.", "userdata_empty")
-    return UserData.parse_obj(user_dict)
+    return UserData.model_validate(user_dict)
 
 
 def parse_scope_data(scope_dict: Optional[dict]) -> ScopeData:
     if scope_dict is None:
         raise NoDataError("ScopeData does not exist.", "scope_data_empty")
 
-    return ScopeData.parse_obj(scope_dict)
+    return ScopeData.model_validate(scope_dict)
 
 
 def parse_birthday_data(birthday_dict: Optional[dict]) -> BirthdayData:
     if birthday_dict is None:
         raise NoDataError("BirthdayData does not exist.", "birthday_data_empty")
-    return BirthdayData.parse_obj(birthday_dict)
+    return BirthdayData.model_validate(birthday_dict)
 
 
 def ignore_admin_member(scope: str):
@@ -105,7 +105,7 @@ def ignore_admin_member(scope: str):
 def parse_users_scopes_data(users_scope_dict: Optional[dict]) -> UserScopeData:
     if users_scope_dict is None:
         raise NoDataError("UserScopeData does not exist.", "user_scope_data_empty")
-    raw_user_scope = RawUserScopeData.parse_obj(users_scope_dict)
+    raw_user_scope = RawUserScopeData.model_validate(users_scope_dict)
     name = raw_user_scope.firstname + " " + raw_user_scope.lastname
     scope_list = {
         ignore_admin_member(de_usp_hex(usph_scope))
@@ -120,7 +120,7 @@ def parse_users_scopes_data(users_scope_dict: Optional[dict]) -> UserScopeData:
 def parse_easter_egg_data(easter_egg_dict: Optional[dict]) -> EasterEggData:
     if easter_egg_dict is None:
         raise NoDataError("BirthdayData does not exist.", "birthday_data_empty")
-    return EasterEggData.parse_obj(easter_egg_dict)
+    return EasterEggData.model_validate(easter_egg_dict)
 
 
 def new_userdata(
@@ -202,7 +202,7 @@ async def update_password_file(conn: AsyncConnection, user_id: str, password_fil
 
 
 async def insert_user(conn: AsyncConnection, user: User):
-    user_row: dict = user.dict(exclude={"user_id"})
+    user_row: dict = user.model_dump(exclude={"user_id"})
     try:
         await insert(conn, USER_TABLE, user_row)
     except DbError as e:
@@ -210,7 +210,7 @@ async def insert_user(conn: AsyncConnection, user: User):
 
 
 async def insert_return_user_id(conn: AsyncConnection, user: User) -> str:
-    user_row: dict = user.dict(exclude={"id", "user_id"})
+    user_row: dict = user.model_dump(exclude={"id", "user_id"})
     try:
         user_id = await insert_return_col(conn, USER_TABLE, user_row, USER_ID)
     except DbError as e:
@@ -248,7 +248,7 @@ async def new_user(
 async def insert_userdata(conn: AsyncConnection, userdata: UserData):
     try:
         user_id = await insert_return_col(
-            conn, USERDATA_TABLE, userdata.dict(), USER_ID
+            conn, USERDATA_TABLE, userdata.model_dump(), USER_ID
         )
     except DbError as e:
         raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
@@ -259,7 +259,9 @@ async def upsert_userdata(conn: AsyncConnection, userdata: UserData):
     """Requires known id. Note that this cannot change any unique constraints, those must remain unaltered.
     """
     try:
-        result = await upsert_by_unique(conn, USERDATA_TABLE, userdata.dict(), USER_ID)
+        result = await upsert_by_unique(
+            conn, USERDATA_TABLE, userdata.model_dump(), USER_ID
+        )
     except DbError as e:
         raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
     return result

@@ -62,7 +62,7 @@ async def init_signup(
     confirm_id = util.random_time_hash_hex()
 
     await data.trs.reg.store_email_confirmation(
-        dsrc, confirm_id, Signup.parse_obj(signup), email_expiration
+        dsrc, confirm_id, Signup.model_validate(signup), email_expiration
     )
     config: Config = request.state.config
 
@@ -109,7 +109,7 @@ async def email_confirm(confirm_req: EmailConfirm, request: Request):
 
     try:
         async with data.get_conn(dsrc) as conn:
-            await data.signedup.insert_su_row(conn, signed_up.dict())
+            await data.signedup.insert_su_row(conn, signed_up.model_dump())
     except DataError as e:
         if e.key == "integrity_violation":
             logger.debug(e.key)
@@ -172,7 +172,6 @@ async def confirm_join(
     register_id = util.random_time_hash_hex(short=True)
     async with data.get_conn(dsrc) as conn:
         await data.user.new_user(
-            dsrc,
             conn,
             signed_up,
             register_id,

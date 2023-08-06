@@ -1,0 +1,53 @@
+config_path = res_path.joinpath("define.toml")
+loc_path = res_path.joinpath("loc.toml")
+
+with open(config_path, "rb") as f:
+    config = tomli.load(f)
+
+with open(loc_path, "rb") as f:
+    loc_dict = tomli.load(f)
+
+
+# These are constants that are not variable enough to be set by the config file
+LOGGER_NAME = "backend"
+
+# On the client we refresh if ID is almost expired
+# By setting it lower than the access token's expiry, we make reduce the risk of requests made too close to each other
+# with an expired access token. This can lead to problems due to refresh token rotation.
+
+# id_exp = 55 * 60  # 55 minutes
+# access_exp = 5
+# access_exp = 1 * 60 * 60  # 1 hour
+# refresh_exp = 30 * 24 * 60 * 60  # 1 month
+
+# grace_period = 1
+# grace_period = 3 * 60  # 3 minutes in which it is still accepted
+
+# email_expiration = 15 * 60
+
+
+class ConfigError(Exception):
+    pass
+
+
+try:
+    allowed_envs: set[str] = set(config["allowed_envs"])
+    api_root: str = config["api_root"]
+    issuer: str = config["issuer"]
+    frontend_client_id: str = config["frontend_client_id"]
+    backend_client_id: str = config["backend_client_id"]
+
+    valid_redirects: set[str] = set(config["valid_redirects"])
+
+    credentials_url: str = config["credentials_url"]
+
+    signup_url: str = config["signup_url"]
+
+    onboard_email: str = config["onboard_email"]
+
+    smtp_server: str = config["smtp_server"]
+    smtp_port: int = config["smtp_port"]
+except KeyError as e:
+    raise ConfigError(
+        f"Not all mandatory config values set in {config_path.resolve()}!"
+    ) from e

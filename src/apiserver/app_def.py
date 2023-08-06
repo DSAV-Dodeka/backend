@@ -36,6 +36,7 @@ from apiserver.app.routers import (
     auth_router,
 )
 from apiserver.app.env import load_config, Config
+from auth.store.source import StoreSource
 
 
 def init_logging(logger_name: str, log_level: int):
@@ -67,6 +68,7 @@ class LoggerMiddleware(BaseHTTPMiddleware):
 
 class State(TypedDict):
     dsrc: Source
+    store_dsrc: StoreSource
     config: Config
 
 
@@ -74,6 +76,7 @@ class State(TypedDict):
 async def lifespan(_app: FastAPI) -> State:
     logger.info("Running startup...")
     dsrc = Source()
+    store_dsrc = StoreSource()
     config = await app_startup(dsrc)
     yield {"config": config, "dsrc": dsrc}
     logger.info("Running shutdown...")
@@ -152,6 +155,9 @@ async def app_startup(dsrc_inst: Source):
     # always be run, can be included in the 'safe_startup()' above
     # Safe startup events that do not depend on the environment, can be included in
     # the 'create_app()' above
+
+    new_config = load_config()
+
     config = load_config()
     if config.APISERVER_ENV not in allowed_envs:
         raise RuntimeError(

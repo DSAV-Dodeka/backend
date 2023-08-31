@@ -1,11 +1,25 @@
-import datetime
 import re
 from datetime import date
 from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from apiserver.data.db.model import (
+from store.db import (
+    retrieve_by_unique,
+    insert_return_col,
+    exists_by_unique,
+    update_column_by_unique,
+    upsert_by_unique,
+    select_where,
+    delete_by_column,
+    select_some_two_where,
+    insert,
+    select_some_where,
+    concat_column_by_unique_returning,
+    select_some_join_where,
+    DbError,
+)
+from apiserver.data.schema.model import (
     USER_TABLE,
     USERDATA_TABLE,
     USER_ID,
@@ -21,21 +35,6 @@ from apiserver.data.db.model import (
     EASTER_EGG_TABLE,
     EE_EGG_ID,
     SCOPES,
-)
-from apiserver.data.db.ops import (
-    retrieve_by_unique,
-    insert_return_col,
-    exists_by_unique,
-    update_column_by_unique,
-    upsert_by_unique,
-    select_where,
-    delete_by_column,
-    select_some_two_where,
-    insert,
-    select_some_where,
-    concat_column_by_unique_returning,
-    select_some_join_where,
-    DbError,
 )
 from apiserver.data.source import DataError, NoDataError
 from apiserver.lib.model.entities import (

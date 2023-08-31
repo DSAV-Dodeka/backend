@@ -1,23 +1,23 @@
 from auth.core.model import AuthRequest
 from auth.core.util import random_time_hash_hex
-from auth.data import DataSource
-import auth.store
-from auth.store.source import StoreSource
+from auth.data.error import NoDataError
+from store.store import Store
+from store.kv import get_json, store_json
+from store.conn import kv_is_init
 
 
-async def store_auth_request(dsrc: DataSource, auth_request: AuthRequest) -> str:
-    """Persist the auth request in some way, so it can later be re-used. Returns a string that can be added as
-    an url query parameter to later retrieve this information."""
-    if isinstance(dsrc, StoreSource):
-        flow_id = random_time_hash_hex()
-
-        await auth.store.trs.auth.store_auth_request(dsrc, flow_id, auth_request)
-
-        return flow_id
+async def get_auth_request(store: Store, flow_id: str) -> AuthRequest:
+    auth_req_dict: dict = await get_json(kv_is_init(store), flow_id)
+    if auth_req_dict is None:
+        raise NoDataError(
+            "Auth request does not exist or expired.", "auth_request_empty"
+        )
+    return AuthRequest.model_validate(auth_req_dict)
 
 
-async def get_auth_request(dsrc: DataSource, retrieval_query: str) -> AuthRequest:
-    if isinstance(dsrc, StoreSource):
-        flow_id = retrieval_query
+async def store_auth_request(store: Store, auth_request: AuthRequest):
+    flow_id = random_time_hash_hex()
 
-        return await auth.store.trs.auth.get_auth_request(dsrc, flow_id)
+    await store_json(kv_is_init(store), flow_id, auth_request.model_dump(), expire=1000)
+
+    return flow_id

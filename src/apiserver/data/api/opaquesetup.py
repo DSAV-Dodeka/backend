@@ -2,9 +2,9 @@ from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
+from store.db import retrieve_by_id, insert
 from apiserver.data.source import DataError
-from apiserver.data.db.ops import retrieve_by_id, insert
-from apiserver.data.db.model import OPAQUE_SETUP_TABLE
+from apiserver.data.schema.model import OPAQUE_SETUP_TABLE
 from apiserver.lib.model.entities import OpaqueSetup
 
 __all__ = ["get_setup", "insert_opaque_row"]

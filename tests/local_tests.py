@@ -9,13 +9,14 @@ from httpx import AsyncClient
 from httpx import codes
 
 import apiserver.lib.utilities as util
+import auth.core.util
 from apiserver import data
 from apiserver.data.api.user import new_userdata
 from apiserver.lib.model.fn.tokens import create_tokens, finish_tokens
 from apiserver.app.ops.tokens import get_keys
 from apiserver.data import Source
 from apiserver.lib.model.entities import SignedUp
-from apiserver.app.env import load_config
+from auth.env2 import load_config
 from apiserver.lib.utilities.crypto import (
     aes_from_symmetric,
     encrypt_dict,
@@ -76,7 +77,7 @@ async def local_dsrc(api_config):
 async def admin_access(local_dsrc):
     admin_id = "admin_test"
     scope = "member admin"
-    utc_now = util.utc_timestamp()
+    utc_now = auth.core.util.utc_timestamp()
 
     access_token_data, id_token_data, access_scope, refresh_save = create_tokens(
         admin_id, scope, utc_now, "test_nonce", utc_now
@@ -133,7 +134,7 @@ async def test_generate_dummies(local_dsrc: Source, faker: Faker):
             confirmed=True,
         )
         av40id = int.from_bytes(faker_u.binary(2), byteorder="big")
-        register_id = util.random_time_hash_hex()
+        register_id = auth.core.util.random_time_hash_hex()
         joined = faker.date()
         async with data.get_conn(local_dsrc) as conn:
             uid = await data.user.new_user(
@@ -165,7 +166,7 @@ async def test_generate_dummies(local_dsrc: Source, faker: Faker):
 
 @pytest.mark.asyncio
 async def test_generate_rand():
-    x = util.random_time_hash_hex(short=True)
+    x = auth.core.util.random_time_hash_hex(short=True)
     print(x)
 
 

@@ -6,7 +6,7 @@ from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from apiserver.app.define import LOGGER_NAME
+from apiserver.define import LOGGER_NAME
 from apiserver.app.error import ErrorResponse
 from apiserver.data.api.classifications import check_user_in_class
 from apiserver.lib.model.entities import UserData, UserScopeData, UserID

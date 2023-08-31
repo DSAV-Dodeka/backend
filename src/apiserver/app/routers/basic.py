@@ -2,7 +2,7 @@ import logging
 
 from fastapi import APIRouter
 
-from apiserver.app.define import LOGGER_NAME
+from apiserver.define import LOGGER_NAME
 
 router = APIRouter()
 

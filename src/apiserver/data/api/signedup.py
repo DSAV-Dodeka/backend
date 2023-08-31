@@ -2,13 +2,7 @@ from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from apiserver.lib.model.entities import SignedUp
-from apiserver.data.db.model import (
-    SIGNEDUP_TABLE,
-    SU_EMAIL,
-    SU_CONFIRMED,
-)
-from apiserver.data.db.ops import (
+from store.db import (
     DbError,
     retrieve_by_unique,
     insert,
@@ -16,6 +10,12 @@ from apiserver.data.db.ops import (
     update_column_by_unique,
     select_where,
     delete_by_column,
+)
+from apiserver.lib.model.entities import SignedUp
+from apiserver.data.schema.model import (
+    SIGNEDUP_TABLE,
+    SU_EMAIL,
+    SU_CONFIRMED,
 )
 from apiserver.data.source import DataError
 

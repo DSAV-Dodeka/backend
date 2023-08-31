@@ -3,8 +3,8 @@ from typing import Annotated
 from fastapi.params import Security
 from fastapi.security.api_key import APIKeyHeader
 
+from apiserver.define import DEFINE, grace_period
 from apiserver import data
-from apiserver.app.define import grace_period, issuer, backend_client_id
 from apiserver.app.ops.errors import BadAuth
 from apiserver.lib.model.fn.tokens import (
     verify_access_token,
@@ -36,7 +36,11 @@ async def handle_header(authorization: str, dsrc: Source) -> AccessToken:
         kid = get_kid(token)
         public_key = await data.trs.key.get_pem_key(dsrc, kid)
         return verify_access_token(
-            public_key.public, token, grace_period, issuer, backend_client_id
+            public_key.public,
+            token,
+            grace_period,
+            DEFINE.issuer,
+            DEFINE.backend_client_id,
         )
     except NoDataError as e:
         raise BadAuth(

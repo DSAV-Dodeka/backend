@@ -3,7 +3,7 @@ import secrets
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-from apiserver.lib.utilities import enc_dict, enc_b64url, dec_b64url, dec_dict
+from auth.core.util import dec_b64url, enc_b64url, enc_dict, dec_dict
 
 
 def encrypt_dict(aesgcm: AESGCM, dct: dict[str, Any]) -> str:

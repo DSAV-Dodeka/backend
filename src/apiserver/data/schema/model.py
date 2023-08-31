@@ -238,7 +238,7 @@ class_events_points = sqla.Table(
         USER_ID,
         sqla.String(length=150),
         sqla.ForeignKey(f"{USER_TABLE}.{USER_ID}", ondelete="CASCADE"),
-        primary_key=True
+        primary_key=True,
     ),
     sqla.Column(
         C_EVENTS_ID,
@@ -272,4 +272,3 @@ class_punten = sqla.Table(
     sqla.Column(TRUE_POINTS, sqla.Integer, nullable=False),
     sqla.Column(DISPLAY_POINTS, sqla.Integer, nullable=False),
 )
-

@@ -1,5 +1,5 @@
+from store.kv import store_json_multi, get_json, store_json_perm
 from apiserver.data import get_kv, Source, NoDataError
-from apiserver.data.kv import store_json_multi, get_json, store_json_perm
 from apiserver.lib.model.entities import PEMKey, A256GCMKey, JWKSet
 
 

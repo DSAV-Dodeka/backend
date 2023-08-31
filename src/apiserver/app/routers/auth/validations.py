@@ -6,8 +6,9 @@ from fastapi import APIRouter
 from pydantic import field_validator, BaseModel, ValidationError
 
 import apiserver.lib.utilities as util
+import auth.core.util
 from apiserver.lib.model.entities import AuthRequest
-from apiserver.app.define import LOGGER_NAME, frontend_client_id, valid_redirects
+from auth.define import LOGGER_NAME, frontend_client_id, valid_redirects
 from apiserver.app.error import ErrorResponse
 
 router = APIRouter()
@@ -151,7 +152,7 @@ def compare_auth_token_validate(token_request: TokenRequest, auth_request: AuthR
             token_request.code_verifier.encode("ascii")
         ).digest()
         # Remove "=" as we do not store those
-        challenge = util.enc_b64url(computed_challenge_hash)
+        challenge = auth.core.util.enc_b64url(computed_challenge_hash)
     except UnicodeError:
         reason = "Incorrect code_verifier format"
         logger.debug(f"{reason}: {token_request.code_verifier}")

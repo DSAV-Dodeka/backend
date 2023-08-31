@@ -6,6 +6,8 @@ import tomli
 
 from pydantic import BaseModel
 
+from store.store import StoreConfig
+
 
 # Different scenarios:
 # 1) Production ('production'): Every config value is loaded either from config files included in the Docker build or at
@@ -22,12 +24,23 @@ from pydantic import BaseModel
 
 
 # See below for appropriate values for specific environments
-class Config(BaseModel):
-    KV_HOST: str
-    KV_PORT: int
+class Config(StoreConfig):
+    APISERVER_ENV: str
+
+    # All 'envless' PASSWORDS MUST BE DUMMY
+
     # 'envless' MUST BE DUMMY
     # RECOMMENDED TO LOAD AS ENVIRON
-    KV_PASS: str
+    KEY_PASS: str
+
+    # 'envless' MUST BE DUMMY
+    # RECOMMENDED TO LOAD AS ENVIRON
+    MAIL_PASS: str
+
+    SMTP_SERVER: str
+    SMTP_PORT: int
+
+    RECREATE: str = "no"
 
 
 def load_config(config_path_name: Optional[os.PathLike] = None) -> Config:

@@ -15,12 +15,13 @@ from uvicorn.logging import DefaultFormatter
 
 # Router modules, each router has its own API endpoints
 import apiserver.lib.utilities as util
+from apiserver.app.ops.startup import startup
 
 # Import types separately to make it clear in what line the module is first loaded and
 # its top-level run
 from apiserver.data import Source
+from apiserver.define import LOGGER_NAME, DEFINE
 from apiserver.resources import res_path
-from apiserver.app.define import LOGGER_NAME, allowed_envs
 from apiserver.app.error import (
     error_response_return,
     ErrorResponse,
@@ -35,8 +36,7 @@ from apiserver.app.routers import (
     onboard_router,
     auth_router,
 )
-from apiserver.app.env import load_config, Config
-from auth.store.source import StoreSource
+from apiserver.env import load_config, Config
 
 
 def init_logging(logger_name: str, log_level: int):
@@ -68,7 +68,6 @@ class LoggerMiddleware(BaseHTTPMiddleware):
 
 class State(TypedDict):
     dsrc: Source
-    store_dsrc: StoreSource
     config: Config
 
 
@@ -76,9 +75,8 @@ class State(TypedDict):
 async def lifespan(_app: FastAPI) -> State:
     logger.info("Running startup...")
     dsrc = Source()
-    store_dsrc = StoreSource()
     config = await app_startup(dsrc)
-    yield {"config": config, "dsrc": dsrc}
+    yield {"dsrc": dsrc, "config": config}
     logger.info("Running shutdown...")
     await app_shutdown(dsrc)
 
@@ -142,7 +140,7 @@ def create_app(app_lifespan) -> FastAPI:
 
 # Should always be manually run in tests
 def safe_startup(dsrc_inst: Source, config: Config):
-    dsrc_inst.init_gateway(config)
+    dsrc_inst.store.init_objects(config)
 
 
 # We use the functions below, so we can also manually call them in tests
@@ -156,10 +154,9 @@ async def app_startup(dsrc_inst: Source):
     # Safe startup events that do not depend on the environment, can be included in
     # the 'create_app()' above
 
-    new_config = load_config()
-
     config = load_config()
-    if config.APISERVER_ENV not in allowed_envs:
+
+    if config.APISERVER_ENV not in DEFINE.allowed_envs:
         raise RuntimeError(
             "Runtime environment (env.toml) does not correspond to compiled environment"
             " (define.toml)! Ensure defined variables are appropriate for the runtime"
@@ -179,10 +176,10 @@ async def app_startup(dsrc_inst: Source):
     safe_startup(dsrc_inst, config)
     # Db connections, etc.
     do_recreate = config.RECREATE == "yes"
-    await dsrc_inst.startup(config, do_recreate)
+    await startup(dsrc_inst, config, do_recreate)
 
     return config
 
 
 async def app_shutdown(dsrc_inst: Source):
-    await dsrc_inst.shutdown()
+    await dsrc_inst.store.shutdown()

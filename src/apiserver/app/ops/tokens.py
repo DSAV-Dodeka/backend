@@ -2,7 +2,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from apiserver.lib.errors import InvalidRefresh
 from apiserver.lib.utilities.crypto import aes_from_symmetric
-from apiserver.lib.utilities import utc_timestamp
+from auth.core.util import utc_timestamp
 from apiserver.lib.model.entities import PEMKey
 from apiserver.lib.model.fn.tokens import (
     decrypt_old_refresh,
@@ -14,15 +14,7 @@ from apiserver.lib.model.fn.tokens import (
 )
 from apiserver import data
 from apiserver.data import Source, DataError
-from apiserver.app.define import (
-    id_exp,
-    grace_period,
-    issuer,
-    backend_client_id,
-    refresh_exp,
-    frontend_client_id,
-    access_exp,
-)
+from apiserver.define import id_exp, grace_period, refresh_exp, access_exp, DEFINE
 from apiserver.app.ops.errors import RefreshOperationError
 
 
@@ -119,9 +111,9 @@ async def new_token(
             id_nonce,
             utc_now,
             id_info,
-            issuer,
-            frontend_client_id,
-            backend_client_id,
+            DEFINE.issuer,
+            DEFINE.frontend_client_id,
+            DEFINE.backend_client_id,
             refresh_exp,
         )
 

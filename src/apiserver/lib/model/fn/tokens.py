@@ -15,6 +15,7 @@ from jwt import (
 )
 
 import apiserver.lib.utilities as util
+import auth.core.util
 from apiserver.lib.errors import InvalidRefresh
 from apiserver.lib.utilities.crypto import encrypt_dict, decrypt_dict
 from apiserver.lib.model.entities import (
@@ -247,7 +248,7 @@ def id_access_tokens(
 
 
 def encode_token_dict(token: dict):
-    return util.enc_b64url(util.enc_dict(token))
+    return auth.core.util.enc_b64url(auth.core.util.enc_dict(token))
 
 
 def finish_payload(token_val: dict, utc_now: int, exp: int):
@@ -268,9 +269,13 @@ def finish_encode_token(token_val: dict, utc_now: int, exp: int, key: PEMKey):
 
 
 def decode_refresh(rt: SavedRefreshToken):
-    saved_access_dict = util.dec_dict(util.dec_b64url(rt.access_value))
+    saved_access_dict = auth.core.util.dec_dict(
+        auth.core.util.dec_b64url(rt.access_value)
+    )
     saved_access = SavedAccessToken.model_validate(saved_access_dict)
-    saved_id_token_dict = util.dec_dict(util.dec_b64url(rt.id_token_value))
+    saved_id_token_dict = auth.core.util.dec_dict(
+        auth.core.util.dec_b64url(rt.id_token_value)
+    )
     saved_id_token = IdToken.model_validate(saved_id_token_dict)
 
     return saved_access, saved_id_token

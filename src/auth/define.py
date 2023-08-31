@@ -15,20 +15,43 @@ from pydantic import BaseModel
 
 # See below for appropriate values for specific environments
 class Define(BaseModel):
+    persist_key: str
+
     credentials_url: str
     frontend_client_id: str
     valid_redirects: set[str]
+
+    allowed_envs: set[str]
+    api_root: str
+    issuer: str
+    frontend_client_id: str
+    backend_client_id: str
+
+    valid_redirects: set[str]
+
+    credentials_url: str
+
+    signup_url: str
+
+    onboard_email: str
+
+
+# On the client we refresh if ID is almost expired
+# By setting it lower than the access token's expiry, we make reduce the risk of requests made too close to each
+# other with an expired access token. This can lead to problems due to refresh token rotation.
+
+id_exp = 55 * 60  # 55 minutes
+# access_exp = 5
+access_exp = 1 * 60 * 60  # 1 hour
+refresh_exp = 30 * 24 * 60 * 60  # 1 month
+
+# grace_period = 1
+grace_period = 3 * 60  # 3 minutes in which it is still accepted
+
+email_expiration = 15 * 60
 
 
 default_define = {}
 
 
-def load_define(define_path_name: Optional[os.PathLike] = None) -> Define:
-    define_path = Path(define_path_name)
-
-    with open(define_path, "rb") as f:
-        config = tomli.load(f)
-
-    define = default_define | config  # override default values with config variables
-
-    return Define.model_validate(define)
+#

@@ -8,15 +8,13 @@ from anyio import sleep
 from fastapi import APIRouter, BackgroundTasks, Request
 from pydantic import BaseModel
 
-import apiserver.lib.utilities as util
+import auth.core.util
 from apiserver import data
-from apiserver.app.define import (
+from apiserver.define import (
     LOGGER_NAME,
-    signup_url,
-    credentials_url,
+    DEFINE,
     email_expiration,
 )
-from apiserver.app.env import Config
 from apiserver.app.error import ErrorResponse
 from apiserver.app.model.models import PasswordResponse
 from apiserver.app.ops.header import Authorization
@@ -25,8 +23,10 @@ from apiserver.app.routers.helper.authentication import send_register_start
 from apiserver.app.ops.mail import (
     send_signup_email,
     send_register_email,
+    mail_from_config,
 )
 from apiserver.data import DataError, Source, NoDataError
+from apiserver.env import Config
 from apiserver.lib.model.entities import SignedUp, Signup
 
 router = APIRouter()
@@ -59,7 +59,7 @@ async def init_signup(
     do_send_email = not u_ex and not su_ex
     logger.debug(f"{signup.email} /onboard/signup - do_send_email {do_send_email}")
 
-    confirm_id = util.random_time_hash_hex()
+    confirm_id = auth.core.util.random_time_hash_hex()
 
     await data.trs.reg.store_email_confirmation(
         dsrc, confirm_id, Signup.model_validate(signup), email_expiration
@@ -67,16 +67,16 @@ async def init_signup(
     config: Config = request.state.config
 
     params = {"confirm_id": confirm_id}
-    confirmation_url = f"{credentials_url}email/?{urlencode(params)}"
+    confirmation_url = f"{DEFINE.credentials_url}email/?{urlencode(params)}"
 
     if do_send_email:
         send_signup_email(
             background_tasks,
             signup.email,
             f"{signup.firstname} {signup.lastname}",
-            config.MAIL_PASS,
+            mail_from_config(config),
             confirmation_url,
-            signup_url,
+            DEFINE.signup_url,
         )
     else:
         # Prevent client enumeration
@@ -169,7 +169,7 @@ async def confirm_join(
 
     # Success here means removing any existing records in signedup and also the KV relating to that email
 
-    register_id = util.random_time_hash_hex(short=True)
+    register_id = auth.core.util.random_time_hash_hex(short=True)
     async with data.get_conn(dsrc) as conn:
         await data.user.new_user(
             conn,
@@ -189,12 +189,12 @@ async def confirm_join(
         "email": signed_up.email,
         "phone": signed_up.phone,
     }
-    info_str = util.enc_b64url(json.dumps(info).encode("utf-8"))
+    info_str = auth.core.util.enc_b64url(json.dumps(info).encode("utf-8"))
     params = {"info": info_str}
-    registration_url = f"{credentials_url}register/?{urlencode(params)}"
+    registration_url = f"{DEFINE.credentials_url}register/?{urlencode(params)}"
 
     send_register_email(
-        background_tasks, signup_email, config.MAIL_PASS, registration_url
+        background_tasks, signup_email, mail_from_config(config), registration_url
     )
 
 

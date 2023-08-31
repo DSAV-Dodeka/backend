@@ -1,55 +1,12 @@
-from urllib.parse import urlencode
-
-from pydantic import ValidationError
+from yarl import URL
 
 import auth.data as data
-from auth.core.error import AuthError, RedirectError
-from auth.data import DataSource
-from auth.core.model import AuthRequest
+from auth.core.error import AuthError
+from auth.core.validate import auth_request_validate
 from auth.core.response import Redirect
+from auth.data.error import NoDataError
 from auth.define import Define
-
-
-def auth_request_validate(
-    define: Define,
-    response_type,
-    client_id,
-    redirect_uri,
-    state,
-    code_challenge,
-    code_challenge_method,
-    nonce,
-) -> AuthRequest:
-    if client_id != define.frontend_client_id:
-        raise AuthError(
-            "invalid_authorization", "Unrecognized client ID!", "bad_client_id"
-        )
-
-    if redirect_uri not in define.valid_redirects:
-        raise AuthError(
-            "invalid_authorization", "Unrecognized redirect for client!", "bad_redirect"
-        )
-
-    if response_type != "code":
-        raise RedirectError(
-            "unsupported_response_type",
-            error_desc="Only 'code' response_type is supported!",
-        )
-
-    try:
-        auth_request = AuthRequest(
-            response_type=response_type,
-            client_id=client_id,
-            redirect_uri=redirect_uri,
-            state=state,
-            code_challenge=code_challenge,
-            code_challenge_method=code_challenge_method,
-            nonce=nonce,
-        )
-    except ValidationError as e:
-        raise RedirectError("invalid_request", error_desc=str(e.errors()))
-
-    return auth_request
+from store.store import Store
 
 
 async def oauth_start(
@@ -60,8 +17,9 @@ async def oauth_start(
     code_challenge: str,
     code_challenge_method: str,
     nonce: str,
-    dsrc: DataSource,
-):
+    define: Define,
+    store: Store,
+) -> Redirect:
     """This request 'prepares' the authorization request. The client provides the initially required information and
     in this case the endpoint redirects the user-agent to the credentials_url, which will handle the authentication.
     This means that this particular endpoint is not directly in the OAuth 2.1 spec, it is a choice for how to
@@ -71,7 +29,7 @@ async def oauth_start(
     """
 
     auth_request = auth_request_validate(
-        dsrc.define,
+        define,
         response_type,
         client_id,
         redirect_uri,
@@ -82,20 +40,27 @@ async def oauth_start(
     )
 
     # The retrieval query is any information necessary to get all parameters necessary for the actual request
-    retrieval_query = await data.requests.store_auth_request(dsrc, auth_request)
+    retrieval_query = await data.requests.store_auth_request(store, auth_request)
 
-    redirect = (
-        f"{dsrc.define.credentials_url}?{urlencode({'persist': retrieval_query})}"
-    )
+    url = URL(define.credentials_url)
+    persist_key = define.persist_key
+
+    redirect = str(url.update_query({persist_key: retrieval_query}))
 
     return Redirect(code=303, url=redirect)
 
 
-async def oauth_finish(retrieval_query: str, code: str, dsrc: DataSource):
-    auth_request = await data.requests.get_auth_request(dsrc, retrieval_query)
+async def oauth_callback(retrieval_query: str, code: str, store: Store):
+    try:
+        auth_request = await data.requests.get_auth_request(store, retrieval_query)
+    except NoDataError:
+        raise AuthError(
+            "invalid_request",
+            "Expired or missing auth request",
+            "missing_oauth_flow_id",
+        )
 
     params = {"code": code, "state": auth_request.state}
-
-    redirect = f"{auth_request.redirect_uri}?{urlencode(params)}"
+    redirect = str(URL(auth_request.redirect_uri).update_query(params))
 
     return Redirect(code=303, url=redirect)

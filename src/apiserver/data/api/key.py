@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from apiserver.data.db.model import (
+from apiserver.data.schema.model import (
     JWK_VALUE,
     KEY_ID,
     KEY_ISSUED,
@@ -8,7 +8,7 @@ from apiserver.data.db.model import (
     KEY_TABLE,
     JWK_TABLE,
 )
-from apiserver.data.db.ops import (
+from store.db import (
     retrieve_by_id,
     get_largest_where,
     update_column_by_unique,

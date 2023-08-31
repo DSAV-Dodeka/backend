@@ -6,9 +6,11 @@ from fastapi import APIRouter, status, Response, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
-import apiserver.lib.utilities as util
+import auth.core.util
 from apiserver import data
-from apiserver.app.define import frontend_client_id, credentials_url, LOGGER_NAME
+from auth.core.authorize import oauth_start
+from auth.core.error import RedirectError, AuthError
+from apiserver.define import LOGGER_NAME, DEFINE
 from apiserver.app.error import ErrorResponse
 from apiserver.app.model.models import (
     PasswordResponse,
@@ -21,7 +23,6 @@ from apiserver.app.routers.auth.validations import (
     authorization_validate,
     compare_auth_token_validate,
     refresh_validate,
-    auth_request_validate,
     TokenRequest,
     TokenResponse,
 )
@@ -67,7 +68,7 @@ async def start_login(login_start: PasswordRequest, request: Request):
             # If user or password file does not exist, user, password_file and scope default to the fake record
             pass
 
-    auth_id = util.random_time_hash_hex(u.user_id)
+    auth_id = auth.core.util.random_time_hash_hex(u.user_id)
 
     # This will only fail if the client message is an invalid OPAQUE protocol message
     response, state = opq.login(
@@ -115,7 +116,7 @@ async def finish_login(login_finish: FinishLogin, request: Request):
 
     session_key = opq.login_finish(login_finish.client_request, saved_state.state)
 
-    utc_now = util.utc_timestamp()
+    utc_now = auth.core.util.utc_timestamp()
     flow_user = FlowUser(
         flow_id=login_finish.flow_id,
         scope=saved_state.scope,
@@ -137,31 +138,39 @@ async def oauth_endpoint(
     nonce: str,
     request: Request,
 ):
-    dsrc: Source = request.state.dsrc
+    """This is the authorization endpoint (as in Section 3.1 of the OAuth 2.1 standard). The auth request is validated in this step.
+    This initiates the authentication process. This endpoint can only return an error response. If there is no error,
+    the /oauth/callback/ endpoint returns the successful response after authentication. Authentication is not specified
+    by either OpenID Connect or OAuth 2.1."""
+    dsrc: Source = request.state.store_dsrc
 
-    auth_request = auth_request_validate(
-        response_type,
-        client_id,
-        redirect_uri,
-        state,
-        code_challenge,
-        code_challenge_method,
-        nonce,
-    )
+    try:
+        redirect = await oauth_start(
+            response_type,
+            client_id,
+            redirect_uri,
+            state,
+            code_challenge,
+            code_challenge_method,
+            nonce,
+            DEFINE,
+            dsrc.store,
+        )
+    except RedirectError as e:
+        return RedirectResponse(e.redirect_uri, status_code=e.code)
+    except AuthError as e:
+        logger.debug(e.err_desc)
+        raise ErrorResponse(400, err_type=e.err_type, err_desc=e.err_desc)
 
-    flow_id = util.random_time_hash_hex()
-
-    await data.trs.auth.store_auth_request(dsrc, flow_id, auth_request)
-
-    # Used to retrieve authentication information
-    params = {"flow_id": flow_id}
-    redirect = f"{credentials_url}?{urlencode(params)}"
-
-    return RedirectResponse(redirect, status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(redirect.url, status_code=redirect.code)
 
 
 @router.get("/oauth/callback/", status_code=303)
 async def oauth_finish(flow_id: str, code: str, response: Response, request: Request):
+    """After a successful authentication, this endpoint (the Authorization Endpoint in OAuth 2.1) returns a redirect
+    response to the redirect url originally specified in the request. This check has already been performed by the
+    /oauth/authorize/ endpoint, as have been all other checks. We do not add the 'iss' parameter (RFC9207) as we assume
+    this is the only authorization server the client speaks too."""
     # Prevents cache of value
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
@@ -190,7 +199,7 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
     dsrc: Source = request.state.dsrc
     # We only allow requests meant to be sent from our front end
     # This does not heighten security, only so other clients do not accidentally make requests here
-    if token_request.client_id != frontend_client_id:
+    if token_request.client_id != DEFINE.frontend_client_id:
         reason = "Invalid client ID."
         logger.debug(reason)
         raise ErrorResponse(400, err_type="invalid_client", err_desc=reason)

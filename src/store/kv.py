@@ -13,6 +13,9 @@ __all__ = [
     "store_json_multi",
     "store_kv_perm",
     "pop_kv",
+    "store_string",
+    "get_string",
+    "pop_string",
 ]
 
 JsonType = Union[str, int, float, bool, None, dict[str, "JsonType"], list["JsonType"]]
@@ -84,3 +87,38 @@ async def pop_kv(kv: Redis, key: str) -> Optional[bytes]:
         return results[0] if results[1] else None
     except IndexError:
         return None
+
+
+async def store_string(kv: Redis, key: str, value: str, expire: int = 1000):
+    if expire == -1:
+        await store_kv_perm(kv, key, value)
+    else:
+        await store_kv(kv, key, value, expire)
+
+
+def string_return(value: Optional[bytes]) -> Optional[str]:
+    if value is None:
+        return None
+    try:
+        return value.decode()
+    except UnicodeEncodeError:
+        raise KvError("Data is not of unicode string type.", "", "bad_str_encode")
+
+
+async def pop_string(kv: Redis, key: str) -> str:
+    value = await pop_kv(kv, key)
+    return string_return(value)
+
+
+async def get_string(kv: Redis, key: str) -> str:
+    value = await get_val_kv(kv, key)
+    return string_return(value)
+
+
+class KvError(Exception):
+    """Exception that represents special internal errors."""
+
+    def __init__(self, err_desc: str, err_internal: str, debug_key: str = None):
+        self.err_desc = err_desc
+        self.err_internal = err_internal
+        self.debug_key = debug_key

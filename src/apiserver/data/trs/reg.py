@@ -1,5 +1,5 @@
+from store.kv import store_json, get_json, pop_json
 from apiserver.data import Source, get_kv, NoDataError
-from apiserver.data.kv import store_json, get_json, pop_json
 from apiserver.lib.model.entities import SavedRegisterState, UpdateEmailState, Signup
 
 

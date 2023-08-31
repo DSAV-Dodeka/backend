@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 from httpx import codes
 from pytest_mock import MockerFixture
 
-from apiserver.app.define import (
+from auth.define import (
     frontend_client_id,
     issuer,
     backend_client_id,
@@ -34,8 +34,8 @@ from apiserver.lib.model.entities import (
     FlowUser,
     AuthRequest,
 )
-from apiserver.app.env import load_config
-from apiserver.lib.utilities import utc_timestamp
+from auth.env2 import load_config
+from auth.core.util import utc_timestamp
 from apiserver.lib.utilities.crypto import aes_from_symmetric
 
 

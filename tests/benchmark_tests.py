@@ -7,7 +7,7 @@ from sqlalchemy import CursorResult, text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from apiserver import data
-from apiserver.app.env import load_config
+from auth.env2 import load_config
 from apiserver.data import Source
 from apiserver.data.db.model import USERDATA_TABLE, USER_ID, UD_ACTIVE
 

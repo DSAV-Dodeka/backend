@@ -9,7 +9,7 @@ from cryptography.hazmat.primitives.serialization import (
 )
 
 from apiserver.lib.model.entities import OpaqueSetup, PEMKey, JWK
-from apiserver.lib.utilities import enc_b64url
+from auth.core.util import enc_b64url
 
 
 def new_ed448_keypair(kid: str) -> JWK:

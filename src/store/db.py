@@ -1,4 +1,4 @@
-from typing import Optional, Any, TypeVar, Callable
+from typing import Optional, Any, TypeVar
 
 from pydantic import BaseModel
 from sqlalchemy import CursorResult, text, RowMapping

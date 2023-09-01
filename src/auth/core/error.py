@@ -1,5 +1,4 @@
 from typing import Optional, Literal, Union
-from urllib.parse import urlparse, parse_qs, urlencode
 from yarl import URL
 
 
@@ -19,8 +18,8 @@ ErrorCode = Union[
     Literal["server_error"],
     Literal["temporarily_unavailable"],
 ]
-""" See section 4.1.2.1 (Error Response for authorization request) and Section 3.2.3.1 (Error Response for token 
-request)"""
+"""See section 4.1.2.1 (Error Response for authorization request) and Section 3.2.3.1 (Error Response for token
+ request)"""
 
 
 ResourceErrorCode = Union[

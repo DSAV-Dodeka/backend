@@ -1,5 +1,4 @@
-from pydantic import BaseModel, field_validator
-from pydantic_core.core_schema import FieldValidationInfo
+from pydantic import BaseModel
 
 
 class AuthRequest(BaseModel):

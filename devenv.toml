@@ -22,3 +22,6 @@ MAIL_PASS=""
 # Set to 'yes' to force the backend to delete the database and build a new one from scratch
 # USE WITH CAUTION
 RECREATE="no"
+
+SMTP_SERVER = "mail.dsavdodeka.nl"
+SMTP_PORT = 587

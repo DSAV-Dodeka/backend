@@ -1,6 +1,6 @@
 from yarl import URL
 
-import auth.data as data
+from auth import data
 from auth.core.error import AuthError
 from auth.core.validate import auth_request_validate
 from auth.core.response import Redirect
@@ -50,7 +50,7 @@ async def oauth_start(
     return Redirect(code=303, url=redirect)
 
 
-async def oauth_callback(retrieval_query: str, code: str, store: Store):
+async def oauth_callback(retrieval_query: str, code: str, store: Store) -> Redirect:
     try:
         auth_request = await data.requests.get_auth_request(store, retrieval_query)
     except NoDataError:

@@ -1,14 +1,13 @@
 import logging
-from urllib.parse import urlencode
 
 import opaquepy as opq
-from fastapi import APIRouter, status, Response, Request
+from fastapi import APIRouter, Response, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 import auth.core.util
 from apiserver import data
-from auth.core.authorize import oauth_start
+from auth.core.authorize import oauth_start, oauth_callback
 from auth.core.error import RedirectError, AuthError
 from apiserver.define import LOGGER_NAME, DEFINE
 from apiserver.app.error import ErrorResponse
@@ -138,11 +137,11 @@ async def oauth_endpoint(
     nonce: str,
     request: Request,
 ):
-    """This is the authorization endpoint (as in Section 3.1 of the OAuth 2.1 standard). The auth request is validated in this step.
-    This initiates the authentication process. This endpoint can only return an error response. If there is no error,
-    the /oauth/callback/ endpoint returns the successful response after authentication. Authentication is not specified
-    by either OpenID Connect or OAuth 2.1."""
-    dsrc: Source = request.state.store_dsrc
+    """This is the authorization endpoint (as in Section 3.1 of the OAuth 2.1 standard). The auth request is validated
+    in this step. This initiates the authentication process. This endpoint can only return an error response. If there
+    is no error, the /oauth/callback/ endpoint returns the successful response after authentication. Authentication is
+    not specified by either OpenID Connect or OAuth 2.1."""
+    dsrc: Source = request.state.dsrc
 
     try:
         redirect = await oauth_start(
@@ -176,18 +175,14 @@ async def oauth_finish(flow_id: str, code: str, response: Response, request: Req
     response.headers["Pragma"] = "no-cache"
 
     dsrc: Source = request.state.dsrc
+
     try:
-        auth_request = await data.trs.auth.get_auth_request(dsrc, flow_id)
-    except NoDataError as e:
-        logger.debug(e.message)
-        reason = "Expired or missing auth request"
-        raise ErrorResponse(400, err_type="invalid_oauth_callback", err_desc=reason)
+        redirect = await oauth_callback(flow_id, code, dsrc.store)
+    except AuthError as e:
+        logger.debug(e.err_desc)
+        raise ErrorResponse(400, err_type=e.err_type, err_desc=e.err_desc)
 
-    params = {"code": code, "state": auth_request.state}
-
-    redirect = f"{auth_request.redirect_uri}?{urlencode(params)}"
-
-    return RedirectResponse(redirect, status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(redirect.url, status_code=redirect.code)
 
 
 @router.post("/oauth/token/", response_model=TokenResponse)

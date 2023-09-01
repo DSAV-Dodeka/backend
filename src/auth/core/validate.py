@@ -37,13 +37,13 @@ class AuthRequestValidator(AuthRequest):
 
 def auth_request_validate(
     define: Define,
-    response_type,
-    client_id,
-    redirect_uri,
-    state,
-    code_challenge,
-    code_challenge_method,
-    nonce,
+    response_type: str,
+    client_id: str,
+    redirect_uri: str,
+    state: str,
+    code_challenge: str,
+    code_challenge_method: str,
+    nonce: str,
 ) -> AuthRequest:
     if client_id != define.frontend_client_id:
         raise AuthError("invalid_request", "Unrecognized client ID!", "bad_client_id")
@@ -56,7 +56,8 @@ def auth_request_validate(
     if response_type != "code":
         raise RedirectError(
             "unsupported_response_type",
-            error_desc="Only 'code' response_type is supported!",
+            "Only 'code' response_type is supported!",
+            redirect_uri,
         )
 
     try:
@@ -70,6 +71,10 @@ def auth_request_validate(
             nonce=nonce,
         )
     except ValidationError as e:
-        raise RedirectError("invalid_request", error_desc=str(e.errors()))
+        raise RedirectError(
+            "invalid_request",
+            error_desc=str(e.errors()),
+            redirect_uri_base=redirect_uri,
+        )
 
     return auth_request

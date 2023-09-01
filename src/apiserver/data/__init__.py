@@ -15,6 +15,7 @@ __all__ = [
     "refreshtoken",
     "opaquesetup",
     "file",
+    "classifications",
     "Source",
     "NoDataError",
     "DataError",

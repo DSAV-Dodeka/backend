@@ -13,3 +13,6 @@ KV_PASS="abcpasskv"
 
 MAIL_PASS="abcpass"
 KEY_PASS="abcpass"
+
+SMTP_SERVER = "abcmail"
+SMTP_PORT = 587

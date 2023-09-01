@@ -4,8 +4,7 @@ import os
 from pathlib import Path
 import tomli
 
-from pydantic import BaseModel
-
+from apiserver.resources import res_path
 from store.store import StoreConfig
 
 
@@ -44,7 +43,13 @@ class Config(StoreConfig):
 
 
 def load_config(config_path_name: Optional[os.PathLike] = None) -> Config:
-    config_path = Path(config_path_name)
+    env_config_path = os.environ.get("APISERVER_CONFIG")
+    if env_config_path is not None:
+        config_path = Path(env_config_path)
+    elif config_path_name is None:
+        config_path = res_path.joinpath("env.toml")
+    else:
+        config_path = Path(config_path_name)
 
     with open(config_path, "rb") as f:
         config = tomli.load(f)

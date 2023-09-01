@@ -4,7 +4,7 @@ import secrets
 import time
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 from datetime import datetime, timezone
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 
 def utc_timestamp() -> int:

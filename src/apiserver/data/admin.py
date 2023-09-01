@@ -3,7 +3,7 @@ import logging
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
-from auth.define import LOGGER_NAME
+from apiserver.define import LOGGER_NAME
 
 logger = logging.getLogger(LOGGER_NAME)
 

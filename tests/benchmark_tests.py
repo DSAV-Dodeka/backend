@@ -73,7 +73,7 @@ async def get_all():
     for i in range(num):
         async with data.get_conn(lcl_dsrc) as conn:
             a = await get_all_user_ids(conn)
-            ab = [ai.dict() for ai in a]
+            ab = [ai.model_dump() for ai in a]
     print(a)
 
 

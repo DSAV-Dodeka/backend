@@ -10,10 +10,8 @@ from fastapi.testclient import TestClient
 from httpx import codes
 from pytest_mock import MockerFixture
 
-from auth.define import (
-    frontend_client_id,
-    issuer,
-    backend_client_id,
+from apiserver.define import (
+    DEFINE,
     refresh_exp,
     access_exp,
     id_exp,
@@ -34,7 +32,7 @@ from apiserver.lib.model.entities import (
     FlowUser,
     AuthRequest,
 )
-from auth.env2 import load_config
+from apiserver.env import load_config
 from auth.core.util import utc_timestamp
 from apiserver.lib.utilities.crypto import aes_from_symmetric
 
@@ -58,7 +56,7 @@ def lifespan_fixture(api_config, module_mocker: MockerFixture):
     @asynccontextmanager
     async def mock_lifespan(app: FastAPI) -> State:
         dsrc_inst = Source()
-        dsrc_inst.gateway = module_mocker.MagicMock(spec=dsrc_inst.gateway)
+        dsrc_inst.store = module_mocker.MagicMock(spec=dsrc_inst.store)
         safe_startup(dsrc_inst, api_config)
 
         yield {"config": api_config, "dsrc": dsrc_inst}
@@ -102,7 +100,7 @@ def test_incorrect_client_id(test_client: TestClient):
 
 def test_incorrect_grant_type(test_client: TestClient):
     req = {
-        "client_id": frontend_client_id,
+        "client_id": DEFINE.frontend_client_id,
         "grant_type": "wrong",
         "code": "",
         "redirect_uri": "",
@@ -118,7 +116,7 @@ def test_incorrect_grant_type(test_client: TestClient):
 
 def test_empty_verifier(test_client: TestClient):
     req = {
-        "client_id": frontend_client_id,
+        "client_id": DEFINE.frontend_client_id,
         "grant_type": "authorization_code",
         "code": "some",
         "redirect_uri": "some",
@@ -135,7 +133,7 @@ def test_empty_verifier(test_client: TestClient):
 
 def test_missing_redirect(test_client: TestClient):
     req = {
-        "client_id": frontend_client_id,
+        "client_id": DEFINE.frontend_client_id,
         "grant_type": "authorization_code",
         "code": "some",
         "code_verifier": "some",
@@ -151,7 +149,7 @@ def test_missing_redirect(test_client: TestClient):
 
 def test_empty_code(test_client: TestClient):
     req = {
-        "client_id": frontend_client_id,
+        "client_id": DEFINE.frontend_client_id,
         "grant_type": "authorization_code",
         "code": "",
         "redirect_uri": "some",
@@ -270,14 +268,14 @@ def fake_tokens():
         mock_auth_request.nonce,
         utc_now,
         mock_id_info,
-        issuer,
-        frontend_client_id,
-        backend_client_id,
+        DEFINE.issuer,
+        DEFINE.frontend_client_id,
+        DEFINE.backend_client_id,
         refresh_exp,
     )
 
-    acc_val = encode_token_dict(access_token_data.dict())
-    id_val = encode_token_dict(id_token_data.dict())
+    acc_val = encode_token_dict(access_token_data.model_dump())
+    id_val = encode_token_dict(id_token_data.model_dump())
 
     aesgcm = aes_from_symmetric(mock_symm_key["private"])
     signing_key = PEMKey(
@@ -330,7 +328,7 @@ def test_refresh(test_client, mocker: MockerFixture, mock_get_keys, fake_tokens)
     get_refr.return_value = 45
 
     req = {
-        "client_id": frontend_client_id,
+        "client_id": DEFINE.frontend_client_id,
         "grant_type": "refresh_token",
         "refresh_token": fake_tokens["refresh"],
     }
@@ -368,7 +366,7 @@ def test_auth_code(test_client, mocker: MockerFixture, mock_get_keys):
     r_save.return_value = 44
 
     req = {
-        "client_id": frontend_client_id,
+        "client_id": DEFINE.frontend_client_id,
         "grant_type": "authorization_code",
         "code": code_session_key,
         "redirect_uri": mock_redirect,
@@ -430,7 +428,7 @@ def flow_store(store_fix, mocker: MockerFixture):
 
 
 def test_start_register(test_client, mocker: MockerFixture, register_state_store: dict):
-    t_hash = mocker.patch("apiserver.lib.utilities.random_time_hash_hex")
+    t_hash = mocker.patch("auth.core.util.random_time_hash_hex")
     test_user_email = "start@loginer.nl"
     user_fn = "terst"
     user_ln = "nagmer"
@@ -607,7 +605,7 @@ def test_start_login(test_client, mocker: MockerFixture, state_store: dict):
 
     g_pw_email.side_effect = pw_em_side_effect
 
-    t_hash = mocker.patch("apiserver.lib.utilities.random_time_hash_hex")
+    t_hash = mocker.patch("auth.core.util.random_time_hash_hex")
     test_auth_id = "d7a822c06ca8faa0e1df42fe3cbb0371"
 
     def hash_side_effect(user_usph):
@@ -680,10 +678,11 @@ def test_finish_login(test_client, mocker: MockerFixture, flow_store: dict):
 
 @pytest.fixture
 def req_store(store_fix, mocker: MockerFixture):
-    r_store = mocker.patch("apiserver.data.trs.auth.store_auth_request")
+    r_store = mocker.patch("auth.data.requests.store_auth_request")
 
-    def store_side_effect(f_dsrc, flow_id, req):
-        store_fix[flow_id] = req
+    def store_side_effect(f_store, req):
+        store_fix[mock_flow_id] = req
+        return mock_flow_id
 
     r_store.side_effect = store_side_effect
 
@@ -710,9 +709,9 @@ def test_oauth_callback(test_client: TestClient, mocker: MockerFixture):
     test_flow_id = "1cd7afeca7eb420201ea69e06d9085ae2b8dd84adaae8d27c89746aab75d1dff"
     test_code = "zySjwa5CpddMzSydqKOvXZHQrtRK-VD83aOPMAB_1gEVxSscBywmS8XxZze3letN9whXUiRfSEfGel9e-5XGgQ"
 
-    get_auth = mocker.patch("apiserver.data.trs.auth.get_auth_request")
+    get_auth = mocker.patch("auth.data.requests.get_auth_request")
 
-    def auth_side_effect(f_dsrc, flow_id):
+    def auth_side_effect(f_store, flow_id):
         if flow_id == test_flow_id:
             return mock_auth_request
 

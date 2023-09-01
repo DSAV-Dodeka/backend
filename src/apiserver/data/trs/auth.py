@@ -12,10 +12,6 @@ async def get_auth_request(dsrc: Source, flow_id: str) -> AuthRequest:
     return AuthRequest.model_validate(auth_req_dict)
 
 
-async def store_auth_request(dsrc: Source, flow_id: str, auth_request: AuthRequest):
-    await store_json(get_kv(dsrc), flow_id, auth_request.model_dump(), expire=1000)
-
-
 async def store_auth_state(dsrc: Source, auth_id: str, state: SavedState):
     await store_json(get_kv(dsrc), auth_id, state.model_dump(), expire=60)
 

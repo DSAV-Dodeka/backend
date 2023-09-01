@@ -14,7 +14,6 @@ from jwt import (
     InvalidTokenError,
 )
 
-import apiserver.lib.utilities as util
 import auth.core.util
 from apiserver.lib.errors import InvalidRefresh
 from apiserver.lib.utilities.crypto import encrypt_dict, decrypt_dict

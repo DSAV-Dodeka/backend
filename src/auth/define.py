@@ -4,12 +4,6 @@ deployment environment SPECIFICS and should be known far ahead of time. Changing
 breaking, while that should not happen for env/config settings.
 """
 
-from typing import Optional
-
-import os
-from pathlib import Path
-import tomli
-
 from pydantic import BaseModel
 
 
@@ -17,22 +11,15 @@ from pydantic import BaseModel
 class Define(BaseModel):
     persist_key: str
 
-    credentials_url: str
     frontend_client_id: str
     valid_redirects: set[str]
-
-    allowed_envs: set[str]
     api_root: str
     issuer: str
-    frontend_client_id: str
     backend_client_id: str
-
     valid_redirects: set[str]
 
     credentials_url: str
-
     signup_url: str
-
     onboard_email: str
 
 
@@ -52,6 +39,3 @@ email_expiration = 15 * 60
 
 
 default_define = {}
-
-
-#

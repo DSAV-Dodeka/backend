@@ -3,12 +3,11 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter
-from pydantic import field_validator, BaseModel, ValidationError
+from pydantic import BaseModel
 
-import apiserver.lib.utilities as util
 import auth.core.util
+from apiserver.define import LOGGER_NAME
 from apiserver.lib.model.entities import AuthRequest
-from auth.define import LOGGER_NAME, frontend_client_id, valid_redirects
 from apiserver.app.error import ErrorResponse
 
 router = APIRouter()
@@ -34,81 +33,6 @@ class TokenResponse(BaseModel):
     token_type: str
     expires_in: int
     scope: str
-
-
-MAX_STR_LEN = 100
-CODE_CHALLENGE_MAX = 128
-CODE_CHALLENGE_MIN = 43
-
-
-class AuthRequestValidator(AuthRequest):
-    @field_validator("response_type")
-    def check_type(cls, v: str) -> str:
-        assert v == "code", "'response_type' must be 'code'"
-        return v
-
-    @field_validator("client_id")
-    def check_client(cls, v: str) -> str:
-        assert v == frontend_client_id, "Unrecognized client ID!"
-        return v
-
-    @field_validator("redirect_uri")
-    def check_redirect(cls, v: str) -> str:
-        assert v in valid_redirects, "Unrecognized redirect!"
-        return v
-
-    @field_validator("state")
-    def check_state(cls, v: str) -> str:
-        assert len(v) < MAX_STR_LEN, "State must not be too long!"
-        return v
-
-    # possibly replace for performance
-    @field_validator("code_challenge")
-    def check_challenge(cls, v: str) -> str:
-        assert (
-            CODE_CHALLENGE_MAX >= len(v) >= CODE_CHALLENGE_MIN
-        ), "Length must be 128 >= len >= 43!"
-        for c in v:
-            assert c.isalnum() or c in "-._~", "Invalid character in challenge!"
-        return v
-
-    @field_validator("code_challenge_method")
-    def check_method(cls, v: str) -> str:
-        assert v == "S256", "Only S256 is supported!"
-        return v
-
-    @field_validator("nonce")
-    def check_nonce(cls, v: str) -> str:
-        assert len(v) < MAX_STR_LEN, "Nonce must not be too long!"
-        return v
-
-
-def auth_request_validate(
-    response_type,
-    client_id,
-    redirect_uri,
-    state,
-    code_challenge,
-    code_challenge_method,
-    nonce,
-) -> AuthRequest:
-    try:
-        auth_request = AuthRequestValidator(
-            response_type=response_type,
-            client_id=client_id,
-            redirect_uri=redirect_uri,
-            state=state,
-            code_challenge=code_challenge,
-            code_challenge_method=code_challenge_method,
-            nonce=nonce,
-        )
-    except ValidationError as e:
-        logger.debug(str(e.errors()))
-        raise ErrorResponse(
-            status_code=400, err_type="invalid_authorize", err_desc=str(e.errors())
-        )
-
-    return auth_request
 
 
 def authorization_validate(token_request: TokenRequest):

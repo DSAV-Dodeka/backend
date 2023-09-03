@@ -3,15 +3,15 @@ from typing import Optional, Literal
 
 from pydantic import field_validator, BaseModel
 
+from auth.data.schemad.entities import User as AuthUser
 
-class User(BaseModel):
+
+class User(AuthUser):
     # Set by the database
     id: int = -1
     id_name: str
     # Computed in the database
     user_id: str = ""
-    email: str
-    password_file: str
     scope: str = "member"
 
 
@@ -184,22 +184,11 @@ class AuthRequest(BaseModel):
     nonce: str
 
 
-class SavedRegisterState(BaseModel):
-    user_id: str
-
-
 class SavedState(BaseModel):
     user_id: str
     user_email: str
     scope: str
     state: str
-
-
-class FlowUser(BaseModel):
-    user_id: str
-    scope: str
-    flow_id: str
-    auth_time: int
 
 
 class UpdateEmailState(BaseModel):

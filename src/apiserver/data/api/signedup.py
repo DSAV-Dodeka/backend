@@ -12,7 +12,7 @@ from store.db import (
     delete_by_column,
 )
 from apiserver.lib.model.entities import SignedUp
-from apiserver.data.schema.model import (
+from schema.model import (
     SIGNEDUP_TABLE,
     SU_EMAIL,
     SU_CONFIRMED,

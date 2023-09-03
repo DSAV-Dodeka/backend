@@ -1,10 +1,10 @@
 from typing import Optional
 
-import redis
+from redis import ConnectionError as RedisConnectionError
 from pydantic import BaseModel
 from redis.asyncio import Redis
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine, AsyncConnection
 
 
 class StoreError(ConnectionError):
@@ -27,6 +27,8 @@ class StoreConfig(BaseModel):
 class Store:
     db: Optional[AsyncEngine] = None
     kv: Optional[Redis] = None
+    # Session is for reusing a single connection across multiple functions
+    session: Optional[AsyncConnection] = None
 
     def init_objects(self, config: StoreConfig):
         db_cluster = (
@@ -44,7 +46,7 @@ class Store:
             # Redis requires no explicit call to connect, it simply connects the first time
             # a call is made to the database, so we test the connection by pinging
             await self.kv.ping()
-        except redis.ConnectionError:
+        except RedisConnectionError:
             raise StoreError(
                 "Unable to ping Redis server! Please check if it is running."
             )

@@ -9,8 +9,6 @@ from pydantic import BaseModel
 
 # See below for appropriate values for specific environments
 class Define(BaseModel):
-    persist_key: str
-
     frontend_client_id: str
     valid_redirects: set[str]
     api_root: str

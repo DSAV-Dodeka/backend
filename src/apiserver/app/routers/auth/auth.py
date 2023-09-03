@@ -1,20 +1,13 @@
 import logging
 
-import opaquepy as opq
 from fastapi import APIRouter, Response, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 import auth.core.util
+import auth.data.authentication
 from apiserver import data
-from auth.core.authorize import oauth_start, oauth_callback
-from auth.core.error import RedirectError, AuthError
-from apiserver.define import LOGGER_NAME, DEFINE
 from apiserver.app.error import ErrorResponse
-from apiserver.app.model.models import (
-    PasswordResponse,
-)
-from apiserver.lib.model.entities import SavedState, FlowUser
 from apiserver.app.ops.errors import RefreshOperationError
 from apiserver.app.ops.header import Authorization
 from apiserver.app.ops.tokens import do_refresh, new_token, delete_refresh
@@ -27,6 +20,15 @@ from apiserver.app.routers.auth.validations import (
 )
 from apiserver.app.routers.helper import require_user
 from apiserver.data import NoDataError, Source
+from apiserver.define import LOGGER_NAME, DEFINE
+from auth.core.error import RedirectError, AuthError
+from auth.core.model import PasswordRequest, FinishLogin
+from auth.core.response import PasswordResponse
+from auth.modules.authorize import oauth_start, oauth_callback
+from auth.modules.login import (
+    start_login as auth_start_login,
+    finish_login as auth_finish_login,
+)
 
 router = APIRouter()
 
@@ -35,95 +37,27 @@ port_front = 3000
 logger = logging.getLogger(LOGGER_NAME)
 
 
-class PasswordRequest(BaseModel):
-    email: str
-    client_request: str
-
-
 @router.post("/login/start/", response_model=PasswordResponse)
 async def start_login(login_start: PasswordRequest, request: Request):
     """Login can be initiated in 2 different flows: the first is the OAuth 2 flow, the second is a simple password
     check flow."""
     dsrc: Source = request.state.dsrc
-    login_mail = login_start.email.lower()
 
-    scope = "none"
-    async with data.get_conn(dsrc) as conn:
-        # We get server setup required for using OPAQUE protocol
-        opaque_setup = await data.opaquesetup.get_setup(conn)
-
-        # We start with a fakerecord
-        u = await data.user.get_user_by_id(conn, "1_fakerecord")
-        password_file = u.password_file
-        try:
-            ru = await data.user.get_user_by_email(conn, login_mail)
-            # If the user exists and has a password set (meaning they are registered), we perform the check with the
-            # actual password
-            if ru.password_file:
-                u = ru
-                password_file = ru.password_file
-                scope = ru.scope
-        except NoDataError:
-            # If user or password file does not exist, user, password_file and scope default to the fake record
-            pass
-
-    auth_id = auth.core.util.random_time_hash_hex(u.user_id)
-
-    # This will only fail if the client message is an invalid OPAQUE protocol message
-    response, state = opq.login(
-        opaque_setup, password_file, login_start.client_request, u.user_id
-    )
-
-    saved_state = SavedState(
-        user_id=u.user_id, user_email=login_mail, scope=scope, state=state
-    )
-
-    await data.trs.auth.store_auth_state(dsrc, auth_id, saved_state)
-
-    return PasswordResponse(server_message=response, auth_id=auth_id)
-
-
-class FinishLogin(BaseModel):
-    auth_id: str
-    email: str
-    client_request: str
-    flow_id: str
+    return await auth_start_login(dsrc.store, data.user.UserOps, login_start)
 
 
 @router.post("/login/finish/")
 async def finish_login(login_finish: FinishLogin, request: Request):
     dsrc: Source = request.state.dsrc
-    finish_email = login_finish.email.lower()
+
     try:
-        saved_state = await data.trs.auth.get_state(dsrc, login_finish.auth_id)
-    except NoDataError as e:
-        logger.debug(e.message)
-        reason = "Login not initialized or expired"
+        await auth_finish_login(dsrc.store, login_finish)
+    except AuthError as e:
         raise ErrorResponse(
             status_code=400,
-            err_type="invalid_login",
-            err_desc=reason,
-            debug_key="no_login_start",
+            err_type=e.err_type,
+            err_desc=e.err_desc,
         )
-    saved_email = saved_state.user_email.lower()
-    if saved_email != finish_email:
-        raise ErrorResponse(
-            status_code=400,
-            err_type="invalid_login",
-            err_desc="Incorrect username for this login!",
-        )
-
-    session_key = opq.login_finish(login_finish.client_request, saved_state.state)
-
-    utc_now = auth.core.util.utc_timestamp()
-    flow_user = FlowUser(
-        flow_id=login_finish.flow_id,
-        scope=saved_state.scope,
-        auth_time=utc_now,
-        user_id=saved_state.user_id,
-    )
-
-    await data.trs.auth.store_flow_user(dsrc, session_key, flow_user)
 
 
 @router.get("/oauth/authorize/", status_code=303)
@@ -145,6 +79,8 @@ async def oauth_endpoint(
 
     try:
         redirect = await oauth_start(
+            DEFINE,
+            dsrc.store,
             response_type,
             client_id,
             redirect_uri,
@@ -152,8 +88,6 @@ async def oauth_endpoint(
             code_challenge,
             code_challenge_method,
             nonce,
-            DEFINE,
-            dsrc.store,
         )
     except RedirectError as e:
         return RedirectResponse(e.redirect_uri, status_code=e.code)
@@ -177,7 +111,7 @@ async def oauth_finish(flow_id: str, code: str, response: Response, request: Req
     dsrc: Source = request.state.dsrc
 
     try:
-        redirect = await oauth_callback(flow_id, code, dsrc.store)
+        redirect = await oauth_callback(dsrc.store, flow_id, code)
     except AuthError as e:
         logger.debug(e.err_desc)
         raise ErrorResponse(400, err_type=e.err_type, err_desc=e.err_desc)
@@ -209,7 +143,9 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
         authorization_validate(token_request)
 
         try:
-            flow_user = await data.trs.auth.pop_flow_user(dsrc, token_request.code)
+            flow_user = await auth.data.authentication.pop_flow_user(
+                dsrc.store, token_request.code
+            )
         except NoDataError as e:
             logger.debug(e.message)
             reason = "Expired or missing auth code"

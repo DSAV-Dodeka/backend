@@ -22,6 +22,7 @@ from apiserver.lib.utilities.crypto import (
     encrypt_dict,
     decrypt_dict,
 )
+from auth.data.schemad.opaque import get_setup
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -117,7 +118,7 @@ async def test_generate_admin():
 async def test_generate_dummies(local_dsrc: Source, faker: Faker):
     admin_password = "admin"
     async with data.get_conn(local_dsrc) as conn:
-        setup = await data.opaquesetup.get_setup(conn)
+        setup = await get_setup(conn)
 
     # setup = ""
     faker_u = faker.unique

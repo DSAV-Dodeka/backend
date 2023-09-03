@@ -15,11 +15,11 @@ from apiserver.lib.utilities.crypto import (
     decrypt_dict,
 )
 from auth.core import util
-from store.store import StoreError
+from store import StoreError
 from apiserver.define import LOGGER_NAME
 from apiserver import data
 from apiserver.data import Source
-from apiserver.data.schema.model import metadata as db_model
+from schema.model import metadata as db_model
 from apiserver.data.admin import drop_recreate_database
 
 logger = logging.getLogger(LOGGER_NAME)

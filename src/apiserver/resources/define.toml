@@ -1,7 +1,5 @@
 allowed_envs = ["envless", "localdev", "test"]
 
-persist_key = "flow_id"
-
 frontend_client_id = "dodekaweb_client"
 valid_redirects = ["http://localhost:3000/auth/callback", "https://dsavdodeka.nl/auth/callback"]
 api_root = "http://localhost:4243"

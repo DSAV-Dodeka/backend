@@ -8,8 +8,8 @@ from redis import Redis
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from apiserver.env import Config
-from store.conn import kv_is_init, begin_conn, eng_is_init
-from store.store import Store
+from store.conn import get_kv as st_get_kv, get_conn as st_get_conn
+from store import Store
 
 
 class DataError(ValueError):
@@ -41,8 +41,8 @@ class Source:
 
 
 def get_kv(dsrc: Source) -> Redis:
-    return kv_is_init(dsrc.store)
+    return st_get_kv(dsrc.store)
 
 
 def get_conn(dsrc: Source) -> AsyncIterator[AsyncConnection]:
-    return begin_conn(eng_is_init(dsrc.store))
+    return st_get_conn(dsrc.store)

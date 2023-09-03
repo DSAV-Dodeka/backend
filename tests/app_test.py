@@ -27,11 +27,10 @@ from apiserver.lib.model.entities import (
     User,
     PEMKey,
     A256GCMKey,
-    SavedRegisterState,
     SavedState,
-    FlowUser,
     AuthRequest,
 )
+from auth.core.model import SavedRegisterState, FlowUser
 from apiserver.env import load_config
 from auth.core.util import utc_timestamp
 from apiserver.lib.utilities.crypto import aes_from_symmetric

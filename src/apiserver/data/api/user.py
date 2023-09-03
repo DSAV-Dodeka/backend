@@ -19,7 +19,7 @@ from store.db import (
     select_some_join_where,
     DbError,
 )
-from apiserver.data.schema.model import (
+from schema.model import (
     USER_TABLE,
     USERDATA_TABLE,
     USER_ID,
@@ -36,6 +36,7 @@ from apiserver.data.schema.model import (
     EE_EGG_ID,
     SCOPES,
 )
+from auth.data.schemad.user import UserOps as AuthUserOps
 from apiserver.data.source import DataError, NoDataError
 from apiserver.lib.model.entities import (
     User,
@@ -163,6 +164,18 @@ def finished_userdata(
 
 async def user_exists(conn: AsyncConnection, user_email: str) -> bool:
     return await exists_by_unique(conn, USER_TABLE, USER_EMAIL, user_email)
+
+
+class UserOps(AuthUserOps):
+    @classmethod
+    async def get_user_by_id(cls, conn: AsyncConnection, user_id: str) -> User:
+        user_row = await retrieve_by_unique(conn, USER_TABLE, USER_ID, user_id)
+        return parse_user(user_row)
+
+    @classmethod
+    async def get_user_by_email(cls, conn: AsyncConnection, user_email: str) -> User:
+        user_row = await retrieve_by_unique(conn, USER_TABLE, USER_EMAIL, user_email)
+        return parse_user(user_row)
 
 
 async def get_user_by_id(conn: AsyncConnection, user_id: str) -> User:

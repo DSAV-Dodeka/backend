@@ -16,10 +16,8 @@ from apiserver.define import (
     email_expiration,
 )
 from apiserver.app.error import ErrorResponse
-from apiserver.app.model.models import PasswordResponse
 from apiserver.app.ops.header import Authorization
 from apiserver.app.routers.helper import require_admin
-from apiserver.app.routers.helper.authentication import send_register_start
 from apiserver.app.ops.mail import (
     send_signup_email,
     send_register_email,
@@ -28,6 +26,8 @@ from apiserver.app.ops.mail import (
 from apiserver.data import DataError, Source, NoDataError
 from apiserver.env import Config
 from apiserver.lib.model.entities import SignedUp, Signup
+from auth.core.response import PasswordResponse
+from auth.modules.register import send_register_start
 
 router = APIRouter()
 
@@ -257,7 +257,9 @@ async def start_register(register_start: RegisterRequest, request: Request):
             debug_key="bad_registration_start",
         )
 
-    return await send_register_start(dsrc, ud.user_id, register_start.client_request)
+    return await send_register_start(
+        dsrc.store, ud.user_id, register_start.client_request
+    )
 
 
 class FinishRequest(BaseModel):

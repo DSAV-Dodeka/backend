@@ -5,7 +5,7 @@ from pathlib import Path
 import tomli
 
 from apiserver.resources import res_path
-from store.store import StoreConfig
+from store import StoreConfig
 
 
 # Different scenarios:

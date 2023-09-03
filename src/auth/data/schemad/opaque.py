@@ -2,10 +2,10 @@ from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
+from auth.data.error import DataError
+from schema.model import OPAQUE_SETUP_TABLE
 from store.db import retrieve_by_id, insert
-from apiserver.data.source import DataError
-from apiserver.data.schema.model import OPAQUE_SETUP_TABLE
-from apiserver.lib.model.entities import OpaqueSetup
+from auth.data.schemad.entities import OpaqueSetup
 
 __all__ = ["get_setup", "insert_opaque_row"]
 

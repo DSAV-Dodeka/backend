@@ -8,7 +8,7 @@ from store.db import (
     delete_by_column,
     delete_by_id,
 )
-from apiserver.data.schema.model import REFRESH_TOKEN_TABLE, FAMILY_ID, USER_ID
+from schema.model import REFRESH_TOKEN_TABLE, FAMILY_ID, USER_ID
 from apiserver.data.source import DataError
 from apiserver.lib.model.entities import SavedRefreshToken
 

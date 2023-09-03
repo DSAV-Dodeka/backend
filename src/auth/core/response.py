@@ -25,3 +25,8 @@ class ErrorResponse(Exception):
         self.err_type = err_type
         self.err_desc = err_desc
         self.debug_key = debug_key
+
+
+class PasswordResponse(BaseModel):
+    server_message: str
+    auth_id: str

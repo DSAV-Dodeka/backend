@@ -5,7 +5,7 @@ from fastapi.responses import ORJSONResponse
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from apiserver.data import DataError
-from apiserver.data.schema.model import (
+from schema.model import (
     CLASSIFICATION_TABLE,
     CLASS_TYPE,
     CLASS_START_DATE,

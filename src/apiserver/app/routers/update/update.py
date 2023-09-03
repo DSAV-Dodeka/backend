@@ -14,13 +14,13 @@ from apiserver.app.ops.mail import (
     mail_from_config,
 )
 from apiserver.app.routers.helper import authentication
-from apiserver.app.routers.helper.authentication import send_register_start
 from apiserver.app.ops.header import Authorization
 from apiserver.data import Source, NoDataError, DataError
 from apiserver.define import LOGGER_NAME, DEFINE
 from apiserver.env import Config
 from apiserver.lib.model.entities import UpdateEmailState
 from apiserver.app.routers.helper import require_user
+from auth.modules.register import send_register_start
 
 router = APIRouter()
 
@@ -87,7 +87,7 @@ async def update_password_start(update_pass: UpdatePasswordRequest, request: Req
     async with data.get_conn(dsrc) as conn:
         u = await data.user.get_user_by_email(conn, update_pass.email)
 
-    return await send_register_start(dsrc, u.user_id, update_pass.client_request)
+    return await send_register_start(dsrc.store, u.user_id, update_pass.client_request)
 
 
 class UpdatePasswordFinish(BaseModel):

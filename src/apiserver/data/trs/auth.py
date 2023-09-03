@@ -1,5 +1,6 @@
 from store.kv import get_json
-from apiserver.data import Source, NoDataError, get_kv
+from apiserver.data import Source, get_kv
+from store.error import NoDataError
 from apiserver.lib.model.entities import AuthRequest
 
 

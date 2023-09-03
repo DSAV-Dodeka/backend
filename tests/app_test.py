@@ -18,22 +18,22 @@ from apiserver.define import (
 )
 from apiserver.app_def import State, safe_startup, create_app
 from apiserver.data.api.user import gen_id_name
-from apiserver.lib.model.fn.tokens import id_info_from_ud
+from apiserver.lib.hazmat.tokens import id_info_from_ud
 from apiserver.data import Source
 
 from apiserver.lib.model.entities import (
-    SavedRefreshToken,
     UserData,
     User,
     PEMKey,
-    A256GCMKey,
     SavedState,
     AuthRequest,
 )
+from auth.data.schemad.entities import SavedRefreshToken
+from auth.hazmat.structs import A256GCMKey
 from auth.core.model import SavedRegisterState, FlowUser
 from apiserver.env import load_config
 from auth.core.util import utc_timestamp
-from apiserver.lib.utilities.crypto import aes_from_symmetric
+from auth.hazmat.key_decode import aes_from_symmetric
 
 
 @pytest.fixture(scope="module")
@@ -252,11 +252,9 @@ fake_token_id = 44
 
 @pytest.fixture
 def fake_tokens():
-    from apiserver.lib.model.fn.tokens import (
-        create_tokens,
-        finish_tokens,
-        encode_token_dict,
-    )
+    from auth.token.build_util import encode_token_dict
+    from auth.token.build import finish_tokens
+    from auth.token.build import create_tokens
 
     utc_now = utc_timestamp()
     mock_id_info = id_info_from_ud(mock_userdata)
@@ -677,7 +675,7 @@ def test_finish_login(test_client, mocker: MockerFixture, flow_store: dict):
 
 @pytest.fixture
 def req_store(store_fix, mocker: MockerFixture):
-    r_store = mocker.patch("auth.data.requests.store_auth_request")
+    r_store = mocker.patch("auth.data.authorize.store_auth_request")
 
     def store_side_effect(f_store, req):
         store_fix[mock_flow_id] = req
@@ -708,7 +706,7 @@ def test_oauth_callback(test_client: TestClient, mocker: MockerFixture):
     test_flow_id = "1cd7afeca7eb420201ea69e06d9085ae2b8dd84adaae8d27c89746aab75d1dff"
     test_code = "zySjwa5CpddMzSydqKOvXZHQrtRK-VD83aOPMAB_1gEVxSscBywmS8XxZze3letN9whXUiRfSEfGel9e-5XGgQ"
 
-    get_auth = mocker.patch("auth.data.requests.get_auth_request")
+    get_auth = mocker.patch("auth.data.authorize.get_auth_request")
 
     def auth_side_effect(f_store, flow_id):
         if flow_id == test_flow_id:

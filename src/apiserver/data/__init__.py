@@ -1,4 +1,5 @@
-from apiserver.data.source import Source, NoDataError, DataError, get_kv, get_conn
+from apiserver.data.source import Source, get_kv, get_conn
+from store.error import DataError, NoDataError
 from apiserver.data.api import user
 from apiserver.data.api import key
 from apiserver.data.api import signedup
@@ -15,8 +16,6 @@ __all__ = [
     "file",
     "classifications",
     "Source",
-    "NoDataError",
-    "DataError",
     "trs",
     "get_kv",
     "get_conn",

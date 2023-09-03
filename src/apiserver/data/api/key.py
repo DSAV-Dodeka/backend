@@ -15,8 +15,7 @@ from store.db import (
     insert,
 )
 from apiserver.lib.model.entities import JWKSRow
-from apiserver.data.source import DataError
-
+from store.error import DataError
 
 MINIMUM_KEYS = 2
 

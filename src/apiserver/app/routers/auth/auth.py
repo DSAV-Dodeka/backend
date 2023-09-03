@@ -8,9 +8,8 @@ import auth.core.util
 import auth.data.authentication
 from apiserver import data
 from apiserver.app.error import ErrorResponse
-from apiserver.app.ops.errors import RefreshOperationError
 from apiserver.app.ops.header import Authorization
-from apiserver.app.ops.tokens import do_refresh, new_token, delete_refresh
+from auth.modules.token.create import do_refresh, new_token, delete_refresh
 from apiserver.app.routers.auth.validations import (
     authorization_validate,
     compare_auth_token_validate,
@@ -19,9 +18,10 @@ from apiserver.app.routers.auth.validations import (
     TokenResponse,
 )
 from apiserver.app.routers.helper import require_user
-from apiserver.data import NoDataError, Source
+from apiserver.data import Source
+from store.error import NoDataError
 from apiserver.define import LOGGER_NAME, DEFINE
-from auth.core.error import RedirectError, AuthError
+from auth.core.error import RedirectError, AuthError, RefreshOperationError
 from auth.core.model import PasswordRequest, FinishLogin
 from auth.core.response import PasswordResponse
 from auth.modules.authorize import oauth_start, oauth_callback

@@ -4,7 +4,7 @@ from store.kv import store_json, get_json, pop_json
 
 from auth.core.model import SavedState, FlowUser
 from auth.core.util import random_time_hash_hex
-from auth.data.error import NoDataError
+from store.error import NoDataError
 from auth.data.schemad.user import UserOps
 from auth.data.schemad.opaque import get_setup
 

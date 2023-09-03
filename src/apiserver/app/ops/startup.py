@@ -6,14 +6,12 @@ from random import random
 from sqlalchemy import create_engine
 
 from apiserver.env import Config
-from apiserver.lib.model.entities import JWKSet, User, UserData, A256GCMKey
-from apiserver.lib.model.fn import keys
-from apiserver.lib.model.fn.keys import ed448_private_to_pem
-from apiserver.lib.utilities.crypto import (
-    aes_from_symmetric,
-    encrypt_dict,
-    decrypt_dict,
-)
+from apiserver.lib.model.entities import JWKSet, User, UserData
+from auth.hazmat.structs import A256GCMKey
+from apiserver.lib.hazmat import keys
+from apiserver.lib.hazmat.keys import ed448_private_to_pem
+from auth.hazmat.crypt_dict import encrypt_dict, decrypt_dict
+from auth.hazmat.key_decode import aes_from_symmetric
 from auth.core import util
 from store import StoreError
 from apiserver.define import LOGGER_NAME
@@ -146,10 +144,10 @@ async def load_keys(dsrc: Source, config: Config):
     runtime_key = aes_from_symmetric(config.KEY_PASS)
     async with data.get_conn(dsrc) as conn:
         encrypted_key_set = await data.key.get_jwk(conn)
-        key_set_dict = decrypt_dict(runtime_key, encrypted_key_set)
+        key_set_dict = decrypt_dict(runtime_key.private, encrypted_key_set)
         key_set: JWKSet = JWKSet.model_validate(key_set_dict)
         # We re-encrypt as is required when using AES encryption
-        reencrypted_key_set = encrypt_dict(runtime_key, key_set_dict)
+        reencrypted_key_set = encrypt_dict(runtime_key.private, key_set_dict)
         await data.key.update_jwk(conn, reencrypted_key_set)
         # We get the Key IDs (kid) of the newest keys and also previous symmetric key
         # These newest ones will be used for signing new tokens
@@ -157,14 +155,16 @@ async def load_keys(dsrc: Source, config: Config):
         new_symmetric_kid, old_symmetric_kid = await data.key.get_newest_symmetric(conn)
 
     pem_keys = []
+    pem_private_keys = []
     symmetric_keys = []
     public_keys = []
     for key in key_set.keys:
         if key.alg == "EdDSA":
             key_private_bytes = util.dec_b64url(key.d)
             # PyJWT only accepts keys in PEM format, so we convert them from the raw format we store them in
-            pem_key = ed448_private_to_pem(key_private_bytes, key.kid)
+            pem_key, pem_private_key = ed448_private_to_pem(key_private_bytes, key.kid)
             pem_keys.append(pem_key)
+            pem_private_keys.append(pem_private_key)
             # The public keys we will store in raw format, we want to exclude the private key as we want to be able to
             # publish these keys
             public_key_dict: dict = key.model_copy().model_dump(
@@ -179,7 +179,7 @@ async def load_keys(dsrc: Source, config: Config):
     public_jwk_set = JWKSet(keys=public_keys)
 
     # Store in KV for quick access
-    await data.trs.key.store_pem_keys(dsrc, pem_keys)
+    await data.trs.key.store_pem_keys(dsrc, pem_keys, pem_private_keys)
     await data.trs.key.store_symmetric_keys(dsrc, symmetric_keys)
     await data.trs.key.store_jwks(dsrc, public_jwk_set)
     # We don't store these in the KV since that is an additional roundtrip that is not worth it

@@ -2,7 +2,7 @@ from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from auth.data.error import DataError
+from store.error import DataError
 from schema.model import OPAQUE_SETUP_TABLE
 from store.db import retrieve_by_id, insert
 from auth.data.schemad.entities import OpaqueSetup

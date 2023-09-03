@@ -6,12 +6,13 @@ from fastapi.security.api_key import APIKeyHeader
 from apiserver.define import DEFINE, grace_period
 from apiserver import data
 from apiserver.app.ops.errors import BadAuth
-from apiserver.lib.model.fn.tokens import (
+from apiserver.lib.hazmat.tokens import (
     verify_access_token,
     BadVerification,
     get_kid,
 )
-from apiserver.data import Source, NoDataError
+from apiserver.data import Source
+from store.error import NoDataError
 from apiserver.lib.model.entities import AccessToken
 
 scheme = "Bearer"
@@ -34,9 +35,9 @@ async def handle_header(authorization: str, dsrc: Source) -> AccessToken:
 
     try:
         kid = get_kid(token)
-        public_key = await data.trs.key.get_pem_key(dsrc, kid)
+        public_key = (await data.trs.key.get_pem_key(dsrc, kid)).public
         return verify_access_token(
-            public_key.public,
+            public_key,
             token,
             grace_period,
             DEFINE.issuer,

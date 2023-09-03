@@ -1,12 +1,11 @@
 import opaquepy as opq
 
-import auth.data.authentication
 from auth import data
 from auth.core.error import AuthError
 from auth.core.model import PasswordRequest, SavedState, FinishLogin, FlowUser
 from auth.core.response import PasswordResponse
 from auth.core.util import utc_timestamp
-from auth.data.error import NoDataError
+from store.error import NoDataError
 from auth.data.schemad.user import UserOps
 from store import Store
 from store.conn import store_session

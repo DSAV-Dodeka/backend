@@ -4,7 +4,8 @@ import auth.data.authentication
 from apiserver import data
 from apiserver.app.error import ErrorResponse
 from apiserver.app.routers.helper.helper import require_user
-from apiserver.data import Source, NoDataError
+from apiserver.data import Source
+from store.error import NoDataError
 from apiserver.define import LOGGER_NAME
 from auth.core.model import FlowUser
 

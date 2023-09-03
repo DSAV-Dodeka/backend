@@ -1,9 +1,10 @@
 import re
 from datetime import date
-from typing import Optional
+from typing import Optional, Type
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
+from auth.core.model import IdInfoT, IdInfo as AuthIdInfo
 from store.db import (
     retrieve_by_unique,
     insert_return_col,
@@ -36,8 +37,11 @@ from schema.model import (
     EE_EGG_ID,
     SCOPES,
 )
-from auth.data.schemad.user import UserOps as AuthUserOps
-from apiserver.data.source import DataError, NoDataError
+from auth.data.schemad.user import (
+    UserOps as AuthUserOps,
+    UserDataOps as AuthUserDataOps,
+)
+from store.error import DataError, NoDataError
 from apiserver.lib.model.entities import (
     User,
     SignedUp,
@@ -49,6 +53,7 @@ from apiserver.lib.model.entities import (
     ScopeData,
     UserID,
     UserNames,
+    IdInfo,
 )
 from apiserver.lib.utilities import usp_hex, strip_edge, de_usp_hex
 
@@ -176,6 +181,29 @@ class UserOps(AuthUserOps):
     async def get_user_by_email(cls, conn: AsyncConnection, user_email: str) -> User:
         user_row = await retrieve_by_unique(conn, USER_TABLE, USER_EMAIL, user_email)
         return parse_user(user_row)
+
+
+class UserDataOps(AuthUserDataOps):
+    @classmethod
+    async def get_userdata_by_id(cls, conn: AsyncConnection, user_id: str) -> UserData:
+        userdata_row = await retrieve_by_unique(conn, USERDATA_TABLE, USER_ID, user_id)
+        return parse_userdata(userdata_row)
+
+    @classmethod
+    def id_info_from_ud(cls, ud: UserData) -> AuthIdInfo:
+        return IdInfo(
+            email=ud.email,
+            name=f"{ud.firstname} {ud.lastname}",
+            given_name=ud.firstname,
+            family_name=ud.lastname,
+            nickname=ud.callname,
+            preferred_username=ud.callname,
+            birthdate=ud.birthdate.isoformat(),
+        )
+
+    @classmethod
+    def id_info_type(cls) -> Type[IdInfo]:
+        return IdInfo
 
 
 async def get_user_by_id(conn: AsyncConnection, user_id: str) -> User:

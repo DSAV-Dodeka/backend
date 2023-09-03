@@ -17,7 +17,7 @@ from schema.model import (
     SU_EMAIL,
     SU_CONFIRMED,
 )
-from apiserver.data.source import DataError
+from store.error import DataError
 
 __all__ = [
     "get_signedup_by_email",

@@ -3,7 +3,8 @@ from typing import Optional, Literal
 
 from pydantic import field_validator, BaseModel
 
-from auth.data.schemad.entities import User as AuthUser
+from auth.core.model import IdInfo as AuthIdInfo
+from auth.data.schemad.entities import User as AuthUser, UserData as AuthUserData
 
 
 class User(AuthUser):
@@ -26,24 +27,6 @@ class Key(BaseModel):
     private_encoding: str
 
 
-class SavedRefreshToken(BaseModel):
-    # Set by the database
-    id: int = -1
-    user_id: str
-    family_id: str
-    access_value: str
-    id_token_value: str
-    iat: int
-    exp: int
-    nonce: str
-
-
-class RefreshToken(BaseModel):
-    id: int
-    family_id: str
-    nonce: str
-
-
 class AccessToken(BaseModel):
     sub: str
     iss: str
@@ -53,14 +36,7 @@ class AccessToken(BaseModel):
     exp: int
 
 
-class SavedAccessToken(BaseModel):
-    sub: str
-    iss: str
-    aud: list[str]
-    scope: str
-
-
-class IdInfo(BaseModel):
+class IdInfo(AuthIdInfo):
     email: str
     name: str
     given_name: str
@@ -68,14 +44,6 @@ class IdInfo(BaseModel):
     nickname: str
     preferred_username: str
     birthdate: str
-
-
-class IdToken(IdInfo):
-    sub: str
-    iss: str
-    aud: list[str]
-    auth_time: int
-    nonce: str
 
 
 class SignedUp(BaseModel):
@@ -86,7 +54,7 @@ class SignedUp(BaseModel):
     confirmed: bool = False
 
 
-class UserData(BaseModel):
+class UserData(AuthUserData):
     user_id: str
     active: bool
     firstname: str
@@ -143,11 +111,6 @@ class JWKSRow(BaseModel):
     encrypted_value: str
 
 
-class A256GCMKey(BaseModel):
-    kid: str
-    symmetric: str  # base64url encoded symmetric 256-bit key
-
-
 class OpaqueSetup(BaseModel):
     id: int
     value: str
@@ -171,7 +134,6 @@ class JWKSet(BaseModel):
 class PEMKey(BaseModel):
     kid: str
     public: str  # PEM encoded X509PKCS#1 as unicode
-    private: str  # PEM encoded PKCS#8 as unicode
 
 
 class AuthRequest(BaseModel):

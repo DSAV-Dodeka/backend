@@ -1,7 +1,6 @@
 from typing import Optional, Literal, Union
 from yarl import URL
 
-
 ErrorCode = Union[
     # All responses
     Literal["invalid_request"],
@@ -64,3 +63,15 @@ class RedirectError(Exception):
         self.redirect_uri = str(new_uri)
         self.code = code
         self.debug_key = debug_key
+
+
+class RefreshOperationError(ValueError):
+    """Invalid refresh token."""
+
+    pass
+
+
+class InvalidRefresh(Exception):
+    """Invalid refresh token."""
+
+    pass

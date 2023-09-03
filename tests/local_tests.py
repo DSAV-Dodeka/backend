@@ -12,16 +12,13 @@ import apiserver.lib.utilities as util
 import auth.core.util
 from apiserver import data
 from apiserver.data.api.user import new_userdata
-from apiserver.lib.model.fn.tokens import create_tokens, finish_tokens
-from apiserver.app.ops.tokens import get_keys
+from auth.token.build import create_tokens, finish_tokens
+from auth.data.keys import get_keys
 from apiserver.data import Source
 from apiserver.lib.model.entities import SignedUp
 from auth.env2 import load_config
-from apiserver.lib.utilities.crypto import (
-    aes_from_symmetric,
-    encrypt_dict,
-    decrypt_dict,
-)
+from auth.hazmat.crypt_dict import encrypt_dict, decrypt_dict
+from auth.hazmat.key_decode import aes_from_symmetric
 from auth.data.schemad.opaque import get_setup
 
 

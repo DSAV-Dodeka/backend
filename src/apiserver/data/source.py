@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-__all__ = ["Source", "DataError", "NoDataError", "get_kv", "get_conn"]
+__all__ = ["Source", "get_kv", "get_conn"]
 
 from typing import AsyncIterator
 
@@ -10,18 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 from apiserver.env import Config
 from store.conn import get_kv as st_get_kv, get_conn as st_get_conn
 from store import Store
-
-
-class DataError(ValueError):
-    key: str
-
-    def __init__(self, message, key):
-        self.message = message
-        self.key = key
-
-
-class NoDataError(DataError):
-    pass
 
 
 @dataclass

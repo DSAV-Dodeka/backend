@@ -5,12 +5,6 @@ class OperationError(Exception):
     pass
 
 
-class RefreshOperationError(OperationError):
-    """Invalid refresh token."""
-
-    pass
-
-
 AuthErrorTypes = Union[Literal["invalid_request"], Literal["invalid_token"]]
 ErrorTypes = Union[AuthErrorTypes]
 

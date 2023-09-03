@@ -15,7 +15,8 @@ from apiserver.app.ops.mail import (
 )
 from apiserver.app.routers.helper import authentication
 from apiserver.app.ops.header import Authorization
-from apiserver.data import Source, NoDataError, DataError
+from apiserver.data import Source
+from store.error import DataError, NoDataError
 from apiserver.define import LOGGER_NAME, DEFINE
 from apiserver.env import Config
 from apiserver.lib.model.entities import UpdateEmailState

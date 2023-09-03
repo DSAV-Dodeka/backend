@@ -1,5 +1,6 @@
 from store.kv import store_json, get_json, pop_json
-from apiserver.data import Source, get_kv, NoDataError
+from apiserver.data import Source, get_kv
+from store.error import NoDataError
 from apiserver.lib.model.entities import UpdateEmailState, Signup
 from auth.core.model import SavedRegisterState
 

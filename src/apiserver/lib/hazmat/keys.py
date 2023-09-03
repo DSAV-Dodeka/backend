@@ -10,6 +10,7 @@ from cryptography.hazmat.primitives.serialization import (
 
 from apiserver.lib.model.entities import OpaqueSetup, PEMKey, JWK
 from auth.core.util import enc_b64url
+from auth.hazmat.structs import PEMPrivateKey
 
 
 def new_ed448_keypair(kid: str) -> JWK:
@@ -27,7 +28,9 @@ def new_ed448_keypair(kid: str) -> JWK:
     )
 
 
-def ed448_private_to_pem(private_bytes: bytes, kid: str) -> PEMKey:
+def ed448_private_to_pem(
+    private_bytes: bytes, kid: str
+) -> tuple[PEMKey, PEMPrivateKey]:
     private_key = Ed448PrivateKey.from_private_bytes(private_bytes)
 
     private = private_key.private_bytes(
@@ -39,7 +42,9 @@ def ed448_private_to_pem(private_bytes: bytes, kid: str) -> PEMKey:
         .decode(encoding="utf-8")
     )
 
-    return PEMKey(kid=kid, public=public, private=private)
+    return PEMKey(kid=kid, public=public), PEMPrivateKey(
+        kid=kid, public=public, private=private
+    )
 
 
 def gen_pw_file(setup: str, password: str, client_cred: str) -> str:

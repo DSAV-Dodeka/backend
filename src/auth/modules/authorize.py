@@ -2,9 +2,9 @@ from yarl import URL
 
 from auth import data
 from auth.core.error import AuthError
-from auth.core.validate import auth_request_validate
+from auth.validate.authorize import auth_request_validate
 from auth.core.response import Redirect
-from auth.data.error import NoDataError
+from store.error import NoDataError
 from auth.define import Define
 from store import Store
 
@@ -40,7 +40,7 @@ async def oauth_start(
     )
 
     # The retrieval query is any information necessary to get all parameters necessary for the actual request
-    flow_id = await data.requests.store_auth_request(store, auth_request)
+    flow_id = await data.authorize.store_auth_request(store, auth_request)
 
     url = URL(define.credentials_url)
 
@@ -51,7 +51,7 @@ async def oauth_start(
 
 async def oauth_callback(store: Store, retrieval_query: str, code: str) -> Redirect:
     try:
-        auth_request = await data.requests.get_auth_request(store, retrieval_query)
+        auth_request = await data.authorize.get_auth_request(store, retrieval_query)
     except NoDataError:
         raise AuthError(
             "invalid_request",

@@ -1,6 +1,6 @@
 from auth.core.model import AuthRequest
 from auth.core.util import random_time_hash_hex
-from auth.data.error import NoDataError
+from store.error import NoDataError
 from store import Store
 from store.kv import get_json, store_json
 from store.conn import get_kv

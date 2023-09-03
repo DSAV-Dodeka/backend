@@ -23,7 +23,8 @@ from apiserver.app.ops.mail import (
     send_register_email,
     mail_from_config,
 )
-from apiserver.data import DataError, Source, NoDataError
+from apiserver.data import Source
+from store.error import DataError, NoDataError
 from apiserver.env import Config
 from apiserver.lib.model.entities import SignedUp, Signup
 from auth.core.response import PasswordResponse

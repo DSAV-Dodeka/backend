@@ -4,7 +4,7 @@ from typing import Literal
 from fastapi.responses import ORJSONResponse
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from apiserver.data import DataError
+from store.error import DataError
 from schema.model import (
     CLASSIFICATION_TABLE,
     CLASS_TYPE,

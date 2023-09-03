@@ -11,7 +11,8 @@ from apiserver.app.error import ErrorResponse
 from apiserver.data.api.classifications import check_user_in_class
 from apiserver.lib.model.entities import UserData, UserScopeData, UserID
 from apiserver import data
-from apiserver.data import Source, DataError, NoDataError
+from apiserver.data import Source
+from store.error import DataError, NoDataError
 from apiserver.app.ops.header import Authorization
 from apiserver.app.routers.helper import require_admin
 

@@ -34,7 +34,6 @@ async def get_user_auth_data(store: Store, user_ops: UserOps, login_mail: str):
             pass
 
     auth_id = random_time_hash_hex(u.user_id)
-
     return u, scope, password_file, auth_id
 
 

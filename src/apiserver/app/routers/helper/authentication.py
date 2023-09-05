@@ -1,7 +1,6 @@
 import logging
 
 import auth.data.authentication
-from apiserver import data
 from apiserver.app.error import ErrorResponse
 from apiserver.app.routers.helper.helper import require_user
 from apiserver.data import Source

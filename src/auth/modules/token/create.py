@@ -76,11 +76,11 @@ async def new_token(
     auth_time: int,
     id_nonce: str,
 ):
-    aesgcm, _, signing_key = await get_keys(store, key_state)
+    symmetric_key, _, signing_key = await get_keys(store, key_state)
 
     utc_now = utc_timestamp()
 
-    with store_session(store) as session:
+    async with store_session(store) as session:
         id_info = await data.token.get_id_info(session, ops, user_id)
 
         access_token_data, id_token_data, access_scope, refresh_save = create_tokens(
@@ -101,7 +101,7 @@ async def new_token(
     refresh_token, access_token, id_token = finish_tokens(
         refresh_id,
         refresh_save,
-        aesgcm,
+        symmetric_key,
         access_token_data,
         id_token_data,
         id_info,
@@ -125,9 +125,9 @@ async def new_token(
 async def delete_refresh(
     store: Store, ops: SchemaOps, key_state: KeyState, refresh_token: str
 ):
-    aesgcm, old_aesgcm, signing_key = await get_keys(store, key_state)
+    symmetric_key, old_symmetric_key, signing_key = await get_keys(store, key_state)
     try:
-        refresh = decrypt_old_refresh(aesgcm, old_aesgcm, refresh_token)
+        refresh = decrypt_old_refresh(symmetric_key, old_symmetric_key, refresh_token)
         print(refresh)
     except InvalidRefresh:
         print("invalid")

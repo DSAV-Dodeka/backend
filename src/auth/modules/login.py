@@ -17,7 +17,7 @@ async def start_login(store: Store, user_ops: UserOps, login_start: PasswordRequ
 
     login_mail = login_start.email.lower()
 
-    with store_session(store) as session:
+    async with store_session(store) as session:
         u, scope, password_file, auth_id = await data.authentication.get_user_auth_data(
             session, user_ops, login_mail
         )

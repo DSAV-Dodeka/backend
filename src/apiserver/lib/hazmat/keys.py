@@ -19,9 +19,10 @@ def new_ed448_keypair(kid: str) -> JWK:
     x_bytes = private_key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
 
     return JWK(
-        kty="okp",
+        kty="OKP",
         use="sig",
         alg="EdDSA",
+        crv="Ed448",
         x=enc_b64url(x_bytes),
         d=enc_b64url(d_bytes),
         kid=kid,

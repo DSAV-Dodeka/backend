@@ -117,7 +117,10 @@ class OpaqueSetup(BaseModel):
 
 
 class JWK(BaseModel):
-    kty: Literal["okp", "oct"]
+    """Parameters are as standardized in the IANA JOSE registry (https://www.iana.org/assignments/jose/jose.xhtml)
+    """
+
+    kty: Literal["OKP", "oct"]
     use: Literal["sig", "enc"]
     alg: Literal["EdDSA", "A256GCM"]
     kid: str
@@ -125,6 +128,15 @@ class JWK(BaseModel):
     k: Optional[str] = None  # symmetric key base64url bytes
     x: Optional[str] = None  # public asymmetric key base64url bytes
     d: Optional[str] = None  # private asymmetric key base64url bytes
+
+
+class JWKPublicEdDSA(JWK):
+    kty: Literal["OKP"]
+    use: Literal["sig"]
+    alg: Literal["EdDSA"]
+    kid: str
+    crv: Literal["Ed448"]
+    x: str  # public asymmetric key base64url bytes
 
 
 class JWKSet(BaseModel):

@@ -4,7 +4,7 @@ from typing import Optional, Type
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from auth.core.model import IdInfoT, IdInfo as AuthIdInfo
+from auth.core.model import IdInfo as AuthIdInfo
 from store.db import (
     retrieve_by_unique,
     insert_return_col,
@@ -72,6 +72,8 @@ __all__ = [
     "insert_return_user_id",
     "gen_id_name",
     "new_user",
+    "UserOps",
+    "UserDataOps",
 ]
 
 

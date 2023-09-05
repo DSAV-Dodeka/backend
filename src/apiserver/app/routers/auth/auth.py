@@ -4,24 +4,19 @@ from fastapi import APIRouter, Response, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
-import auth.core.util
-import auth.data.authentication
 from apiserver import data
 from apiserver.app.error import ErrorResponse
 from apiserver.app.ops.header import Authorization
-from auth.modules.token.create import do_refresh, new_token, delete_refresh
+from auth.modules.token.create import delete_refresh
 from apiserver.app.routers.auth.validations import (
-    authorization_validate,
-    compare_auth_token_validate,
-    refresh_validate,
     TokenRequest,
     TokenResponse,
 )
 from apiserver.app.routers.helper import require_user
 from apiserver.data import Source
-from store.error import NoDataError
+from auth.modules.token.process import process_token_request
 from apiserver.define import LOGGER_NAME, DEFINE
-from auth.core.error import RedirectError, AuthError, RefreshOperationError
+from auth.core.error import RedirectError, AuthError
 from auth.core.model import PasswordRequest, FinishLogin
 from auth.core.response import PasswordResponse
 from auth.modules.authorize import oauth_start, oauth_callback
@@ -126,91 +121,15 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
     response.headers["Pragma"] = "no-cache"
 
     dsrc: Source = request.state.dsrc
-    # We only allow requests meant to be sent from our front end
-    # This does not heighten security, only so other clients do not accidentally make requests here
-    if token_request.client_id != DEFINE.frontend_client_id:
-        reason = "Invalid client ID."
-        logger.debug(reason)
-        raise ErrorResponse(400, err_type="invalid_client", err_desc=reason)
 
-    token_type = "Bearer"
-
-    # Two available grant types, 'authorization_code' (after login) and 'refresh_token' (when logged in)
-    # The first requires a code provided by the OPAQUE login flow
-    if token_request.grant_type == "authorization_code":
-        logger.debug("authorization_code request")
-        # Validate if it contains everything necessary and get flow_user and auth_request
-        authorization_validate(token_request)
-
-        try:
-            flow_user = await auth.data.authentication.pop_flow_user(
-                dsrc.store, token_request.code
-            )
-        except NoDataError as e:
-            logger.debug(e.message)
-            reason = "Expired or missing auth code"
-            raise ErrorResponse(
-                400, err_type="invalid_grant", err_desc=reason, debug_key="empty_flow"
-            )
-
-        try:
-            auth_request = await data.trs.auth.get_auth_request(dsrc, flow_user.flow_id)
-        except NoDataError as e:
-            # TODO maybe check auth time just in case
-            logger.debug(e.message)
-            reason = "Expired or missing auth request"
-            raise ErrorResponse(400, err_type="invalid_grant", err_desc=reason)
-
-        # Validate if auth_request corresponds to token_request
-        compare_auth_token_validate(token_request, auth_request)
-
-        auth_time = flow_user.auth_time
-        id_nonce = auth_request.nonce
-        token_user_id = flow_user.user_id
-
-        token_scope = flow_user.scope
-        id_token, access, refresh, exp, returned_scope = await new_token(
-            dsrc, token_user_id, token_scope, auth_time, id_nonce
+    try:
+        token_response = await process_token_request(
+            dsrc.store, DEFINE, data.schema.SCHEMA, dsrc.key_state, token_request
         )
+    except AuthError as e:
+        raise ErrorResponse(400, err_type=e.err_type, err_desc=e.err_desc)
 
-    elif token_request.grant_type == "refresh_token":
-        logger.debug("refresh_token request")
-        refresh_validate(token_request)
-
-        old_refresh = token_request.refresh_token
-
-        try:
-            (
-                id_token,
-                access,
-                refresh,
-                exp,
-                returned_scope,
-                token_user_id,
-            ) = await do_refresh(dsrc, old_refresh)
-        except RefreshOperationError as e:
-            error_desc = "Invalid refresh_token!"
-            logger.debug(f"{str(e)}: {error_desc}")
-            raise ErrorResponse(
-                400, err_type="invalid_grant", err_desc="Invalid refresh_token!"
-            )
-
-    else:
-        reason = (
-            "Only 'refresh_token' and 'authorization_code' grant types are available."
-        )
-        logger.debug(f"{reason} Used: {token_request.grant_type}")
-        raise ErrorResponse(400, err_type="unsupported_grant_type", err_desc=reason)
-
-    logger.info(f"Token request granted for {token_user_id}")
-    return TokenResponse(
-        id_token=id_token,
-        access_token=access,
-        refresh_token=refresh,
-        token_type=token_type,
-        expires_in=exp,
-        scope=returned_scope,
-    )
+    return token_response
 
 
 @router.get("/oauth/ping/")

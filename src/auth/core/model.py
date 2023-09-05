@@ -1,4 +1,4 @@
-from typing import Optional, TypeVar
+from typing import Optional
 
 from pydantic import BaseModel
 
@@ -56,6 +56,7 @@ class CodeGrantRequest(BaseModel):
     code: str
     redirect_uri: str
     code_verifier: str
+    client_id: str
 
 
 class Tokens(BaseModel):
@@ -77,6 +78,8 @@ class TokenResponse(BaseModel):
 
 
 class KeyState(BaseModel):
+    """These are not the actual keys, just their IDs."""
+
     current_symmetric: str
     old_symmetric: str
     current_signing: str
@@ -84,9 +87,6 @@ class KeyState(BaseModel):
 
 class IdInfo(BaseModel):
     pass
-
-
-IdInfoT = TypeVar("IdInfoT", bound=IdInfo)
 
 
 class RefreshToken(BaseModel):

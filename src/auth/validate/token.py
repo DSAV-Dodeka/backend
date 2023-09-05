@@ -14,6 +14,7 @@ def authorization_validate(req: TokenRequest) -> CodeGrantRequest:
             redirect_uri=req.redirect_uri,
             code_verifier=req.code_verifier,
             code=req.code,
+            client_id=req.client_id,
         )
     except ValidationError as e:
         raise AuthError(

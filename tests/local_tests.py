@@ -195,7 +195,7 @@ async def test_fill_signedup():
             {
                 "kid": "2dadb3af386b4d9d",
                 "alg": "EdDSA",
-                "kty": "okp",
+                "kty": "OKP",
                 "crv": "Ed448",
                 "x": "f5538Oa3cLDNVLcsZI_SLwYSZuM6Vn_5rV5iVi7IcRqoAQ9Ne5w9Nhy9uPZGVzQeZz5T0xYrx4mA",
                 "d": "JXpGIitdCa1PqlbFPY50pIunS5AiTz0OCai92WRWfC4-82r74uk-pIqKbk1Wv11dkcEP8gnACbZy",

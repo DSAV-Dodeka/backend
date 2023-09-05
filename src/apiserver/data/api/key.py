@@ -15,7 +15,7 @@ from store.db import (
     insert,
 )
 from apiserver.lib.model.entities import JWKSRow
-from store.error import DataError
+from store.error import DataError, NoDataError
 
 MINIMUM_KEYS = 2
 
@@ -50,10 +50,14 @@ async def insert_jwk(conn: AsyncConnection, encrypted_jwk_set: str) -> int:
     return await insert(conn, JWK_TABLE, jwk_set_row)
 
 
-async def update_jwk(conn: AsyncConnection, encrypted_jwk_set: str) -> int:
-    return await update_column_by_unique(
+async def update_jwk(conn: AsyncConnection, encrypted_jwk_set: str):
+    cnt = await update_column_by_unique(
         conn, JWK_TABLE, JWK_VALUE, encrypted_jwk_set, "id", 1
     )
+    if cnt == 0:
+        raise NoDataError(
+            message="JWK Set missing when trying update.", key="missing_jwks_on_update"
+        )
 
 
 async def get_jwk(conn: AsyncConnection) -> str:

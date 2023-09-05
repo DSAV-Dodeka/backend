@@ -2,7 +2,7 @@ from typing import Protocol, Type
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from auth.core.model import IdInfo, IdInfoT
+from auth.core.model import IdInfo
 from auth.data.schemad.entities import User, UserData
 
 

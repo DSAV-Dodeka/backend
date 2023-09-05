@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-
 __all__ = ["Source", "get_kv", "get_conn"]
 
 from typing import AsyncIterator
@@ -8,24 +6,25 @@ from redis import Redis
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from apiserver.env import Config
+from auth.core.model import KeyState as AuthKeyState
 from store.conn import get_kv as st_get_kv, get_conn as st_get_conn
 from store import Store
 
 
-@dataclass
-class SourceState:
-    current_pem: str = ""
+class KeyState(AuthKeyState):
     current_symmetric: str = ""
+    old_symmetric: str = ""
+    current_signing: str = ""
 
 
 class Source:
     store: Store
     config: Config
-    state: SourceState
+    key_state: KeyState
 
     def __init__(self):
         self.store = Store()
-        self.state = SourceState()
+        self.key_state = KeyState()
 
 
 def get_kv(dsrc: Source) -> Redis:

@@ -1,7 +1,5 @@
-from typing import Type
-
 from auth.core.error import RefreshOperationError
-from auth.core.model import IdInfo, IdInfoT
+from auth.core.model import IdInfo
 from auth.data.schemad.entities import SavedRefreshToken
 from auth.data.schemad.ops import SchemaOps
 from store import Store

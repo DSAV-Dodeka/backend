@@ -6,7 +6,8 @@ from random import random
 from sqlalchemy import create_engine
 
 from apiserver.env import Config
-from apiserver.lib.model.entities import JWKSet, User, UserData
+from apiserver.lib.model.entities import JWKSet, User, UserData, JWKPublicEdDSA
+from auth.data.schemad.opaque import insert_opaque_row
 from auth.hazmat.structs import A256GCMKey
 from apiserver.lib.hazmat import keys
 from apiserver.lib.hazmat.keys import ed448_private_to_pem
@@ -87,7 +88,7 @@ async def initial_population(dsrc: Source, config: Config):
 
     utc_now = util.utc_timestamp()
 
-    reencrypted_key_set = encrypt_dict(runtime_key, jwk_set.model_dump())
+    reencrypted_key_set = encrypt_dict(runtime_key.private, jwk_set.model_dump())
     async with data.get_conn(dsrc) as conn:
         await data.key.insert_jwk(conn, reencrypted_key_set)
         await data.key.insert_key(conn, kid1, utc_now, "enc")
@@ -95,7 +96,7 @@ async def initial_population(dsrc: Source, config: Config):
         await data.key.insert_key(conn, kid3, utc_now, "sig")
 
         opaque_setup = keys.new_opaque_setup(0)
-        await data.opaquesetup.insert_opaque_row(conn, opaque_setup)
+        await insert_opaque_row(conn, opaque_setup)
 
     fake_record_pass = f"{util.random_time_hash_hex()}{util.random_time_hash_hex()}"
     fake_pw_file = keys.gen_pw_file(
@@ -167,10 +168,11 @@ async def load_keys(dsrc: Source, config: Config):
             pem_private_keys.append(pem_private_key)
             # The public keys we will store in raw format, we want to exclude the private key as we want to be able to
             # publish these keys
-            public_key_dict: dict = key.model_copy().model_dump(
-                exclude={"d"}, round_trip=True
+            # The 'x' are the public key bytes (as set by the JWK standard)
+            public_key = JWKPublicEdDSA(
+                alg=key.alg, kid=key.kid, kty=key.kty, use=key.use, crv=key.crv, x=key.x
             )
-            public_keys.append(public_key_dict)
+            public_keys.append(public_key)
         elif key.alg == "A256GCM":
             symmetric_key = A256GCMKey(kid=key.kid, symmetric=key.k)
             symmetric_keys.append(symmetric_key)
@@ -181,9 +183,10 @@ async def load_keys(dsrc: Source, config: Config):
     # Store in KV for quick access
     await data.trs.key.store_pem_keys(dsrc, pem_keys, pem_private_keys)
     await data.trs.key.store_symmetric_keys(dsrc, symmetric_keys)
+    # Currently, this is not actually used, but it could be used to publicize the public key
     await data.trs.key.store_jwks(dsrc, public_jwk_set)
     # We don't store these in the KV since that is an additional roundtrip that is not worth it
     # Consequently, they can only be refreshed at restart
-    dsrc.state.current_pem = new_pem_kid
-    dsrc.state.current_symmetric = new_symmetric_kid
-    dsrc.state.old_symmetric = old_symmetric_kid
+    dsrc.key_state.current_signing = f"{new_pem_kid}-pem-private"
+    dsrc.key_state.current_symmetric = new_symmetric_kid
+    dsrc.key_state.old_symmetric = old_symmetric_kid

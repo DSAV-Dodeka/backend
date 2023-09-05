@@ -37,6 +37,7 @@ async def process_token_request(
     # Two available grant types, 'authorization_code' (after login) and 'refresh_token' (when logged in)
     # The first requires a code provided by the OPAQUE login flow
     if token_request.grant_type == "authorization_code":
+        # THROWS AuthError
         code_grant_request = authorization_validate(token_request)
         # Verify authorization code
         tokens = await auth_code_grant(
@@ -79,7 +80,7 @@ async def auth_code_grant(
         flow_user = await data.authentication.pop_flow_user(
             store, code_grant_request.code
         )
-    except NoDataError as e:
+    except NoDataError:
         reason = "Expired or missing auth code"
         raise AuthError(
             err_type="invalid_grant", err_desc=reason, debug_key="empty_flow"
@@ -87,13 +88,13 @@ async def auth_code_grant(
 
     try:
         auth_request = await data.authorize.get_auth_request(store, flow_user.flow_id)
-    except NoDataError as e:
+    except NoDataError:
         # TODO maybe check auth time just in case
         reason = "Expired or missing auth request"
         raise AuthError(err_type="invalid_grant", err_desc=reason)
 
     # Validate if auth_request corresponds to token_request
-    # Throws AuthError if it does not correspond
+    # THROWS AuthError if it does not correspond
     compare_auth_token_validate(code_grant_request, auth_request)
 
     auth_time = flow_user.auth_time
@@ -111,7 +112,7 @@ async def request_token_grant(
 ) -> Tokens:
     try:
         return await do_refresh(store, ops, key_state, old_refresh)
-    except RefreshOperationError as e:
+    except RefreshOperationError:
         error_desc = "Invalid refresh_token!"
         # logger.debug(f"{str(e)}: {error_desc}")
-        raise AuthError(err_type="invalid_grant", err_desc="Invalid refresh_token!")
+        raise AuthError(err_type="invalid_grant", err_desc=error_desc)

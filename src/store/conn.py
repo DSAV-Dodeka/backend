@@ -1,8 +1,8 @@
-from typing import AsyncIterator, Optional
-from contextlib import asynccontextmanager, contextmanager
+from typing import AsyncIterator
+from contextlib import asynccontextmanager
 
 from redis.asyncio import Redis
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncConnection, AsyncTransaction
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncConnection
 
 from store import Store, StoreError
 
@@ -43,18 +43,18 @@ async def get_conn(store: Store) -> AsyncIterator[AsyncConnection]:
             await store.session.commit()
 
 
-@contextmanager
-def store_session(store: Store):
+@asynccontextmanager
+async def store_session(store: Store):
     """Use this to reuse a connection across multiple functions. Ensure it is only used within one request.
     Ensure that all consumers commit their own transactions."""
     # It opens a connection
-    conn = _eng_is_init(store).connect()
+    conn = await _eng_is_init(store).connect().start()
+    store.session = conn
     try:
-        store.session = conn
         # `yield` means that when this is called `with store_session(store) as session`, session is what comes after
         # `yield`
         yield store
     finally:
         # `finally` is called after the `with` block ends
-        store.session.close()
+        await store.session.close()
         store.session = None

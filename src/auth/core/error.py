@@ -75,3 +75,8 @@ class InvalidRefresh(Exception):
     """Invalid refresh token."""
 
     pass
+
+
+class UnexpectedError(Exception):
+    def __int__(self):
+        pass

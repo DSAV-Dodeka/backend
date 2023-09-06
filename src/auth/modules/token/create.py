@@ -131,9 +131,7 @@ async def delete_refresh(
     symmetric_key, old_symmetric_key, signing_key = await get_keys(store, key_state)
     try:
         refresh = decrypt_old_refresh(symmetric_key, old_symmetric_key, refresh_token)
-        print(refresh)
     except InvalidRefresh:
-        print("invalid")
         return None
 
     # Do not check rowcount, which would be zero if no token is deleted

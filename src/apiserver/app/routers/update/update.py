@@ -15,7 +15,7 @@ from apiserver.app.ops.mail import (
 )
 from apiserver.app.routers.helper import authentication
 from apiserver.app.ops.header import Authorization
-from apiserver.data import Source
+from apiserver.data import Source, ops
 from auth.modules.update import change_password
 from store.error import DataError, NoDataError
 from apiserver.define import LOGGER_NAME, DEFINE
@@ -87,7 +87,7 @@ async def update_password_start(update_pass: UpdatePasswordRequest, request: Req
         )
 
     async with data.get_conn(dsrc) as conn:
-        u = await data.user.get_user_by_email(conn, update_pass.email)
+        u = await ops.user.get_user_by_email(conn, update_pass.email)
 
     return await send_register_start(dsrc.store, u.user_id, update_pass.client_request)
 
@@ -135,7 +135,7 @@ async def update_email(
 
     try:
         async with data.get_conn(dsrc) as conn:
-            u = await data.user.get_user_by_id(conn, user_id)
+            u = await ops.user.get_user_by_id(conn, user_id)
     except NoDataError:
         raise ErrorResponse(
             400, "bad_update", "User no longer exists.", "update_user_empty"
@@ -225,7 +225,7 @@ async def delete_account(
 
     try:
         async with data.get_conn(dsrc) as conn:
-            ud = await data.ud.get_userdata_by_id(conn, user_id)
+            ud = await ops.userdata.get_userdata_by_id(conn, user_id)
     except NoDataError:
         raise ErrorResponse(
             400, "bad_update", "User no longer exists.", "update_user_empty"

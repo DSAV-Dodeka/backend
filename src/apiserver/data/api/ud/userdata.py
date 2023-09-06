@@ -95,11 +95,6 @@ class UserDataOps(AuthUserDataOps):
         return IdInfo
 
 
-async def get_userdata_by_id(conn: AsyncConnection, user_id: str) -> UserData:
-    userdata_row = await retrieve_by_unique(conn, USERDATA_TABLE, USER_ID, user_id)
-    return parse_userdata(userdata_row)
-
-
 async def get_userdata_by_email(conn: AsyncConnection, email: str) -> UserData:
     userdata_row = await retrieve_by_unique(conn, USERDATA_TABLE, UD_EMAIL, email)
     return parse_userdata(userdata_row)

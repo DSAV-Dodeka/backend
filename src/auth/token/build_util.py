@@ -24,6 +24,6 @@ def decode_refresh(rt: SavedRefreshToken, id_info_model: Type[IdInfo]):
     saved_access = SavedAccessToken.model_validate(saved_access_dict)
     saved_id_token_dict = dec_dict(dec_b64url(rt.id_token_value))
     saved_id_token = IdToken.model_validate(saved_id_token_dict)
-    id_info = IdInfo.model_validate(id_info_model)
+    id_info = id_info_model.model_validate(saved_id_token_dict)
 
     return saved_access, saved_id_token, id_info

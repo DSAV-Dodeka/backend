@@ -5,4 +5,12 @@ from auth.data import token
 from auth.data import keys
 from auth.data import update
 
-__all__ = ["authorize", "authentication", "register", "token", "keys", "update"]
+__all__ = [
+    "authorize",
+    "authentication",
+    "register",
+    "token",
+    "keys",
+    "update",
+    "opaque",
+]

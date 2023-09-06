@@ -35,10 +35,8 @@ from apiserver.lib.utilities import usp_hex
 from apiserver.data.api.ud.userdata import new_userdata, insert_userdata
 
 __all__ = [
-    "get_user_by_id",
     "user_exists",
     "user_exists",
-    "get_user_by_email",
     "insert_user",
     "insert_return_user_id",
     "gen_id_name",
@@ -75,16 +73,6 @@ class UserOps(AuthUserOps):
         return await update_column_by_unique(
             conn, USER_TABLE, PASSWORD, password_file, USER_ID, user_id
         )
-
-
-async def get_user_by_id(conn: AsyncConnection, user_id: str) -> User:
-    user_row = await retrieve_by_unique(conn, USER_TABLE, USER_ID, user_id)
-    return parse_user(user_row)
-
-
-async def get_user_by_email(conn: AsyncConnection, user_email: str) -> User:
-    user_row = await retrieve_by_unique(conn, USER_TABLE, USER_EMAIL, user_email)
-    return parse_user(user_row)
 
 
 async def insert_user(conn: AsyncConnection, user: User):

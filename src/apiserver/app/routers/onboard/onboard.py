@@ -63,7 +63,15 @@ async def init_signup(
     confirm_id = random_time_hash_hex()
 
     await data.trs.reg.store_email_confirmation(
-        dsrc, confirm_id, Signup.model_validate(signup), email_expiration
+        dsrc,
+        confirm_id,
+        Signup(
+            email=signup.email,
+            phone=signup.phone,
+            firstname=signup.firstname,
+            lastname=signup.lastname,
+        ),
+        email_expiration,
     )
     config: Config = request.state.config
 
@@ -227,7 +235,7 @@ async def start_register(register_start: RegisterRequest, request: Request):
 
     try:
         async with data.get_conn(dsrc) as conn:
-            u = await data.user.get_user_by_id(conn, ud.user_id)
+            u = await ops.user.get_user_by_id(conn, ud.user_id)
     except DataError as e:
         logger.debug(e)
         reason = "No registration for that user"

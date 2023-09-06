@@ -5,8 +5,13 @@ from apiserver.data.api import signedup
 from apiserver.data.api import refreshtoken
 from apiserver.data.api import file
 from apiserver.data.api import classifications
+from apiserver.data.api import scope
+from apiserver.data.api.ud import userdata as ud
+from apiserver.data.api.ud import birthday
 from apiserver.data import schema
 from apiserver.data import trs
+
+ops = schema.OPS
 
 __all__ = [
     "user",
@@ -20,4 +25,8 @@ __all__ = [
     "get_kv",
     "get_conn",
     "schema",
+    "scope",
+    "ud",
+    "birthday",
+    "ops",
 ]

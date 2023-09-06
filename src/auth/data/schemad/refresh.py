@@ -19,7 +19,7 @@ class RefreshOps(Protocol):
         ...
 
     @classmethod
-    async def delete_family(cls, conn: AsyncConnection, family_id: str):
+    async def delete_family(cls, conn: AsyncConnection, family_id: str) -> int:
         ...
 
     @classmethod

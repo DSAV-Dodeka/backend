@@ -8,7 +8,6 @@ from anyio import sleep
 from fastapi import APIRouter, BackgroundTasks, Request
 from pydantic import BaseModel
 
-import auth.core.util
 from apiserver import data
 from apiserver.define import (
     LOGGER_NAME,
@@ -23,7 +22,8 @@ from apiserver.app.ops.mail import (
     send_register_email,
     mail_from_config,
 )
-from apiserver.data import Source
+from apiserver.data import Source, ops
+from auth.core.util import enc_b64url, random_time_hash_hex
 from store.error import DataError, NoDataError
 from apiserver.env import Config
 from apiserver.lib.model.entities import SignedUp, Signup
@@ -60,7 +60,7 @@ async def init_signup(
     do_send_email = not u_ex and not su_ex
     logger.debug(f"{signup.email} /onboard/signup - do_send_email {do_send_email}")
 
-    confirm_id = auth.core.util.random_time_hash_hex()
+    confirm_id = random_time_hash_hex()
 
     await data.trs.reg.store_email_confirmation(
         dsrc, confirm_id, Signup.model_validate(signup), email_expiration
@@ -170,7 +170,7 @@ async def confirm_join(
 
     # Success here means removing any existing records in signedup and also the KV relating to that email
 
-    register_id = auth.core.util.random_time_hash_hex(short=True)
+    register_id = random_time_hash_hex(short=True)
     async with data.get_conn(dsrc) as conn:
         await data.user.new_user(
             conn,
@@ -190,7 +190,7 @@ async def confirm_join(
         "email": signed_up.email,
         "phone": signed_up.phone,
     }
-    info_str = auth.core.util.enc_b64url(json.dumps(info).encode("utf-8"))
+    info_str = enc_b64url(json.dumps(info).encode("utf-8"))
     params = {"info": info_str}
     registration_url = f"{DEFINE.credentials_url}register/?{urlencode(params)}"
 
@@ -212,7 +212,7 @@ async def start_register(register_start: RegisterRequest, request: Request):
     dsrc: Source = request.state.dsrc
     try:
         async with data.get_conn(dsrc) as conn:
-            ud = await data.user.get_userdata_by_register_id(
+            ud = await data.ud.get_userdata_by_register_id(
                 conn, register_start.register_id
             )
     except NoDataError as e:
@@ -308,7 +308,7 @@ async def finish_register(register_finish: FinishRequest, request: Request):
 
     try:
         async with data.get_conn(dsrc) as conn:
-            ud = await data.user.get_userdata_by_register_id(
+            ud = await data.ud.get_userdata_by_register_id(
                 conn, register_finish.register_id
             )
     except NoDataError as e:
@@ -341,7 +341,7 @@ async def finish_register(register_finish: FinishRequest, request: Request):
             debug_key="bad_registration",
         )
 
-    new_userdata = data.user.finished_userdata(
+    new_userdata = data.ud.finished_userdata(
         ud,
         register_finish.callname,
         register_finish.eduinstitution,
@@ -350,8 +350,8 @@ async def finish_register(register_finish: FinishRequest, request: Request):
     )
 
     async with data.get_conn(dsrc) as conn:
-        await data.user.update_password_file(conn, saved_state.user_id, password_file)
-        await data.user.upsert_userdata(conn, new_userdata)
+        await ops.user.update_password_file(conn, saved_state.user_id, password_file)
+        await data.ud.upsert_userdata(conn, new_userdata)
         await data.signedup.delete_signedup(conn, ud.email)
 
     # send welcome email

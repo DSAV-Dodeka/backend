@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import ORJSONResponse
 
+import apiserver.data.api.ud.birthday
 from apiserver import data
 from apiserver.lib.model.entities import BirthdayData
 from apiserver.app.error import ErrorResponse
@@ -18,7 +19,7 @@ async def get_user_birthdays(request: Request, authorization: Authorization):
     await require_member(authorization, dsrc)
 
     async with data.get_conn(dsrc) as conn:
-        birthday_data = await data.user.get_all_birthdays(conn)
+        birthday_data = await apiserver.data.api.ud.birthday.get_all_birthdays(conn)
     return ORJSONResponse([bd.model_dump() for bd in birthday_data])
 
 

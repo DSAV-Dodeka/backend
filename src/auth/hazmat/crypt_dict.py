@@ -12,7 +12,7 @@ def encrypt_dict(aesgcm: AESGCM, dct: dict[str, Any]) -> str:
     # Regenerated every time
     dict_data = enc_dict(dct)
     dict_nonce = secrets.token_bytes(12)
-    # Cryptography ensures a 16 byte / 128 bit authentication tag is appended
+    # The pyca/cryptography library ensures a 16 byte / 128 bit authentication tag is appended
     encrypted = aesgcm.encrypt(dict_nonce, dict_data, None)
     refresh_bytes = dict_nonce + encrypted
     return enc_b64url(refresh_bytes)

@@ -1,4 +1,4 @@
-from auth.core.error import RefreshOperationError
+from auth.core.error import RefreshOperationError, AuthError
 from auth.core.model import IdInfo
 from auth.data.schemad.entities import SavedRefreshToken
 from auth.data.schemad.ops import SchemaOps
@@ -9,7 +9,10 @@ from store.error import NoDataError
 
 async def get_id_info(store: Store, ops: SchemaOps, user_id: str) -> IdInfo:
     async with get_conn(store) as conn:
-        ud = await ops.userdata.get_userdata_by_id(conn, user_id)
+        try:
+            ud = await ops.userdata.get_userdata_by_id(conn, user_id)
+        except NoDataError:
+            raise AuthError("invalid_grant", "User for grant no longer exists.")
 
     return ops.userdata.id_info_from_ud(ud)
 
@@ -23,9 +26,16 @@ async def add_refresh_token(
     return refresh_id
 
 
-async def delete_refresh_token(store: Store, ops: SchemaOps, family_id: str):
+async def delete_refresh_token(store: Store, ops: SchemaOps, family_id: str) -> int:
     async with get_conn(store) as conn:
-        await ops.refresh.delete_family(conn, family_id)
+        return await ops.refresh.delete_family(conn, family_id)
+
+
+async def delete_refresh_token_by_user(
+    store: Store, ops: SchemaOps, user_id: str
+) -> int:
+    async with get_conn(store) as conn:
+        return await ops.refresh.delete_by_user_id(conn, user_id)
 
 
 async def get_saved_refresh(

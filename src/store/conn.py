@@ -32,7 +32,7 @@ def get_kv(store: Store) -> Redis:
 @asynccontextmanager
 async def get_conn(store: Store) -> AsyncIterator[AsyncConnection]:
     if store.session is None:
-        # If there is no store session, just open a connection as normally, inside a with block
+        # If there is no store session, just open a transaction as normally, inside a with block
         async with _begin_conn(_eng_is_init(store)) as conn:
             yield conn
     else:

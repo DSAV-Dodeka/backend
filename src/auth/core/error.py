@@ -1,6 +1,8 @@
 from typing import Optional, Literal, Union
 from yarl import URL
 
+from store.error import DataError
+
 ErrorCode = Union[
     # All responses
     Literal["invalid_request"],
@@ -77,6 +79,19 @@ class InvalidRefresh(Exception):
     pass
 
 
+ErrorDomain = Literal["data", "app"]
+
+
 class UnexpectedError(Exception):
-    def __int__(self):
-        pass
+    domain: ErrorDomain
+    key: str
+    desc: str
+    """An error that generally should not occur if the database and application are setup correctly."""
+
+
+class UnexpectedDataError(Exception):
+    def __init__(self, key: str, desc: str, e: DataError):
+        self.domain = "data"
+        self.key = key
+        self.desc = desc
+        self.int_err = e

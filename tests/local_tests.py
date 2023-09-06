@@ -8,10 +8,11 @@ from faker import Faker
 from httpx import AsyncClient
 from httpx import codes
 
+import apiserver.data.api.ud.userdata
 import apiserver.lib.utilities as util
 import auth.core.util
 from apiserver import data
-from apiserver.data.api.user import new_userdata
+from apiserver.data.api.ud.userdata import new_userdata
 from auth.token.build import create_tokens, finish_tokens
 from auth.data.keys import get_keys
 from apiserver.data import Source
@@ -149,7 +150,7 @@ async def test_generate_dummies(local_dsrc: Source, faker: Faker):
             cl_fin = opq.register_client_finish(cl_state, admin_password, serv_resp)
             pw_file = opq.register_finish(cl_fin)
             birthdate = faker.date()
-            new_ud = data.user.finished_userdata(
+            new_ud = data.ud.finished_userdata(
                 userdata,
                 callname=fname,
                 eduinstitution="TU Delft",
@@ -158,7 +159,7 @@ async def test_generate_dummies(local_dsrc: Source, faker: Faker):
             )
 
             await data.user.update_password_file(conn, uid, pw_file)
-            await data.user.upsert_userdata(conn, new_ud)
+            await data.ud.upsert_userdata(conn, new_ud)
             await data.signedup.delete_signedup(conn, email)
 
 

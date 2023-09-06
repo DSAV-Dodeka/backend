@@ -76,11 +76,13 @@ async def new_token(
     auth_time: int,
     id_nonce: str,
 ):
+    # THROWS UnexpectedError if keys are not present
     symmetric_key, _, signing_key = await get_keys(store, key_state)
 
     utc_now = utc_timestamp()
 
     async with store_session(store) as session:
+        # THROWS AuthError if user does not exist
         id_info = await data.token.get_id_info(session, ops, user_id)
 
         access_token_data, id_token_data, access_scope, refresh_save = create_tokens(
@@ -96,6 +98,7 @@ async def new_token(
             refresh_exp,
         )
 
+        # Stores the refresh token in the database
         refresh_id = await data.token.add_refresh_token(store, ops, refresh_save)
 
     refresh_token, access_token, id_token = finish_tokens(
@@ -133,4 +136,5 @@ async def delete_refresh(
         print("invalid")
         return None
 
+    # Do not check rowcount, which would be zero if no token is deleted
     await data.token.delete_refresh_token(store, ops, refresh.family_id)

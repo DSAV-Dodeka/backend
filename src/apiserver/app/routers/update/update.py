@@ -16,6 +16,7 @@ from apiserver.app.ops.mail import (
 from apiserver.app.routers.helper import authentication
 from apiserver.app.ops.header import Authorization
 from apiserver.data import Source
+from auth.modules.update import change_password
 from store.error import DataError, NoDataError
 from apiserver.define import LOGGER_NAME, DEFINE
 from apiserver.env import Config
@@ -41,7 +42,7 @@ async def request_password_change(
     """Initiated from authpage. Sends out e-mail with reset link."""
     dsrc: Source = request.state.dsrc
     async with data.get_conn(dsrc) as conn:
-        ud = await data.user.get_userdata_by_email(conn, change_pass.email)
+        ud = await data.ud.get_userdata_by_email(conn, change_pass.email)
     logger.debug(f"Reset requested - is_registered={ud.registered}")
     flow_id = auth.core.util.random_time_hash_hex()
     params = {"reset_id": flow_id, "email": change_pass.email}
@@ -111,10 +112,9 @@ async def update_password_finish(update_finish: UpdatePasswordFinish, request: R
 
     password_file = opq.register_finish(update_finish.client_request)
 
-    async with data.get_conn(dsrc) as conn:
-        await data.user.update_password_file(conn, saved_state.user_id, password_file)
-
-        await data.refreshtoken.delete_by_user_id(conn, saved_state.user_id)
+    await change_password(
+        dsrc.store, data.schema.OPS, password_file, saved_state.user_id
+    )
 
 
 class UpdateEmail(BaseModel):
@@ -192,7 +192,7 @@ async def update_email_check(update_check: UpdateEmailCheck, request: Request):
     user_id = stored_email.user_id
 
     async with data.get_conn(dsrc) as conn:
-        await data.refreshtoken.delete_by_user_id(conn, flow_user.user_id)
+        await data.schema.OPS.refresh.delete_by_user_id(conn, flow_user.user_id)
 
         count_ud = await data.user.update_user_email(
             conn, user_id, stored_email.new_email
@@ -225,7 +225,7 @@ async def delete_account(
 
     try:
         async with data.get_conn(dsrc) as conn:
-            ud = await data.user.get_userdata_by_id(conn, user_id)
+            ud = await data.ud.get_userdata_by_id(conn, user_id)
     except NoDataError:
         raise ErrorResponse(
             400, "bad_update", "User no longer exists.", "update_user_empty"

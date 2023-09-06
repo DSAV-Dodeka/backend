@@ -15,7 +15,7 @@ async def check_password(
     dsrc: Source, auth_code: str, authorization: str = None
 ) -> FlowUser:
     try:
-        flow_user = await auth.data.authentication.pop_flow_user(dsrc, auth_code)
+        flow_user = await auth.data.authentication.pop_flow_user(dsrc.store, auth_code)
     except NoDataError as e:
         logger.debug(e.message)
         reason = "Expired or missing auth code"

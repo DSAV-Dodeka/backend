@@ -8,16 +8,12 @@ from apiserver import data
 from apiserver.app.error import ErrorResponse
 from apiserver.app.ops.header import Authorization
 from auth.modules.token.create import delete_refresh
-from apiserver.app.routers.auth.validations import (
-    TokenRequest,
-    TokenResponse,
-)
 from apiserver.app.routers.helper import require_user
 from apiserver.data import Source
 from auth.modules.token.process import process_token_request
 from apiserver.define import LOGGER_NAME, DEFINE
 from auth.core.error import RedirectError, AuthError
-from auth.core.model import PasswordRequest, FinishLogin
+from auth.core.model import PasswordRequest, FinishLogin, TokenResponse, TokenRequest
 from auth.core.response import PasswordResponse
 from auth.modules.authorize import oauth_start, oauth_callback
 from auth.modules.login import (
@@ -124,7 +120,7 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
 
     try:
         token_response = await process_token_request(
-            dsrc.store, DEFINE, data.schema.SCHEMA, dsrc.key_state, token_request
+            dsrc.store, DEFINE, data.schema.OPS, dsrc.key_state, token_request
         )
     except AuthError as e:
         raise ErrorResponse(400, err_type=e.err_type, err_desc=e.err_desc)
@@ -146,4 +142,6 @@ class LogoutRequest(BaseModel):
 @router.post("/logout/delete/")
 async def delete_token(logout: LogoutRequest, request: Request):
     dsrc: Source = request.state.dsrc
-    await delete_refresh(dsrc, logout.refresh_token)
+    await delete_refresh(
+        dsrc.store, data.schema.OPS, dsrc.key_state, logout.refresh_token
+    )

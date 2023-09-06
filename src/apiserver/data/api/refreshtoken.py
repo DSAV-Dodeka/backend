@@ -36,7 +36,7 @@ class RefreshOps(AuthRefreshOps):
         return parse_refresh(refresh_row)
 
     @classmethod
-    async def delete_family(cls, conn: AsyncConnection, family_id: str):
+    async def delete_family(cls, conn: AsyncConnection, family_id: str) -> int:
         return await delete_by_column(conn, REFRESH_TOKEN_TABLE, FAMILY_ID, family_id)
 
     @classmethod

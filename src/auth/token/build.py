@@ -75,6 +75,8 @@ def create_tokens(
     backend_client_id: str,
     refresh_exp: int,
 ):
+    """This function simply builds the required structures and encodes information for the refresh token.
+    """
     # Build new tokens
     access_token_data, id_token_core_data = id_access_tokens(
         sub=user_id,
@@ -122,13 +124,20 @@ def finish_tokens(
     *,
     nonce: str,
 ):
+    """Encrypts and signs the tokens and adds the time information to them."""
     refresh = RefreshToken(id=refresh_id, family_id=refresh_save.family_id, nonce=nonce)
+    # This function performs encryption of the refresh token
+    # ! Calls cryptographic primitives
     refresh_token = encrypt_refresh(refresh_key, refresh)
 
+    # This function signs the access token using the signing key
+    # ! Calls the PyJWT library
     access_token = finish_encode_token(
         access_token_data.model_dump(), utc_now, access_exp, signing_key
     )
     id_token_dict = add_info_to_id(id_token_data, id_info)
+    # This function signs the access token using the signing key
+    # ! Calls the PyJWT library
     id_token = finish_encode_token(id_token_dict, utc_now, id_exp, signing_key)
 
     return refresh_token, access_token, id_token
@@ -149,4 +158,6 @@ def id_access_tokens(sub, iss, aud_access, aud_id, scope, auth_time, id_nonce):
 
 
 def add_info_to_id(id_token: IdToken, id_info: IdInfo):
+    """This function is necessary because IdInfo is determined at the application-level, so we do not know exactly
+    which model."""
     return id_token.model_dump() | id_info.model_dump()

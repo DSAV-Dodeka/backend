@@ -135,7 +135,7 @@ async def initial_population(dsrc: Source, config: Config):
 
     async with data.get_conn(dsrc) as conn:
         await data.user.insert_user(conn, admin_user)
-        await data.user.insert_userdata(conn, admin_userdata)
+        await data.ud.insert_userdata(conn, admin_userdata)
         user_id = await data.user.insert_return_user_id(conn, fake_user)
         assert user_id == "1_fakerecord"
 

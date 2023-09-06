@@ -6,6 +6,8 @@ from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncConnection
 
+import apiserver.data.api.scope
+import apiserver.data.api.ud.userdata
 from apiserver.define import LOGGER_NAME
 from apiserver.app.error import ErrorResponse
 from apiserver.data.api.classifications import check_user_in_class
@@ -26,7 +28,7 @@ async def get_users(request: Request, authorization: Authorization):
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
     async with data.get_conn(dsrc) as conn:
-        user_data = await data.user.get_all_userdata(conn)
+        user_data = await data.ud.get_all_userdata(conn)
     return ORJSONResponse([ud.model_dump() for ud in user_data])
 
 
@@ -35,7 +37,7 @@ async def get_users_scopes(request: Request, authorization: Authorization):
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
     async with data.get_conn(dsrc) as conn:
-        user_scope_data = await data.user.get_all_users_scopes(conn)
+        user_scope_data = await apiserver.data.api.scope.get_all_users_scopes(conn)
     return ORJSONResponse([usd.model_dump() for usd in user_scope_data])
 
 
@@ -65,7 +67,7 @@ async def add_scope(
     async with data.get_conn(dsrc) as conn:
         conn: AsyncConnection = conn
         try:
-            await data.user.add_scope(conn, scope_request.user_id, scope_request.scope)
+            await data.scope.add_scope(conn, scope_request.user_id, scope_request.scope)
         except NoDataError as e:
             logger.debug(e.message)
             raise ErrorResponse(
@@ -115,7 +117,7 @@ async def remove_scope(
     async with data.get_conn(dsrc) as conn:
         conn: AsyncConnection = conn
         try:
-            await data.user.remove_scope(
+            await data.scope.remove_scope(
                 conn, scope_request.user_id, scope_request.scope
             )
         except NoDataError as e:
@@ -158,7 +160,7 @@ async def get_user_names(request: Request, authorization: Authorization):
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
     async with data.get_conn(dsrc) as conn:
-        user_names = await data.user.get_all_user_names(conn)
+        user_names = await data.ud.get_all_usernames(conn)
     return ORJSONResponse([u_n.model_dump() for u_n in user_names])
 
 

@@ -40,6 +40,7 @@ async def process_token_request(
         # THROWS AuthError
         code_grant_request = authorization_validate(token_request)
         # Verify authorization code
+        # THROWS AuthError, UnexpectedError
         tokens = await auth_code_grant(
             store, define, ops, key_state, code_grant_request
         )

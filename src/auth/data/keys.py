@@ -1,3 +1,4 @@
+from auth.core.error import UnexpectedDataError
 from store import Store
 from store.conn import get_kv
 from store.kv import get_json
@@ -30,13 +31,20 @@ async def get_keys(
     old_symmetric_kid = key_state.old_symmetric
     signing_kid = key_state.current_signing
 
-    # Symmetric key used to verify and encrypt/decrypt refresh tokens
-    symmetric_key_data = await get_symmetric_key(store, symmetric_kid)
+    # These can throw NoDataError if no key is found
+    try:
+        # Symmetric key used to verify and encrypt/decrypt refresh tokens
+        symmetric_key_data = await get_symmetric_key(store, symmetric_kid)
+        old_symmetric_key_data = await get_symmetric_key(store, old_symmetric_kid)
+        # Asymmetric private key used for signing access and ID tokens
+        # A public key is then used to verify them
+        signing_key = await get_pem_private_key(store, signing_kid)
+    except NoDataError as e:
+        raise UnexpectedDataError(
+            "key_not_stored", "One of the token keys was not stored in KV.", e
+        )
+
     symmetric_key = aes_from_symmetric(symmetric_key_data.symmetric)
-    old_symmetric_key_data = await get_symmetric_key(store, old_symmetric_kid)
     old_symmetric_key = aes_from_symmetric(old_symmetric_key_data.symmetric)
-    # Asymmetric private key used for signing access and ID tokens
-    # A public key is then used to verify them
-    signing_key = await get_pem_private_key(store, signing_kid)
 
     return symmetric_key, old_symmetric_key, signing_key

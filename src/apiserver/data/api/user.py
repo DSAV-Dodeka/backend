@@ -1,4 +1,3 @@
-import re
 from datetime import date
 from typing import Optional
 
@@ -31,7 +30,7 @@ from apiserver.lib.model.entities import (
     SignedUp,
     UserID,
 )
-from apiserver.lib.utilities import usp_hex
+from apiserver.lib.utilities import gen_id_name
 from apiserver.data.api.ud.userdata import new_userdata, insert_userdata
 
 __all__ = [
@@ -39,7 +38,6 @@ __all__ = [
     "user_exists",
     "insert_user",
     "insert_return_user_id",
-    "gen_id_name",
     "new_user",
     "UserOps",
 ]
@@ -90,15 +88,6 @@ async def insert_return_user_id(conn: AsyncConnection, user: User) -> str:
     except DbError as e:
         raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
     return user_id
-
-
-whitespace_pattern = re.compile(r"\s+")
-
-
-def gen_id_name(first_name: str, last_name: str):
-    id_name_str = f"{first_name}_{last_name}".lower()
-    id_name_str = re.sub(whitespace_pattern, "_", id_name_str)
-    return usp_hex(id_name_str)
 
 
 async def new_user(

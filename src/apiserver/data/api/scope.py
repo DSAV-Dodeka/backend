@@ -31,7 +31,7 @@ def parse_scope_data(scope_dict: Optional[dict]) -> ScopeData:
 
 
 def ignore_admin_member(scope: str):
-    if scope == "admin" or scope == "member":
+    if scope in {"admin", "member"}:
         return ""
     else:
         return scope

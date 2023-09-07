@@ -118,7 +118,9 @@ async def get_string(kv: Redis, key: str) -> str:
 class KvError(Exception):
     """Exception that represents special internal errors."""
 
-    def __init__(self, err_desc: str, err_internal: str, debug_key: str = None):
+    def __init__(
+        self, err_desc: str, err_internal: str, debug_key: Optional[str] = None
+    ):
         self.err_desc = err_desc
         self.err_internal = err_internal
         self.debug_key = debug_key

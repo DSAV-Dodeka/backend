@@ -28,7 +28,7 @@ async def get_user_rankings(rank_type, request: Request, authorization: Authoriz
     dsrc: Source = request.state.dsrc
     await require_member(authorization, dsrc)
 
-    if rank_type != "training" and rank_type != "points" and rank_type != "pr":
+    if rank_type not in {"training", "points", "pr"}:
         reason = f"Ranking {rank_type} is unknown!"
         raise ErrorResponse(
             status_code=400,
@@ -52,7 +52,7 @@ async def get_classification(rank_type, request: Request, authorization: Authori
     dsrc: Source = request.state.dsrc
     await require_member(authorization, dsrc)
 
-    if rank_type != "training" and rank_type != "points":
+    if rank_type not in {"training", "points"}:
         reason = f"Ranking {rank_type} is unknown!"
         raise ErrorResponse(
             status_code=400,

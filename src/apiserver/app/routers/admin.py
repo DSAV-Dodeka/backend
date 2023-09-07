@@ -4,7 +4,6 @@ import logging
 from fastapi import APIRouter, Request
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 import apiserver.data.api.scope
 import apiserver.data.api.ud.userdata
@@ -65,7 +64,6 @@ async def add_scope(
         )
 
     async with data.get_conn(dsrc) as conn:
-        conn: AsyncConnection = conn
         try:
             await data.scope.add_scope(conn, scope_request.user_id, scope_request.scope)
         except NoDataError as e:
@@ -115,7 +113,6 @@ async def remove_scope(
         )
 
     async with data.get_conn(dsrc) as conn:
-        conn: AsyncConnection = conn
         try:
             await data.scope.remove_scope(
                 conn, scope_request.user_id, scope_request.scope

@@ -119,3 +119,12 @@ def strip_edge(string: str):
     # ^ start of string
     # $ end of string
     return re.sub(f"^{match_string}|{match_string}$", "", string)
+
+
+def gen_id_name(first_name: str, last_name: str):
+    id_name_str = f"{first_name}_{last_name}".lower()
+    id_name_str = re.sub(whitespace_pattern, "_", id_name_str)
+    return usp_hex(id_name_str)
+
+
+whitespace_pattern = re.compile(r"\s+")

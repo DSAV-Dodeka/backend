@@ -306,7 +306,7 @@ async def finish_register(register_finish: FinishRequest, request: Request):
     try:
         password_file = opq.register_finish(register_finish.client_request)
     except ValueError as e:
-        logger.debug(f"OPAQUE failure from client OPAQUE message: {str(e)}")
+        logger.debug(f"OPAQUE failure from client OPAQUE message: {e!s}")
         raise ErrorResponse(
             400,
             err_type="invalid_registration",

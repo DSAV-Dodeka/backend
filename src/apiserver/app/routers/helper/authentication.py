@@ -12,7 +12,7 @@ logger = logging.getLogger(LOGGER_NAME)
 
 
 async def check_password(
-    dsrc: Source, auth_code: str, authorization: str = None
+    dsrc: Source, auth_code: str, authorization: str | None = None
 ) -> FlowUser:
     try:
         flow_user = await auth.data.authentication.pop_flow_user(dsrc.store, auth_code)

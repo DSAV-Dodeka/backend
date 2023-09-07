@@ -18,7 +18,7 @@ from apiserver.define import (
     id_exp,
 )
 from apiserver.app_def import State, safe_startup, create_app
-from apiserver.data.api.user import gen_id_name
+from apiserver.lib.utilities import gen_id_name
 from apiserver.data import Source
 from apiserver.data import ops
 
@@ -568,119 +568,6 @@ def test_finish_register(test_client, mocker: MockerFixture):
     # example password file
     # DnuCs40tbbcosYBGDyyMrrxNcq-wkzrjZTa65_pJ_QWONK6yr3F4DOLphiBzfmBcTO_icmKmbQps-iBcMiF5CQGnS6qC60tEmF-ffv9Thofssx_y5dixQrch3rCHg_9kMloGndIfuv7n8Sxu8toQD74KIBeOYQfuefdKXy6FGRbvUm4A06OVvkDFtNpkbLNIFkRh2h-m6ZDtMwhXLvBBClz77Jo_jzEYobRL3d-f7QrEiZhpehFlN0n5OecMiPFC-g
     # n-aQ8YSkFMbIoTJPS46lBeO4X4v5KbQ52ztB9-xP8wgeiTMc52ItDYFQshq4rfw5-WSoIqkg-H2BmoIFQbGBNwE_hacoe5llYjoExc93uFOc7OcGs8gqwbgJkWWp40rpC4IeS7WUzh-LwSn6fx2C5Vvx2m9T29U_bD0voDdEMROZi_rAJ1fc8nDvLtahFp91n6_YNkZH0P8289wpUdwfTcpC50gPaWel_TRH8zgK2ZddqO21ZV13d6HjRenRhbjWfw
-    assert response.status_code == codes.OK
-
-
-def test_start_login(test_client, mocker: MockerFixture, state_store: dict):
-    opq_setup = mocker.patch("auth.data.authentication.get_apake_setup")
-    opq_setup.return_value = mock_opq_setup["value"]
-
-    g_pw = mocker.patch("apiserver.data.api.user.UserOps.get_user_by_id")
-    g_pw_email = mocker.patch("apiserver.data.api.user.UserOps.get_user_by_email")
-    test_user_email = "start@loginer.nl"
-    user_fn = "test"
-    user_ln = "namer"
-    test_user_id_int = 99
-    test_id_name = gen_id_name(user_fn, user_ln)
-    test_user_id = cr_user_id(test_user_id_int, test_id_name)
-
-    fake_password_file = "GLgWMaiuTTs2NyK9gvrhbtUMTrHLy2erbEwPnzwFDQ6i5EuUyWEN9yqEarTqxprZ205gkQoY_yks3-1jr3XuTfKfh1byl9LZHFpDA-FWNyc5wV5CBYz_jzruanzI-yFCPt7fPglNFs7mnwPbZaraoKMJX5prMMrULtDF4KlZuv2szqISaM3d9kiVUEgXzNAPh6EMuN1GCySL8gimFyfZxfrk3QCeQJKudx2YZYz9ReBs7EkmAwTCHxeiCmYaDdlu"
-    correct_password_file = "6sr_nvpqPqB-GCjj091vbsIsKYdHX2BE_9ICHT-8o329Wn_-9F4gCjfFD1GsPGayGF1oJ2FzyZXLzUS-MmaHO2pTGoD_QyGBiIV9s7LBYxFM_fciaaI08ZahLfj4kmXJfzqcWVSecc7uqgzR5DVamDHlmQUOT6QjXcDmbuPm8eDu1hBdD65ZWmpUz16DK3-k6uBLjQ1fKYj8o3xBShhRQCKpm0PFCjk4uABkXgdzy5EWoKkTZ8cslYe450nAdOqv"
-
-    def pw_side_effect(f_conn, user_id):
-        if user_id == "1_fakerecord":
-            return User(
-                id=1,
-                id_name="fakerecord",
-                password_file=fake_password_file,
-                scope="none",
-                user_id="1_fakerecord",
-                email="fakeemail",
-            )
-
-    g_pw.side_effect = pw_side_effect
-
-    def pw_em_side_effect(f_conn, user_email):
-        if user_email == test_user_email:
-            return User(
-                id=test_user_id_int,
-                id_name=test_id_name,
-                password_file=correct_password_file,
-                scope="none",
-                user_id=test_user_id,
-                email=test_user_email,
-            )
-
-    g_pw_email.side_effect = pw_em_side_effect
-
-    t_hash = mocker.patch("auth.data.authentication.random_time_hash_hex")
-    test_auth_id = "d7a822c06ca8faa0e1df42fe3cbb0371"
-
-    def hash_side_effect(user_usph):
-        if user_usph == test_user_id:
-            return test_auth_id
-
-    t_hash.side_effect = hash_side_effect
-
-    # password 'clientele'
-    req = {
-        "email": test_user_email,
-        "client_request": "ht_LfPlozB5sa76eflmWeulgGU4dU4aeEutzyDMTkRoB3bO62RP95nc1PWt6IdJxpiuMW5OsoWEWNpa4EUZrxqAB8a5mLVLBQ81Y-30YlSgppQNdWAgeA-amu93cEisx",
-    }
-
-    response = test_client.post("/login/start/", json=req)
-    res_j = response.json()
-    print(res_j)
-    # example message
-    # ALBAwXBHmhQd_ifiKP8NODRQ3mOWG6m8-zFmmJVdUn9Sot6VDE6Gv1G7nwmXDdZ35lyzYoKlqW2Z4czRkngvu53aA66H-Ir4r2qu_Im6qb9fQ0vYxFxq7Ecc1hi90RUztLu5OrI-BtWHzzsBSU5RvKl07JITisMv3o8ae87vxFl8z7nQEAXpy5-ZTqTh9EvKdIEHETSea0BBTHyUQ5mZA55c3mXsVKEKpk0zRcuzyr8CdX8a-1pwdDkG40ZTwE_AxAXORiNsicTq-ZspiDwSkag9Exp-_2H-g2sY3s_8k_YUBIXo7B2i9YOZe5ygA3eU8EQKusWjqJ0lJ1tObZdgPFOTTsryGFcRFLvLE-QH83tV91S5n3Rc9nChlSlAghwVjW5vH1hE9OrtzViSSFSd_oQxpl3t8JXXI6v15qWdYTA
-    # example state
-    # NxOxeb4oKwirncPlH1SlCbE_md8lH767HsgGv57G1l3aMinOwsi9BDWQW054L-iqZh9le2YqQ4LI10kCbfh4ijIV36HPrGDZg1ObZKx4U1Mgg-5wnLKZx-qtUukSWgON8a0fkN7_C_Jazl8oZxKC4fXBbJj1NKKn2xZM0yrezur9PbOOAi8m9g4WTgKcEwyHGXz41dey2QetWH2GnK-w540e3mdi5vP9q7NPGXOJ-I6TIqvU9tp5B3539LnwwTE1
-    assert response.status_code == codes.OK
-    assert test_auth_id in state_store.keys()
-    assert res_j["auth_id"] == test_auth_id
-    print(state_store[test_auth_id])
-
-
-def test_finish_login(test_client, mocker: MockerFixture, flow_store: dict):
-    test_auth_id = "15dae3786b6d0f20629cf"
-    user_fn = "test"
-    user_ln = "namerf"
-    test_user_id_int = 40
-    g_id_name = gen_id_name(user_fn, user_ln)
-    test_user_id = cr_user_id(test_user_id_int, g_id_name)
-    test_email = "finish@login.nl"
-
-    # password 'clientele' with mock_opq_key
-    g_state = mocker.patch("auth.data.authentication.get_state")
-    test_state = "NxOxeb4oKwirncPlH1SlCbE_md8lH767HsgGv57G1l3aMinOwsi9BDWQW054L-iqZh9le2YqQ4LI10kCbfh4ijIV36HPrGDZg1ObZKx4U1Mgg-5wnLKZx-qtUukSWgON8a0fkN7_C_Jazl8oZxKC4fXBbJj1NKKn2xZM0yrezur9PbOOAi8m9g4WTgKcEwyHGXz41dey2QetWH2GnK-w540e3mdi5vP9q7NPGXOJ-I6TIqvU9tp5B3539LnwwTE1"
-
-    def state_side_effect(f_dsrc, auth_id):
-        if auth_id == test_auth_id:
-            return SavedState(
-                user_id=test_user_id,
-                state=test_state,
-                scope=fake_token_scope,
-                user_email=test_email,
-            )
-
-    g_state.side_effect = state_side_effect
-
-    flow_id = "df60854e55352c9ff02f768a888710c3"
-    # password 'clientele'
-    req = {
-        "email": test_email,
-        "client_request": "28gMIH7k8inGBdiMrpKidOtwtbcUlgMkmRNGVBy6CrXF_XPtVbzCwmtVCeUEuTSeRkyKFqDnD-v9AXcEfPUZ1w",
-        "auth_id": test_auth_id,
-        "flow_id": flow_id,
-    }
-    session_key = "_T2zjgIvJvYOFk4CnBMMhxl8-NXXstkHrVh9hpyvsOeNHt5nYubz_auzTxlzifiOkyKr1PbaeQd-d_S58MExNQ"
-
-    response = test_client.post("/login/finish/", json=req)
-
-    assert session_key in flow_store.keys()
-    flow_user = FlowUser.model_validate(flow_store[session_key])
-    assert flow_user.flow_id == flow_id
-    assert flow_user.scope == fake_token_scope
     assert response.status_code == codes.OK
 
 

@@ -34,7 +34,9 @@ async def start_login(login_start: PasswordRequest, request: Request):
     check flow."""
     dsrc: Source = request.state.dsrc
 
-    return await auth_start_login(dsrc.store, data.user.UserOps, login_start)
+    return await auth_start_login(
+        dsrc.store, data.user.UserOps, dsrc.context.login_context, login_start
+    )
 
 
 @router.post("/login/finish/")

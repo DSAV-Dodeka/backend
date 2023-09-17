@@ -1,3 +1,4 @@
+from auth.data.context import login_context
 from store import Store
 from store.conn import get_conn, get_kv
 from store.kv import store_json, get_json, pop_json
@@ -9,34 +10,38 @@ from auth.data.schemad.user import UserOps
 from auth.data.schemad.opaque import get_setup
 
 
+@login_context
 async def get_apake_setup(store: Store):
     """We get server setup required for using OPAQUE protocol (which is an aPAKE)."""
     async with get_conn(store) as conn:
         return await get_setup(conn)
 
 
+@login_context
 async def get_user_auth_data(store: Store, user_ops: UserOps, login_mail: str):
     scope = "none"
     async with get_conn(store) as conn:
         # We start with a fakerecord
         u = await user_ops.get_user_by_id(conn, "1_fakerecord")
+        user_id = u.user_id
         password_file = u.password_file
         try:
             ru = await user_ops.get_user_by_email(conn, login_mail)
             # If the user exists and has a password set (meaning they are registered), we perform the check with the
             # actual password
             if ru.password_file:
-                u = ru
+                user_id = ru.user_id
                 password_file = ru.password_file
                 scope = ru.scope
         except NoDataError:
             # If user or password file does not exist, user, password_file and scope default to the fake record
             pass
 
-    auth_id = random_time_hash_hex(u.user_id)
-    return u, scope, password_file, auth_id
+    auth_id = random_time_hash_hex(user_id)
+    return user_id, scope, password_file, auth_id
 
 
+@login_context
 async def store_auth_state(store: Store, auth_id: str, state: SavedState):
     await store_json(get_kv(store), auth_id, state.model_dump(), expire=60)
 

@@ -1,0 +1,18 @@
+APISERVER_ENV="envless"
+
+DB_USER="abcuser"
+DB_PASS="abcpassdb"
+DB_HOST="localhost"
+DB_PORT=3141
+DB_NAME="abcname"
+DB_NAME_ADMIN="postgres"
+
+KV_HOST="localhost"
+KV_PORT=6379
+KV_PASS="abcpasskv"
+
+MAIL_PASS="abcpass"
+KEY_PASS="abcpass"
+
+SMTP_SERVER = "abcmail"
+SMTP_PORT = 587

@@ -11,7 +11,7 @@ def _finish_sign(
     unfinished_token_val: dict[str, Any],
     utc_now: int,
     exp: int,
-):
+) -> str:
     finished_payload = finish_payload(unfinished_token_val, utc_now, exp)
     return sign_dict(private_key, finished_payload)
 
@@ -21,8 +21,8 @@ def sign_access_token(
     access_token_data: AccessTokenBase,
     utc_now: int,
     exp: int,
-):
-    _finish_sign(private_key, access_token_data.model_dump(), utc_now, exp)
+) -> str:
+    return _finish_sign(private_key, access_token_data.model_dump(), utc_now, exp)
 
 
 def sign_id_token(
@@ -31,6 +31,6 @@ def sign_id_token(
     id_info: IdInfo,
     utc_now: int,
     exp: int,
-):
+) -> str:
     unfinished_token = add_info_to_id(id_token_data, id_info)
-    _finish_sign(private_key, unfinished_token, utc_now, exp)
+    return _finish_sign(private_key, unfinished_token, utc_now, exp)

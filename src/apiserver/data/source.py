@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 
 from apiserver.env import Config
 from auth.core.model import KeyState as AuthKeyState
+from auth.data.context import Context
 from store.conn import get_kv as st_get_kv, get_conn as st_get_conn
 from store import Store
 
@@ -21,6 +22,7 @@ class Source:
     store: Store
     config: Config
     key_state: KeyState
+    context = Context
 
     def __init__(self):
         self.store = Store()

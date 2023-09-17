@@ -3,17 +3,16 @@ from secrets import token_urlsafe
 from typing import Type
 
 from auth.token.build_util import encode_token_dict, decode_refresh, add_info_to_id
-from auth.hazmat.sign_dict import finish_encode_token
 from auth.core.model import RefreshToken, IdInfo, IdTokenBase, AccessTokenBase
 from auth.hazmat.structs import PEMPrivateKey, SymmetricKey
 from auth.data.schemad.entities import SavedRefreshToken
 from auth.token.crypt_token import encrypt_refresh
-from auth.token.sign_token import sign_token, sign_id_token, sign_access_token
+from auth.token.sign_token import sign_id_token, sign_access_token
 
 
 def build_refresh_save(
     saved_refresh: SavedRefreshToken, id_info_model: Type[IdInfo], utc_now: int
-):
+) -> tuple[AccessTokenBase, IdTokenBase, IdInfo, str, str, str, SavedRefreshToken]:
     # Rebuild access and ID tokens from value in refresh token
     # We need the core static info to rebuild with new iat, etc.
     saved_access, saved_id_token, id_info = decode_refresh(saved_refresh, id_info_model)
@@ -54,7 +53,7 @@ def build_refresh_token(
     saved_refresh: SavedRefreshToken,
     new_nonce: str,
     refresh_key: SymmetricKey,
-):
+) -> str:
     # The actual refresh token is an encrypted JSON dictionary containing the id,
     # family_id and nonce
     refresh = RefreshToken(
@@ -75,7 +74,7 @@ def create_tokens(
     frontend_client_id: str,
     backend_client_id: str,
     refresh_exp: int,
-):
+) -> tuple[AccessTokenBase, IdTokenBase, str, SavedRefreshToken]:
     """This function simply builds the required structures and encodes information for the refresh token.
     """
     # Build new tokens
@@ -124,7 +123,7 @@ def finish_tokens(
     id_exp: int,
     *,
     nonce: str,
-):
+) -> tuple[str, str, str]:
     """Encrypts and signs the tokens and adds the time information to them."""
     refresh = RefreshToken(id=refresh_id, family_id=refresh_save.family_id, nonce=nonce)
     # This function performs encryption of the refresh token
@@ -143,7 +142,9 @@ def finish_tokens(
     return refresh_token, access_token, id_token
 
 
-def id_access_tokens(sub, iss, aud_access, aud_id, scope, auth_time, id_nonce):
+def id_access_tokens(
+    sub, iss, aud_access, aud_id, scope, auth_time, id_nonce
+) -> tuple[AccessTokenBase, IdTokenBase]:
     """Create ID and access token objects."""
     access_core = AccessTokenBase(sub=sub, iss=iss, aud=aud_access, scope=scope)
     id_core = IdTokenBase(

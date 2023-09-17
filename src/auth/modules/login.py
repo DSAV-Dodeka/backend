@@ -5,34 +5,37 @@ from auth.core.error import AuthError
 from auth.core.model import PasswordRequest, SavedState, FinishLogin, FlowUser
 from auth.core.response import PasswordResponse
 from auth.core.util import utc_timestamp
+from auth.data.context import LoginContext
 from store.error import NoDataError
 from auth.data.schemad.user import UserOps
 from store import Store
 from store.conn import store_session
 
 
-async def start_login(store: Store, user_ops: UserOps, login_start: PasswordRequest):
+async def start_login(
+    store: Store, user_ops: UserOps, context: LoginContext, login_start: PasswordRequest
+):
     """Login can be initiated in 2 different flows: the first is the OAuth 2 flow, the second is a simple password
     check flow."""
 
     login_mail = login_start.email.lower()
 
     async with store_session(store) as session:
-        u, scope, password_file, auth_id = await data.authentication.get_user_auth_data(
+        user_id, scope, password_file, auth_id = await context.get_user_auth_data(
             session, user_ops, login_mail
         )
-        apake_setup = await data.authentication.get_apake_setup(session)
+        apake_setup = await context.get_apake_setup(session)
 
     # This will only fail if the client message is an invalid OPAQUE protocol message
     response, state = opq.login(
-        apake_setup, password_file, login_start.client_request, u.user_id
+        apake_setup, password_file, login_start.client_request, user_id
     )
 
     saved_state = SavedState(
-        user_id=u.user_id, user_email=login_mail, scope=scope, state=state
+        user_id=user_id, user_email=login_mail, scope=scope, state=state
     )
 
-    await data.authentication.store_auth_state(store, auth_id, saved_state)
+    await context.store_auth_state(store, auth_id, saved_state)
 
     return PasswordResponse(server_message=response, auth_id=auth_id)
 

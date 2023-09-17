@@ -75,7 +75,7 @@ async def new_token(
     scope: str,
     auth_time: int,
     id_nonce: str,
-):
+) -> Tokens:
     # THROWS UnexpectedError if keys are not present
     symmetric_key, _, signing_key = await get_keys(store, key_state)
 
@@ -127,12 +127,12 @@ async def new_token(
 
 async def delete_refresh(
     store: Store, ops: SchemaOps, key_state: KeyState, refresh_token: str
-):
+) -> None:
     symmetric_key, old_symmetric_key, signing_key = await get_keys(store, key_state)
     try:
         refresh = decrypt_old_refresh(symmetric_key, old_symmetric_key, refresh_token)
     except InvalidRefresh:
-        return None
+        return
 
     # Do not check rowcount, which would be zero if no token is deleted
     await data.token.delete_refresh_token(store, ops, refresh.family_id)

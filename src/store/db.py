@@ -148,8 +148,7 @@ async def get_largest_where(
     num: int,
     descending: bool = True,
 ) -> list[RowMapping]:
-    """Ensure `table`, `sel_col`, `where_col`, `order_col` and `num` are never user-defined.
-    """
+    """Ensure `table`, `sel_col`, `where_col`, `order_col` and `num` are never user-defined."""
     some = select_set(sel_col)
     desc_str = "DESC" if descending else "ASC"
     query = text(

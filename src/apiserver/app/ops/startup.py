@@ -50,8 +50,7 @@ MAX_WAIT_INDEX = 15
 
 
 async def waiting_lock(dsrc: Source):
-    """We need this lock because in production we spawn multiple processes, which each startup separately.
-    """
+    """We need this lock because in production we spawn multiple processes, which each startup separately."""
     await sleep(random() + 0.1)
     was_locked = await data.trs.startup.startup_is_locked(dsrc)
     logger.debug(f"{was_locked} - was_locked init")

@@ -75,8 +75,7 @@ def create_tokens(
     backend_client_id: str,
     refresh_exp: int,
 ) -> tuple[AccessTokenBase, IdTokenBase, str, SavedRefreshToken]:
-    """This function simply builds the required structures and encodes information for the refresh token.
-    """
+    """This function simply builds the required structures and encodes information for the refresh token."""
     # Build new tokens
     access_token_data, id_token_core_data = id_access_tokens(
         sub=user_id,

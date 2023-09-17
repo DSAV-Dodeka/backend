@@ -113,8 +113,7 @@ class OpaqueSetup(BaseModel):
 
 
 class JWK(BaseModel):
-    """Parameters are as standardized in the IANA JOSE registry (https://www.iana.org/assignments/jose/jose.xhtml)
-    """
+    """Parameters are as standardized in the IANA JOSE registry (https://www.iana.org/assignments/jose/jose.xhtml)"""
 
     kty: Literal["OKP", "oct"]
     use: Literal["sig", "enc"]

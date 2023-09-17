@@ -120,8 +120,7 @@ async def insert_userdata(conn: AsyncConnection, userdata: UserData):
 
 
 async def upsert_userdata(conn: AsyncConnection, userdata: UserData):
-    """Requires known id. Note that this cannot change any unique constraints, those must remain unaltered.
-    """
+    """Requires known id. Note that this cannot change any unique constraints, those must remain unaltered."""
     try:
         result = await upsert_by_unique(
             conn, USERDATA_TABLE, userdata.model_dump(), USER_ID

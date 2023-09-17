@@ -53,8 +53,7 @@ def parse_users_scopes_data(users_scope_dict: Optional[dict]) -> UserScopeData:
 
 
 async def add_scope(conn: AsyncConnection, user_id: str, new_scope: str):
-    """Whitespace (according to Unicode standard) is removed and scope is added as usph
-    """
+    """Whitespace (according to Unicode standard) is removed and scope is added as usph"""
     # We strip whitespace and other nasty characters from start and end
     stripped_scope = strip_edge(new_scope)
     # Space is added because we concatenate

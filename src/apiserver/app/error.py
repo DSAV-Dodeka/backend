@@ -5,8 +5,7 @@ from fastapi.responses import JSONResponse
 
 
 class ErrorResponse(Exception):
-    """Exception response type that conforms to standard OAuth 2.0 error response in JSON form.
-    """
+    """Exception response type that conforms to standard OAuth 2.0 error response in JSON form."""
 
     def __init__(
         self,

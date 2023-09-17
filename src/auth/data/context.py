@@ -1,13 +1,36 @@
+import inspect
+
 from dataclasses import dataclass
 from typing import Callable, Protocol
 
-from apiserver.data.api.user import UserOps
 from auth.core.model import SavedState
+from auth.data.schemad.user import UserOps
 from store import Store
 
 
-def make_data_context(context_protocol, func: Callable):
-    setattr(context_protocol, func.__name__, func)
+class ContextError(Exception):
+    pass
+
+
+def make_data_context(context_inst, context_protocol, func: Callable):
+    if not hasattr(context_protocol, func.__name__):
+        raise ContextError(
+            f"Have you forgotten to write a protocol for function {func!s}?"
+        )
+
+    old_func = getattr(context_protocol, func.__name__)
+
+    # We compare the type annotations
+    old_anno = inspect.get_annotations(old_func)
+    new_anno = inspect.get_annotations(func)
+
+    if old_anno != new_anno:
+        raise ContextError(
+            f"Protocol annotation:\n {old_anno!s}\n does not equal function"
+            f" annotation:\n {new_anno!s}!"
+        )
+
+    setattr(context_inst, func.__name__, func)
 
 
 class LoginContext(Protocol):
@@ -28,15 +51,22 @@ class LoginContext(Protocol):
         ...
 
 
+class LoginContextImpl:
+    """By making an empty class, we ensure that it breaks if called without it being registered, instead of silently
+    returning None."""
+
+    pass
+
+
 @dataclass
 class Context:
-    login_context = LoginContext
+    login_context: LoginContext = LoginContextImpl()
 
 
 context = Context()
 
 
 def login_context(arg):
-    make_data_context(context.login_context, arg)
+    make_data_context(context.login_context, LoginContext, arg)
 
     return arg

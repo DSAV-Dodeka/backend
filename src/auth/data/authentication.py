@@ -11,14 +11,16 @@ from auth.data.schemad.opaque import get_setup
 
 
 @login_context
-async def get_apake_setup(store: Store):
+async def get_apake_setup(store: Store) -> str:
     """We get server setup required for using OPAQUE protocol (which is an aPAKE)."""
     async with get_conn(store) as conn:
         return await get_setup(conn)
 
 
 @login_context
-async def get_user_auth_data(store: Store, user_ops: UserOps, login_mail: str):
+async def get_user_auth_data(
+    store: Store, user_ops: UserOps, login_mail: str
+) -> tuple[str, str, str, str]:
     scope = "none"
     async with get_conn(store) as conn:
         # We start with a fakerecord
@@ -42,7 +44,7 @@ async def get_user_auth_data(store: Store, user_ops: UserOps, login_mail: str):
 
 
 @login_context
-async def store_auth_state(store: Store, auth_id: str, state: SavedState):
+async def store_auth_state(store: Store, auth_id: str, state: SavedState) -> None:
     await store_json(get_kv(store), auth_id, state.model_dump(), expire=60)
 
 

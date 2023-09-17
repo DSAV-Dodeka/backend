@@ -50,10 +50,12 @@ async def request_password_change(
 
     await data.trs.store_string(dsrc, flow_id, change_pass.email, 1000)
 
-    config: Config = request.state.config
     if ud.registered:
         send_reset_email(
-            background_tasks, change_pass.email, mail_from_config(config), reset_url
+            background_tasks,
+            change_pass.email,
+            mail_from_config(dsrc.config),
+            reset_url,
         )
 
 
@@ -151,11 +153,10 @@ async def update_email(
     }
     reset_url = f"{DEFINE.credentials_url}?{urlencode(params)}"
 
-    config: Config = request.state.config
     send_change_email_email(
         background_tasks,
         new_email.new_email,
-        mail_from_config(config),
+        mail_from_config(dsrc.config),
         reset_url,
         old_email,
     )

@@ -67,3 +67,7 @@ class Store:
 
     async def shutdown(self):
         await self.disconnect()
+
+
+class FakeStore(Store):
+    pass

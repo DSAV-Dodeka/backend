@@ -95,7 +95,7 @@ class RefreshToken(BaseModel):
     nonce: str
 
 
-class IdToken(IdInfo):
+class IdTokenBase(BaseModel):
     sub: str
     iss: str
     aud: list[str]
@@ -103,7 +103,7 @@ class IdToken(IdInfo):
     nonce: str
 
 
-class SavedAccessToken(BaseModel):
+class AccessTokenBase(BaseModel):
     sub: str
     iss: str
     aud: list[str]

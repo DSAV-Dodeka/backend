@@ -28,15 +28,20 @@ async def startup(dsrc: Source, config: Config, recreate=False):
     # Checks lock: returns True if no lock had been in place, False otherwise
     first_lock = await waiting_lock(dsrc)
     logger.debug(f"{first_lock} - lock status")
+
     # Set lock
     await data.trs.startup.set_startup_lock(dsrc)
     if first_lock and recreate:
         logger.debug("Dropping and recreating...")
         drop_create_database(config)
+    # Connect to store
     await dsrc.store.startup()
+
     if first_lock and recreate:
         await initial_population(dsrc, config)
+    # Load keys
     await load_keys(dsrc, config)
+
     # Release lock
     await data.trs.startup.set_startup_lock(dsrc, "not")
 
@@ -45,6 +50,8 @@ MAX_WAIT_INDEX = 15
 
 
 async def waiting_lock(dsrc: Source):
+    """We need this lock because in production we spawn multiple processes, which each startup separately.
+    """
     await sleep(random() + 0.1)
     was_locked = await data.trs.startup.startup_is_locked(dsrc)
     logger.debug(f"{was_locked} - was_locked init")

@@ -116,3 +116,12 @@ Implementing good authentication/authorization for a website is hard. There are 
 OPAQUE is an in-development protocol that seeks to provide a permanent solution to the question of how to best store passwords and authenticate users using them. A simple hash-based solution would have been good enough, but there are many (good and bad) ways to implement this, while OPAQUE makes it much more straightforward to implement it the right way. It also provides tangible security benefits. It has also been used by big companies (for example by WhatsApp for their end-to-end encrypted backups), so it is mature enough for production use.
 
 Our implementation relies on [opaque-ke](https://github.com/novifinancial/opaque-ke), a library written in Rust. As there is no Python library, a simple wrapper for the Rust library, [opquepy](https://github.com/tiptenbrink/opaquebind/tree/main/opaquepy), was written for this project. It exposes the necessary functions for using OPAQUE and consists of very little code, making it easy to maintain. The wrapper is part of a library that also includes a WebAssembly wrapper, which allows it to be called from JavaScript in the browser.
+
+## Maybe implement in future
+
+- https://datatracker.ietf.org/doc/html/rfc8959 secret-token
+- https://datatracker.ietf.org/doc/html/rfc7009 token revocation request
+- https://auth0.com/docs/secure/tokens/json-web-tokens/json-web-key-sets JSON web key sets
+- https://datatracker.ietf.org/doc/html/rfc8414 OAuth 2 discovery
+- https://www.rfc-editor.org/rfc/rfc9068 Access token standard (also proper OpenID scope)
+- https://datatracker.ietf.org/doc/html/rfc7662 token metadata (introspection)

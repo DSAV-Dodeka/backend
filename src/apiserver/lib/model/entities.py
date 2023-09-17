@@ -3,7 +3,7 @@ from typing import Optional, Literal
 
 from pydantic import field_validator, BaseModel
 
-from auth.core.model import IdInfo as AuthIdInfo
+from auth.core.model import IdInfo as AuthIdInfo, AccessTokenBase as AuthAccessToken
 from auth.data.schemad.entities import User as AuthUser, UserData as AuthUserData
 
 
@@ -27,11 +27,7 @@ class Key(BaseModel):
     private_encoding: str
 
 
-class AccessToken(BaseModel):
-    sub: str
-    iss: str
-    aud: list[str]
-    scope: str
+class AccessToken(AuthAccessToken):
     iat: int
     exp: int
 

@@ -2,12 +2,13 @@ import secrets
 from secrets import token_urlsafe
 from typing import Type
 
-from auth.token.build_util import encode_token_dict, decode_refresh
-from auth.hazmat.sign_token import finish_encode_token
-from auth.core.model import RefreshToken, IdInfo, IdToken, SavedAccessToken
+from auth.token.build_util import encode_token_dict, decode_refresh, add_info_to_id
+from auth.hazmat.sign_dict import finish_encode_token
+from auth.core.model import RefreshToken, IdInfo, IdTokenBase, AccessTokenBase
 from auth.hazmat.structs import PEMPrivateKey, SymmetricKey
 from auth.data.schemad.entities import SavedRefreshToken
-from auth.token.crypt import encrypt_refresh
+from auth.token.crypt_token import encrypt_refresh
+from auth.token.sign_token import sign_token, sign_id_token, sign_access_token
 
 
 def build_refresh_save(
@@ -114,8 +115,8 @@ def finish_tokens(
     refresh_id: int,
     refresh_save: SavedRefreshToken,
     refresh_key: SymmetricKey,
-    access_token_data: SavedAccessToken,
-    id_token_data: IdToken,
+    access_token_data: AccessTokenBase,
+    id_token_data: IdTokenBase,
     id_info: IdInfo,
     utc_now: int,
     signing_key: PEMPrivateKey,
@@ -130,23 +131,22 @@ def finish_tokens(
     # ! Calls cryptographic primitives
     refresh_token = encrypt_refresh(refresh_key, refresh)
 
-    # This function signs the access token using the signing key
+    # This function adds exp and signing time info and signs the access token using the signing key
     # ! Calls the PyJWT library
-    access_token = finish_encode_token(
-        access_token_data.model_dump(), utc_now, access_exp, signing_key
+    access_token = sign_access_token(
+        signing_key, access_token_data, utc_now, access_exp
     )
-    id_token_dict = add_info_to_id(id_token_data, id_info)
-    # This function signs the access token using the signing key
+    # This function adds exp and signing time info as well as id_info and signs the id token using the signing key
     # ! Calls the PyJWT library
-    id_token = finish_encode_token(id_token_dict, utc_now, id_exp, signing_key)
+    id_token = sign_id_token(signing_key, id_token_data, id_info, utc_now, id_exp)
 
     return refresh_token, access_token, id_token
 
 
 def id_access_tokens(sub, iss, aud_access, aud_id, scope, auth_time, id_nonce):
     """Create ID and access token objects."""
-    access_core = SavedAccessToken(sub=sub, iss=iss, aud=aud_access, scope=scope)
-    id_core = IdToken(
+    access_core = AccessTokenBase(sub=sub, iss=iss, aud=aud_access, scope=scope)
+    id_core = IdTokenBase(
         sub=sub,
         iss=iss,
         aud=aud_id,
@@ -155,9 +155,3 @@ def id_access_tokens(sub, iss, aud_access, aud_id, scope, auth_time, id_nonce):
     )
 
     return access_core, id_core
-
-
-def add_info_to_id(id_token: IdToken, id_info: IdInfo):
-    """This function is necessary because IdInfo is determined at the application-level, so we do not know exactly
-    which model."""
-    return id_token.model_dump() | id_info.model_dump()

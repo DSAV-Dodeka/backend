@@ -1,6 +1,6 @@
 from auth.core.error import InvalidRefresh
 from auth.token.build import build_refresh_save, create_tokens, finish_tokens
-from auth.token.crypt import decrypt_old_refresh
+from auth.token.crypt_token import decrypt_old_refresh
 from auth.hazmat.verify_token import verify_refresh
 from auth import data
 from auth.core.model import Tokens, KeyState

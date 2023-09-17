@@ -73,7 +73,6 @@ async def init_signup(
         ),
         email_expiration,
     )
-    config: Config = request.state.config
 
     params = {"confirm_id": confirm_id}
     confirmation_url = f"{DEFINE.credentials_url}email/?{urlencode(params)}"
@@ -83,7 +82,7 @@ async def init_signup(
             background_tasks,
             signup.email,
             f"{signup.firstname} {signup.lastname}",
-            mail_from_config(config),
+            mail_from_config(dsrc.config),
             confirmation_url,
             DEFINE.signup_url,
         )
@@ -189,8 +188,6 @@ async def confirm_join(
         )
         await data.signedup.confirm_signup(conn, signup_email)
 
-    config: Config = request.state.config
-
     info = {
         "register_id": register_id,
         "firstname": signed_up.firstname,
@@ -203,7 +200,7 @@ async def confirm_join(
     registration_url = f"{DEFINE.credentials_url}register/?{urlencode(params)}"
 
     send_register_email(
-        background_tasks, signup_email, mail_from_config(config), registration_url
+        background_tasks, signup_email, mail_from_config(dsrc.config), registration_url
     )
 
 

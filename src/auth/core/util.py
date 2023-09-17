@@ -1,3 +1,4 @@
+import binascii
 import hashlib
 import json
 import secrets
@@ -11,12 +12,24 @@ def utc_timestamp() -> int:
     return int(datetime.now(timezone.utc).timestamp())
 
 
+class DecodeError(ValueError):
+    pass
+
+
 def dec_b64url(s: str) -> bytes:
     """
     Decodes a base64url-encoded string to bytes.
+
+    It works with either padding or no padding. It simply ignores any
+    characters that are not part of the base64url alphabet. If it uses the standard '+' or '/' it will interpret them
+    as if standard base64 is used. It WILL fail if the number of characters is 1 more than a multiple of 4 or if there
+    is data after any added padding.
     """
-    b64_bytes = add_base64_padding(s).encode("utf-8")
-    return urlsafe_b64decode(b64_bytes)
+    try:
+        b64_bytes = add_base64_padding(s).encode("utf-8")
+        return urlsafe_b64decode(b64_bytes)
+    except binascii.Error:
+        raise DecodeError
 
 
 def add_base64_padding(unpadded: str) -> str:
@@ -39,9 +52,13 @@ def enc_dict(dct: dict[str, Any]) -> bytes:
 
 def dec_dict(encoded: bytes) -> dict[str, Any]:
     """Convert UTF-8 bytes containing JSON to a dict."""
-    obj = json.loads(encoded.decode("utf-8"))
+    decoded = encoded.decode("utf-8")
+    try:
+        obj = json.loads(decoded)
+    except json.decoder.JSONDecodeError:
+        raise DecodeError(f"Error decoding JSON: {decoded}")
     if not isinstance(obj, dict):
-        raise ValueError("Only supports JSON objects, not primitives.")
+        raise DecodeError("Only supports JSON objects, not primitives.")
     return obj
 
 

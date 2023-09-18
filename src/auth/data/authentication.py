@@ -1,4 +1,4 @@
-from auth.data.context import login_context
+from auth.data.context import login_context, token_context
 from store import Store
 from store.conn import get_conn, get_kv
 from store.kv import store_json, get_json, pop_json
@@ -48,6 +48,7 @@ async def store_auth_state(store: Store, auth_id: str, state: SavedState) -> Non
     await store_json(get_kv(store), auth_id, state.model_dump(), expire=60)
 
 
+@login_context
 async def get_state(store: Store, auth_id: str) -> SavedState:
     state_dict: dict = await get_json(get_kv(store), auth_id)
     if state_dict is None:
@@ -55,6 +56,7 @@ async def get_state(store: Store, auth_id: str) -> SavedState:
     return SavedState.model_validate(state_dict)
 
 
+@token_context
 async def pop_flow_user(store: Store, authorization_code: str) -> FlowUser:
     flow_user_dict: dict = await pop_json(get_kv(store), authorization_code)
     if flow_user_dict is None:
@@ -62,5 +64,6 @@ async def pop_flow_user(store: Store, authorization_code: str) -> FlowUser:
     return FlowUser.model_validate(flow_user_dict)
 
 
-async def store_flow_user(store: Store, session_key: str, flow_user: FlowUser):
+@login_context
+async def store_flow_user(store: Store, session_key: str, flow_user: FlowUser) -> None:
     await store_json(get_kv(store), session_key, flow_user.model_dump(), expire=60)

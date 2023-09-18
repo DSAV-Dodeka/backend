@@ -1,6 +1,5 @@
 import opaquepy as opq
 
-from auth import data
 from auth.core.error import AuthError
 from auth.core.model import PasswordRequest, SavedState, FinishLogin, FlowUser
 from auth.core.response import PasswordResponse
@@ -40,10 +39,10 @@ async def start_login(
     return PasswordResponse(server_message=response, auth_id=auth_id)
 
 
-async def finish_login(store: Store, login_finish: FinishLogin):
+async def finish_login(store: Store, context: LoginContext, login_finish: FinishLogin):
     finish_email = login_finish.email.lower()
     try:
-        saved_state = await data.authentication.get_state(store, login_finish.auth_id)
+        saved_state = await context.get_state(store, login_finish.auth_id)
     except NoDataError:
         reason = "Login not initialized or expired"
         raise AuthError(
@@ -68,4 +67,4 @@ async def finish_login(store: Store, login_finish: FinishLogin):
         user_id=saved_state.user_id,
     )
 
-    await data.authentication.store_flow_user(store, session_key, flow_user)
+    await context.store_flow_user(store, session_key, flow_user)

@@ -1,4 +1,5 @@
 from auth.core.error import UnexpectedDataError
+from auth.data.context import token_context
 from store import Store
 from store.conn import get_kv
 from store.kv import get_json
@@ -24,6 +25,7 @@ async def get_symmetric_key(store: Store, kid: str) -> A256GCMKey:
     return A256GCMKey.model_validate(symmetric_dict)
 
 
+@token_context
 async def get_keys(
     store: Store, key_state: KeyState
 ) -> tuple[SymmetricKey, SymmetricKey, PEMPrivateKey]:

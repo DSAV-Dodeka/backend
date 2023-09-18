@@ -35,7 +35,7 @@ async def start_login(login_start: PasswordRequest, request: Request):
     dsrc: Source = request.state.dsrc
 
     return await auth_start_login(
-        dsrc.store, data.user.UserOps, dsrc.context.login_context, login_start
+        dsrc.store, data.user.UserOps, dsrc.context.login_ctx, login_start
     )
 
 
@@ -44,7 +44,7 @@ async def finish_login(login_finish: FinishLogin, request: Request):
     dsrc: Source = request.state.dsrc
 
     try:
-        await auth_finish_login(dsrc.store, login_finish)
+        await auth_finish_login(dsrc.store, dsrc.context.login_ctx, login_finish)
     except AuthError as e:
         raise ErrorResponse(
             status_code=400,
@@ -74,6 +74,7 @@ async def oauth_endpoint(
         redirect = await oauth_start(
             DEFINE,
             dsrc.store,
+            dsrc.context.authorize_ctx,
             response_type,
             client_id,
             redirect_uri,
@@ -104,7 +105,9 @@ async def oauth_finish(flow_id: str, code: str, response: Response, request: Req
     dsrc: Source = request.state.dsrc
 
     try:
-        redirect = await oauth_callback(dsrc.store, flow_id, code)
+        redirect = await oauth_callback(
+            dsrc.store, dsrc.context.authorize_ctx, flow_id, code
+        )
     except AuthError as e:
         logger.debug(e.err_desc)
         raise ErrorResponse(400, err_type=e.err_type, err_desc=e.err_desc)

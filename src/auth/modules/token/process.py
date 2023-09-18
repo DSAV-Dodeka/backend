@@ -7,6 +7,7 @@ from auth.core.model import (
     KeyState,
     TokenRequest,
 )
+from auth.data.context import TokenContext
 from store.error import NoDataError
 from auth.data.schemad.ops import SchemaOps
 from auth.define import Define
@@ -23,6 +24,7 @@ async def process_token_request(
     store: Store,
     define: Define,
     ops: SchemaOps,
+    context: TokenContext,
     key_state: KeyState,
     token_request: TokenRequest,
 ):
@@ -42,14 +44,14 @@ async def process_token_request(
         # Verify authorization code
         # THROWS AuthError, UnexpectedError
         tokens = await auth_code_grant(
-            store, define, ops, key_state, code_grant_request
+            store, define, ops, context, key_state, code_grant_request
         )
 
     elif token_request.grant_type == "refresh_token":
         # logger.debug("refresh_token request")
         old_refresh = refresh_validate(token_request)
         # Verify old refresh token
-        tokens = await request_token_grant(store, ops, key_state, old_refresh)
+        tokens = await request_token_grant(store, ops, context, key_state, old_refresh)
 
     else:
         reason = (
@@ -73,14 +75,13 @@ async def auth_code_grant(
     store: Store,
     define: Define,
     ops: SchemaOps,
+    context: TokenContext,
     key_state: KeyState,
     code_grant_request: CodeGrantRequest,
 ) -> Tokens:
     # Get flow_user and auth_request
     try:
-        flow_user = await data.authentication.pop_flow_user(
-            store, code_grant_request.code
-        )
+        flow_user = await context.pop_flow_user(store, code_grant_request.code)
     except NoDataError:
         reason = "Expired or missing auth code"
         raise AuthError(
@@ -88,7 +89,7 @@ async def auth_code_grant(
         )
 
     try:
-        auth_request = await data.authorize.get_auth_request(store, flow_user.flow_id)
+        auth_request = await context.get_auth_request(store, flow_user.flow_id)
     except NoDataError:
         # TODO maybe check auth time just in case
         reason = "Expired or missing auth request"
@@ -104,15 +105,27 @@ async def auth_code_grant(
 
     token_scope = flow_user.scope
     return await new_token(
-        store, define, ops, key_state, token_user_id, token_scope, auth_time, id_nonce
+        store,
+        define,
+        ops,
+        context,
+        key_state,
+        token_user_id,
+        token_scope,
+        auth_time,
+        id_nonce,
     )
 
 
 async def request_token_grant(
-    store: Store, ops: SchemaOps, key_state: KeyState, old_refresh: str
+    store: Store,
+    ops: SchemaOps,
+    context: TokenContext,
+    key_state: KeyState,
+    old_refresh: str,
 ) -> Tokens:
     try:
-        return await do_refresh(store, ops, key_state, old_refresh)
+        return await do_refresh(store, ops, context, key_state, old_refresh)
     except RefreshOperationError:
         error_desc = "Invalid refresh_token!"
         # logger.debug(f"{str(e)}: {error_desc}")

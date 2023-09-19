@@ -127,7 +127,6 @@ async def add_points_to_event(
     }
 
     await insert(conn, CLASS_EVENTS_POINTS_TABLE, row_to_insert)
-    return
 
 
 async def check_user_in_class(

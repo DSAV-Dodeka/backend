@@ -1,9 +1,7 @@
 import opaquepy as opq
 
-from auth import data
 from auth.core.model import SavedRegisterState
 from auth.core.response import PasswordResponse
-from auth.core.util import random_time_hash_hex
 from auth.data.context import RegisterContext
 from store import Store
 

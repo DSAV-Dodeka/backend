@@ -1,12 +1,12 @@
 from auth.core.error import UnexpectedDataError
+from auth.core.model import KeyState, AuthKeys
 from auth.data.context import token_context
+from auth.hazmat.key_decode import aes_from_symmetric
+from auth.hazmat.structs import PEMPrivateKey, A256GCMKey
 from store import Store
 from store.conn import get_kv
-from store.kv import get_json
-from auth.hazmat.key_decode import aes_from_symmetric
-from auth.core.model import KeyState, AuthKeys
-from auth.hazmat.structs import PEMPrivateKey, A256GCMKey, SymmetricKey
 from store.error import NoDataError
+from store.kv import get_json
 
 
 async def get_pem_private_key(store: Store, kid_key: str) -> PEMPrivateKey:

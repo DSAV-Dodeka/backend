@@ -3,40 +3,37 @@ import logging
 from datetime import date
 from urllib.parse import urlencode
 
-import opaquepy as opq
 from anyio import sleep
 from fastapi import APIRouter, BackgroundTasks, Request
 from pydantic import BaseModel
 
 from apiserver import data
+from apiserver.app.error import ErrorResponse, AppError
 from apiserver.app.modules.register import (
     RegisterRequest,
     check_register,
     FinishRequest,
     finalize_save_register,
 )
-from apiserver.data.frame import SourceFrame, Code
-from apiserver.define import (
-    LOGGER_NAME,
-    DEFINE,
-    email_expiration,
-)
-from apiserver.app.error import ErrorResponse, AppError
 from apiserver.app.ops.header import Authorization
-from apiserver.app.routers.helper import require_admin
 from apiserver.app.ops.mail import (
     send_signup_email,
     send_register_email,
     mail_from_config,
 )
-from apiserver.data import Source, ops
-from auth.core.util import enc_b64url, random_time_hash_hex
-from auth.data.context import Context
-from auth.data.schemad.user import UserErrors
-from store.error import DataError, NoDataError
+from apiserver.app.routers.helper import require_admin
+from apiserver.data import Source
+from apiserver.data.frame import Code
+from apiserver.define import (
+    LOGGER_NAME,
+    DEFINE,
+    email_expiration,
+)
 from apiserver.lib.model.entities import SignedUp, Signup
 from auth.core.response import PasswordResponse
+from auth.core.util import enc_b64url, random_time_hash_hex
 from auth.modules.register import send_register_start
+from store.error import DataError, NoDataError
 
 router = APIRouter()
 

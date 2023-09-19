@@ -1,13 +1,12 @@
 from yarl import URL
 
-from auth import data
 from auth.core.error import AuthError
-from auth.data.context import AuthorizeContext
-from auth.validate.authorize import auth_request_validate
 from auth.core.response import Redirect
-from store.error import NoDataError
+from auth.data.context import AuthorizeContext
 from auth.define import Define
+from auth.validate.authorize import auth_request_validate
 from store import Store
+from store.error import NoDataError
 
 
 async def oauth_start(

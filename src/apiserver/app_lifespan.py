@@ -1,19 +1,17 @@
-from contextlib import asynccontextmanager
-from dataclasses import dataclass
-from typing import TypedDict
 import logging
+from contextlib import asynccontextmanager
+from typing import TypedDict
 
 from fastapi import FastAPI
 
 import apiserver.lib.utilities as util
-
 from apiserver.app.ops.startup import startup
 from apiserver.data import Source
 from apiserver.data.frame import Code, source_frame
 from apiserver.define import LOGGER_NAME, DEFINE
 from apiserver.env import load_config, Config
 from apiserver.resources import res_path
-from auth.data.context import Context, data_context
+from auth.data.context import data_context
 
 logger = logging.getLogger(LOGGER_NAME)
 

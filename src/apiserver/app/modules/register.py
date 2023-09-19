@@ -61,7 +61,7 @@ async def finalize_save_register(
     # Note that this is equal to the client request, it simply is a check for correct format
     try:
         password_file = opq.register_finish(register_finish.client_request)
-    except ValueError as e:
+    except ValueError:
         # logger.debug(f"OPAQUE failure from client OPAQUE message: {e!s}")
         raise AppError(
             err_type=ErrorKeys.REGISTER,

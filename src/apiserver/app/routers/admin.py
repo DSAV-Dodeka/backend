@@ -204,15 +204,15 @@ async def update_ranking(
             # If on signup and on the creation of the classification
             # you add a row with value zero that won't be needed.
 
-            is_in_database = await check_user_in_class(
-                conn, user.user_id, update.classification_id
-            )
+            # TODO finish
+            # is_in_database = await check_user_in_class(
+            #     conn, user.user_id, update.classification_id
+            # )
 
             # Update or insert in database.
 
             # See if hidden_date has past.
-            hidden_date = await data.classifications.get_hidden_date(
-                conn, update.classification_id
-            )
-
-    return
+            # TODO finish
+            # hidden_date = await data.classifications.get_hidden_date(
+            #     conn, update.classification_id
+            # )

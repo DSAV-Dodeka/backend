@@ -20,7 +20,6 @@ from apiserver.data.frame import Code
 from auth.modules.update import change_password
 from store.error import DataError, NoDataError
 from apiserver.define import LOGGER_NAME, DEFINE
-from apiserver.env import Config
 from apiserver.lib.model.entities import UpdateEmailState
 from apiserver.app.routers.helper import require_user
 from auth.modules.register import send_register_start

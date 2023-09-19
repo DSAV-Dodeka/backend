@@ -55,7 +55,7 @@ async def check_userdata_register(
     try:
         async with data.get_conn(dsrc) as conn:
             ud = await data.ud.get_userdata_by_register_id(conn, register_id)
-    except NoDataError as e:
+    except NoDataError:
         # logger.debug(e)
         reason = "No registration for that register_id."
         raise AppError(

@@ -22,17 +22,20 @@ class DecryptError(Exception):
     pass
 
 
+NONCE_SIZE = 12
+
+
 def decrypt_dict(aesgcm: AESGCM, b64url_crypt_dict: str) -> dict[str, Any]:
     try:
         crypt_dict_bytes = dec_b64url(b64url_crypt_dict)
     except DecodeError:
         raise DecryptError
 
-    if len(crypt_dict_bytes) < 12:
+    if len(crypt_dict_bytes) < NONCE_SIZE:
         raise DecryptError
 
-    crypt_dict_nonce = crypt_dict_bytes[:12]
-    crypt_dict_data = crypt_dict_bytes[12:]
+    crypt_dict_nonce = crypt_dict_bytes[:NONCE_SIZE]
+    crypt_dict_data = crypt_dict_bytes[NONCE_SIZE:]
 
     # The 16 byte / 128 bit authentication tag is automatically checked by cryptography
     try:

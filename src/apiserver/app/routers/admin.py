@@ -7,15 +7,14 @@ from pydantic import BaseModel
 
 import apiserver.data.api.scope
 import apiserver.data.api.ud.userdata
-from apiserver.define import LOGGER_NAME
-from apiserver.app.error import ErrorResponse
-from apiserver.data.api.classifications import check_user_in_class
-from apiserver.lib.model.entities import UserData, UserScopeData, UserID
 from apiserver import data
-from apiserver.data import Source
-from store.error import DataError, NoDataError
+from apiserver.app.error import ErrorResponse
 from apiserver.app.ops.header import Authorization
 from apiserver.app.routers.helper import require_admin
+from apiserver.data import Source
+from apiserver.define import LOGGER_NAME
+from apiserver.lib.model.entities import UserData, UserScopeData, UserID
+from store.error import DataError, NoDataError
 
 router = APIRouter()
 

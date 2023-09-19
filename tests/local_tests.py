@@ -4,23 +4,22 @@ from pathlib import Path
 import opaquepy as opq
 import pytest
 import pytest_asyncio
+from auth.env2 import load_config
 from faker import Faker
 from httpx import AsyncClient
 from httpx import codes
 
-import apiserver.data.api.ud.userdata
 import apiserver.lib.utilities as util
 import auth.core.util
 from apiserver import data
-from apiserver.data.api.ud.userdata import new_userdata
-from auth.token.build import create_tokens, finish_tokens
-from auth.data.keys import get_keys
 from apiserver.data import Source
+from apiserver.data.api.ud.userdata import new_userdata
 from apiserver.lib.model.entities import SignedUp
-from auth.env2 import load_config
+from auth.data.keys import get_keys
+from auth.data.schemad.opaque import get_setup
 from auth.hazmat.crypt_dict import encrypt_dict, decrypt_dict
 from auth.hazmat.key_decode import aes_from_symmetric
-from auth.data.schemad.opaque import get_setup
+from auth.token.build import create_tokens, finish_tokens
 
 
 @pytest.fixture(scope="module", autouse=True)

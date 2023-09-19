@@ -25,7 +25,7 @@ from auth.core.model import (
     RefreshToken,
 )
 from auth.core.util import utc_timestamp
-from auth.data.context import TokenContext, data_context
+from auth.data.context import TokenContext
 from auth.data.schemad.entities import SavedRefreshToken
 from auth.data.schemad.ops import SchemaOps
 from auth.define import refresh_exp, id_exp, access_exp

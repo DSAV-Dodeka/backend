@@ -3,31 +3,37 @@ import logging
 from datetime import date
 from urllib.parse import urlencode
 
-import opaquepy as opq
 from anyio import sleep
 from fastapi import APIRouter, BackgroundTasks, Request
 from pydantic import BaseModel
 
-import apiserver.lib.utilities as util
 from apiserver import data
-from apiserver.app.define import (
-    LOGGER_NAME,
-    signup_url,
-    credentials_url,
-    email_expiration,
+from apiserver.app.error import ErrorResponse, AppError
+from apiserver.app.modules.register import (
+    RegisterRequest,
+    check_register,
+    FinishRequest,
+    finalize_save_register,
 )
-from apiserver.app.env import Config
-from apiserver.app.error import ErrorResponse
-from apiserver.app.model.models import PasswordResponse
 from apiserver.app.ops.header import Authorization
-from apiserver.app.routers.helper import require_admin
-from apiserver.app.routers.helper.authentication import send_register_start
 from apiserver.app.ops.mail import (
     send_signup_email,
     send_register_email,
+    mail_from_config,
 )
-from apiserver.data import DataError, Source, NoDataError
+from apiserver.app.routers.helper import require_admin
+from apiserver.data import Source
+from apiserver.data.frame import Code
+from apiserver.define import (
+    LOGGER_NAME,
+    DEFINE,
+    email_expiration,
+)
 from apiserver.lib.model.entities import SignedUp, Signup
+from auth.core.response import PasswordResponse
+from auth.core.util import enc_b64url, random_time_hash_hex
+from auth.modules.register import send_register_start
+from store.error import DataError, NoDataError
 
 router = APIRouter()
 
@@ -59,24 +65,31 @@ async def init_signup(
     do_send_email = not u_ex and not su_ex
     logger.debug(f"{signup.email} /onboard/signup - do_send_email {do_send_email}")
 
-    confirm_id = util.random_time_hash_hex()
+    confirm_id = random_time_hash_hex()
 
     await data.trs.reg.store_email_confirmation(
-        dsrc, confirm_id, Signup.model_validate(signup), email_expiration
+        dsrc,
+        confirm_id,
+        Signup(
+            email=signup.email,
+            phone=signup.phone,
+            firstname=signup.firstname,
+            lastname=signup.lastname,
+        ),
+        email_expiration,
     )
-    config: Config = request.state.config
 
     params = {"confirm_id": confirm_id}
-    confirmation_url = f"{credentials_url}email/?{urlencode(params)}"
+    confirmation_url = f"{DEFINE.credentials_url}email/?{urlencode(params)}"
 
     if do_send_email:
         send_signup_email(
             background_tasks,
             signup.email,
             f"{signup.firstname} {signup.lastname}",
-            config.MAIL_PASS,
+            mail_from_config(dsrc.config),
             confirmation_url,
-            signup_url,
+            DEFINE.signup_url,
         )
     else:
         # Prevent client enumeration
@@ -169,7 +182,7 @@ async def confirm_join(
 
     # Success here means removing any existing records in signedup and also the KV relating to that email
 
-    register_id = util.random_time_hash_hex(short=True)
+    register_id = random_time_hash_hex(short=True)
     async with data.get_conn(dsrc) as conn:
         await data.user.new_user(
             conn,
@@ -180,8 +193,6 @@ async def confirm_join(
         )
         await data.signedup.confirm_signup(conn, signup_email)
 
-    config: Config = request.state.config
-
     info = {
         "register_id": register_id,
         "firstname": signed_up.firstname,
@@ -189,19 +200,13 @@ async def confirm_join(
         "email": signed_up.email,
         "phone": signed_up.phone,
     }
-    info_str = util.enc_b64url(json.dumps(info).encode("utf-8"))
+    info_str = enc_b64url(json.dumps(info).encode("utf-8"))
     params = {"info": info_str}
-    registration_url = f"{credentials_url}register/?{urlencode(params)}"
+    registration_url = f"{DEFINE.credentials_url}register/?{urlencode(params)}"
 
     send_register_email(
-        background_tasks, signup_email, config.MAIL_PASS, registration_url
+        background_tasks, signup_email, mail_from_config(dsrc.config), registration_url
     )
-
-
-class RegisterRequest(BaseModel):
-    email: str
-    client_request: str
-    register_id: str
 
 
 @router.post("/onboard/register/", response_model=PasswordResponse)
@@ -209,66 +214,18 @@ async def start_register(register_start: RegisterRequest, request: Request):
     """First step of OPAQUE registration, requires username and client message generated in first client registration
     step."""
     dsrc: Source = request.state.dsrc
-    try:
-        async with data.get_conn(dsrc) as conn:
-            ud = await data.user.get_userdata_by_register_id(
-                conn, register_start.register_id
-            )
-    except NoDataError as e:
-        logger.debug(e)
-        reason = "No registration for that register_id"
-        raise ErrorResponse(
-            400,
-            err_type="invalid_register",
-            err_desc=reason,
-            debug_key="no_register_for_id",
-        )
+    cd: Code = request.state.cd
 
     try:
-        async with data.get_conn(dsrc) as conn:
-            u = await data.user.get_user_by_id(conn, ud.user_id)
-    except DataError as e:
-        logger.debug(e)
-        reason = "No registration for that user"
+        user_id = await check_register(dsrc, cd.frame.register_frm, register_start)
+    except AppError as e:
         raise ErrorResponse(
-            400,
-            err_type="invalid_register",
-            err_desc=reason,
-            debug_key="no_register_for_user",
+            400, err_type=e.err_type, err_desc=e.err_desc, debug_key=e.debug_key
         )
 
-    if ud.registered or len(u.password_file) > 0:
-        logger.debug("Already registered.")
-        reason = "Bad registration."
-        raise ErrorResponse(
-            400,
-            err_type="invalid_register",
-            err_desc=reason,
-            debug_key="bad_registration_start",
-        )
-
-    if u.email != register_start.email.lower():
-        logger.debug("Registration start does not match e-mail")
-        reason = "Bad registration."
-        raise ErrorResponse(
-            400,
-            err_type="invalid_register",
-            err_desc=reason,
-            debug_key="bad_registration_start",
-        )
-
-    return await send_register_start(dsrc, ud.user_id, register_start.client_request)
-
-
-class FinishRequest(BaseModel):
-    auth_id: str
-    email: str
-    client_request: str
-    register_id: str
-    callname: str
-    eduinstitution: str
-    birthdate: date
-    age_privacy: bool
+    return await send_register_start(
+        dsrc.store, cd.context.register_ctx, user_id, register_start.client_request
+    )
 
 
 @router.post("/onboard/finish/")
@@ -276,79 +233,15 @@ async def finish_register(register_finish: FinishRequest, request: Request):
     """At this point, we have info saved under 'userdata', 'users' and short-term storage as SavedRegisterState. All
     this data must match up for there to be a successful registration."""
     dsrc: Source = request.state.dsrc
-    try:
-        saved_state = await data.trs.reg.get_register_state(
-            dsrc, register_finish.auth_id
-        )
-    except NoDataError as e:
-        logger.debug(e.message)
-        reason = "Registration not initialized or expired."
-        raise ErrorResponse(
-            400,
-            err_type="invalid_registration",
-            err_desc=reason,
-            debug_key="no_register_start",
-        )
-
-    # Generate password file
-    # Note that this is equal to the client request, it simply is a check for correct format
-    try:
-        password_file = opq.register_finish(register_finish.client_request)
-    except ValueError as e:
-        logger.debug(f"OPAQUE failure from client OPAQUE message: {str(e)}")
-        raise ErrorResponse(
-            400,
-            err_type="invalid_registration",
-            err_desc="Invalid OPAQUE registration.",
-            debug_key="bad_opaque_registration",
-        )
+    cd: Code = request.state.cd
 
     try:
-        async with data.get_conn(dsrc) as conn:
-            ud = await data.user.get_userdata_by_register_id(
-                conn, register_finish.register_id
-            )
-    except NoDataError as e:
-        logger.debug(e)
-        reason = "No registration for that register_id."
+        await finalize_save_register(dsrc, cd.frame.register_frm, register_finish)
+    except AppError as e:
+        # logger.debug(e.message)
         raise ErrorResponse(
             400,
-            err_type="invalid_register",
-            err_desc=reason,
-            debug_key="no_register_for_id",
+            err_type=e.err_type,
+            err_desc=e.err_desc,
+            debug_key=e.debug_key,
         )
-
-    if ud.registered:
-        logger.debug("Already registered.")
-        reason = "Bad registration."
-        raise ErrorResponse(
-            400,
-            err_type="invalid_register",
-            err_desc=reason,
-            debug_key="bad_registration",
-        )
-
-    if ud.email != register_finish.email.lower():
-        logger.debug("Registration does not match e-mail.")
-        reason = "Bad registration."
-        raise ErrorResponse(
-            400,
-            err_type="invalid_register",
-            err_desc=reason,
-            debug_key="bad_registration",
-        )
-
-    new_userdata = data.user.finished_userdata(
-        ud,
-        register_finish.callname,
-        register_finish.eduinstitution,
-        register_finish.birthdate,
-        register_finish.age_privacy,
-    )
-
-    async with data.get_conn(dsrc) as conn:
-        await data.user.update_password_file(conn, saved_state.user_id, password_file)
-        await data.user.upsert_userdata(conn, new_userdata)
-        await data.signedup.delete_signedup(conn, ud.email)
-
-    # send welcome email

@@ -4,23 +4,22 @@ from pathlib import Path
 import opaquepy as opq
 import pytest
 import pytest_asyncio
+from auth.env2 import load_config
 from faker import Faker
 from httpx import AsyncClient
 from httpx import codes
 
 import apiserver.lib.utilities as util
+import auth.core.util
 from apiserver import data
-from apiserver.data.api.user import new_userdata
-from apiserver.lib.model.fn.tokens import create_tokens, finish_tokens
-from apiserver.app.ops.tokens import get_keys
 from apiserver.data import Source
+from apiserver.data.api.ud.userdata import new_userdata
 from apiserver.lib.model.entities import SignedUp
-from apiserver.app.env import load_config
-from apiserver.lib.utilities.crypto import (
-    aes_from_symmetric,
-    encrypt_dict,
-    decrypt_dict,
-)
+from auth.data.keys import get_keys
+from auth.data.schemad.opaque import get_setup
+from auth.hazmat.crypt_dict import encrypt_dict, decrypt_dict
+from auth.hazmat.key_decode import aes_from_symmetric
+from auth.token.build import create_tokens, finish_tokens
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -76,7 +75,7 @@ async def local_dsrc(api_config):
 async def admin_access(local_dsrc):
     admin_id = "admin_test"
     scope = "member admin"
-    utc_now = util.utc_timestamp()
+    utc_now = auth.core.util.utc_timestamp()
 
     access_token_data, id_token_data, access_scope, refresh_save = create_tokens(
         admin_id, scope, utc_now, "test_nonce", utc_now
@@ -116,7 +115,7 @@ async def test_generate_admin():
 async def test_generate_dummies(local_dsrc: Source, faker: Faker):
     admin_password = "admin"
     async with data.get_conn(local_dsrc) as conn:
-        setup = await data.opaquesetup.get_setup(conn)
+        setup = await get_setup(conn)
 
     # setup = ""
     faker_u = faker.unique
@@ -133,7 +132,7 @@ async def test_generate_dummies(local_dsrc: Source, faker: Faker):
             confirmed=True,
         )
         av40id = int.from_bytes(faker_u.binary(2), byteorder="big")
-        register_id = util.random_time_hash_hex()
+        register_id = auth.core.util.random_time_hash_hex()
         joined = faker.date()
         async with data.get_conn(local_dsrc) as conn:
             uid = await data.user.new_user(
@@ -150,7 +149,7 @@ async def test_generate_dummies(local_dsrc: Source, faker: Faker):
             cl_fin = opq.register_client_finish(cl_state, admin_password, serv_resp)
             pw_file = opq.register_finish(cl_fin)
             birthdate = faker.date()
-            new_ud = data.user.finished_userdata(
+            new_ud = data.ud.finished_userdata(
                 userdata,
                 callname=fname,
                 eduinstitution="TU Delft",
@@ -159,13 +158,13 @@ async def test_generate_dummies(local_dsrc: Source, faker: Faker):
             )
 
             await data.user.update_password_file(conn, uid, pw_file)
-            await data.user.upsert_userdata(conn, new_ud)
+            await data.ud.upsert_userdata(conn, new_ud)
             await data.signedup.delete_signedup(conn, email)
 
 
 @pytest.mark.asyncio
 async def test_generate_rand():
-    x = util.random_time_hash_hex(short=True)
+    x = auth.core.util.random_time_hash_hex(short=True)
     print(x)
 
 
@@ -196,7 +195,7 @@ async def test_fill_signedup():
             {
                 "kid": "2dadb3af386b4d9d",
                 "alg": "EdDSA",
-                "kty": "okp",
+                "kty": "OKP",
                 "crv": "Ed448",
                 "x": "f5538Oa3cLDNVLcsZI_SLwYSZuM6Vn_5rV5iVi7IcRqoAQ9Ne5w9Nhy9uPZGVzQeZz5T0xYrx4mA",
                 "d": "JXpGIitdCa1PqlbFPY50pIunS5AiTz0OCai92WRWfC4-82r74uk-pIqKbk1Wv11dkcEP8gnACbZy",

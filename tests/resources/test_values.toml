@@ -1,0 +1,30 @@
+[opaque]
+server_setup = "pd32VP-D21oNgNId22WdbEiUn5vUeFNhgNReuAv2FQvT8kyBZu9gW2kBn8E60HgbAEHDT6KCy575MVIzgLJQ2daSp_2XpESlXFbsxftf6Bw0_RYzAOZ1YL2Dnrtq1MwOF4jzOi3gs3bHnS_odl9VpaXz4GjQTT7aol5CYB0yYgE"
+login_start_request = "ht_LfPlozB5sa76eflmWeulgGU4dU4aeEutzyDMTkRoB3bO62RP95nc1PWt6IdJxpiuMW5OsoWEWNpa4EUZrxqAB8a5mLVLBQ81Y-30YlSgppQNdWAgeA-amu93cEisx"
+fake_password_file = "GLgWMaiuTTs2NyK9gvrhbtUMTrHLy2erbEwPnzwFDQ6i5EuUyWEN9yqEarTqxprZ205gkQoY_yks3-1jr3XuTfKfh1byl9LZHFpDA-FWNyc5wV5CBYz_jzruanzI-yFCPt7fPglNFs7mnwPbZaraoKMJX5prMMrULtDF4KlZuv2szqISaM3d9kiVUEgXzNAPh6EMuN1GCySL8gimFyfZxfrk3QCeQJKudx2YZYz9ReBs7EkmAwTCHxeiCmYaDdlu"
+correct_password_file = "6sr_nvpqPqB-GCjj091vbsIsKYdHX2BE_9ICHT-8o329Wn_-9F4gCjfFD1GsPGayGF1oJ2FzyZXLzUS-MmaHO2pTGoD_QyGBiIV9s7LBYxFM_fciaaI08ZahLfj4kmXJfzqcWVSecc7uqgzR5DVamDHlmQUOT6QjXcDmbuPm8eDu1hBdD65ZWmpUz16DK3-k6uBLjQ1fKYj8o3xBShhRQCKpm0PFCjk4uABkXgdzy5EWoKkTZ8cslYe450nAdOqv"
+# Assumes password 'clientele'
+login_start_state = "NxOxeb4oKwirncPlH1SlCbE_md8lH767HsgGv57G1l3aMinOwsi9BDWQW054L-iqZh9le2YqQ4LI10kCbfh4ijIV36HPrGDZg1ObZKx4U1Mgg-5wnLKZx-qtUukSWgON8a0fkN7_C_Jazl8oZxKC4fXBbJj1NKKn2xZM0yrezur9PbOOAi8m9g4WTgKcEwyHGXz41dey2QetWH2GnK-w540e3mdi5vP9q7NPGXOJ-I6TIqvU9tp5B3539LnwwTE1"
+# Assumes password 'clientele'
+client_registration = "GM3pwtpnoj4e9JQJtectg6lZ7FYRZmD6fGo4cMttmSc"
+final_registration = "iGq1MWDlVlZo_LG4o28Si9xV-Qt0IxKZ4NcLhhR470W9Wn_-9F4gCjfFD1GsPGayGF1oJ2FzyZXLzUS-MmaHO2pTGoD_QyGBiIV9s7LBYxFM_fciaaI08ZahLfj4kmXJVnOleHfXPsTJ8aDkPdJJwVox_1GvDJ2owTGez1xdA-N5POX6W32CNPA15RASrcdZSt4bik_EyPLb8VmeDKG6_ofcxpLhDETau2nYujPKPoG29f8RY3E8yYVuHewVlYr0"
+
+[keys]
+# base64url encoded
+symmetric = "8T3oEm_haJZbn6xu-klttJXk5QBPYlurQrqA5SDx-Ck"
+
+# signing key, ed448 EdDSA, both PEM-encoded. Note that newlines are included in this TOML
+# X509PKCS#1 format
+signing_public ="""
+-----BEGIN PUBLIC KEY-----
+MEMwBQYDK2VxAzoAtPGddEupA3b5P5yr9gT3rvjzWeQH5cedY6RcwN3A5zTS9n8C
+c6dOR+XUPVLVu0o0i/t46fW1HMQA
+-----END PUBLIC KEY-----
+"""
+# PKCS#8 format
+signing_private = """
+-----BEGIN PRIVATE KEY-----
+MEcCAQAwBQYDK2VxBDsEOY1wa98ZvsK8pYML+ICD9Mbtavr+QC5PC301oVn5jPM6
+T8tECKaZvu5mxG/OfxlEKxl/XIKuClP1mw==
+-----END PRIVATE KEY-----
+"""

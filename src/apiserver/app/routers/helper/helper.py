@@ -1,6 +1,6 @@
 import logging
 
-from apiserver.app.define import LOGGER_NAME
+from apiserver.define import LOGGER_NAME
 from apiserver.app.error import ErrorResponse
 from apiserver.lib.model.entities import AccessToken
 from apiserver.app.ops.header import handle_header, BadAuth

@@ -2,6 +2,7 @@ import pytest_asyncio
 from pytest_mock import MockerFixture
 
 import apiserver.lib.utilities as util
+import auth.core.util
 
 
 @pytest_asyncio.fixture
@@ -13,11 +14,14 @@ async def mock_random(mocker: MockerFixture):
 
 
 def test_hash_hex(mock_random):
-    assert util.random_time_hash_hex() == "23d6bccd333b8912d52ba72c1f9621ae"
-    assert util.random_time_hash_hex(b"someone") == "d0e8ffed9e32495eef694b45d7789f1f"
-    assert util.random_time_hash_hex("someother") == util.random_time_hash_hex(
-        b"someother"
+    assert auth.core.util.random_time_hash_hex() == "23d6bccd333b8912d52ba72c1f9621ae"
+    assert (
+        auth.core.util.random_time_hash_hex(b"someone")
+        == "d0e8ffed9e32495eef694b45d7789f1f"
     )
+    assert auth.core.util.random_time_hash_hex(
+        "someother"
+    ) == auth.core.util.random_time_hash_hex(b"someother")
 
 
 def test_usp_hex():

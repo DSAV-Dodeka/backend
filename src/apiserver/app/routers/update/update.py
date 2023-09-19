@@ -5,18 +5,24 @@ import opaquepy as opq
 from fastapi import APIRouter, Request, BackgroundTasks
 from pydantic import BaseModel
 
+import auth.core.util
 from apiserver import data
-import apiserver.lib.utilities as util
 from apiserver.app.error import ErrorResponse
-from apiserver.app.ops.mail import send_change_email_email, send_reset_email
+from apiserver.app.ops.mail import (
+    send_change_email_email,
+    send_reset_email,
+    mail_from_config,
+)
 from apiserver.app.routers.helper import authentication
-from apiserver.app.routers.helper.authentication import send_register_start
 from apiserver.app.ops.header import Authorization
-from apiserver.data import Source, NoDataError, DataError
-from apiserver.app.define import LOGGER_NAME, credentials_url
+from apiserver.data import Source, ops
+from apiserver.data.frame import Code
+from auth.modules.update import change_password
+from store.error import DataError, NoDataError
+from apiserver.define import LOGGER_NAME, DEFINE
 from apiserver.lib.model.entities import UpdateEmailState
-from apiserver.app.env import Config
 from apiserver.app.routers.helper import require_user
+from auth.modules.register import send_register_start
 
 router = APIRouter()
 
@@ -36,18 +42,20 @@ async def request_password_change(
     """Initiated from authpage. Sends out e-mail with reset link."""
     dsrc: Source = request.state.dsrc
     async with data.get_conn(dsrc) as conn:
-        ud = await data.user.get_userdata_by_email(conn, change_pass.email)
+        ud = await data.ud.get_userdata_by_email(conn, change_pass.email)
     logger.debug(f"Reset requested - is_registered={ud.registered}")
-    flow_id = util.random_time_hash_hex()
+    flow_id = auth.core.util.random_time_hash_hex()
     params = {"reset_id": flow_id, "email": change_pass.email}
-    reset_url = f"{credentials_url}reset/?{urlencode(params)}"
+    reset_url = f"{DEFINE.credentials_url}reset/?{urlencode(params)}"
 
     await data.trs.store_string(dsrc, flow_id, change_pass.email, 1000)
 
-    config: Config = request.state.config
     if ud.registered:
         send_reset_email(
-            background_tasks, change_pass.email, config.MAIL_PASS, reset_url
+            background_tasks,
+            change_pass.email,
+            mail_from_config(dsrc.config),
+            reset_url,
         )
 
 
@@ -60,6 +68,7 @@ class UpdatePasswordRequest(BaseModel):
 @router.post("/update/password/start/")
 async def update_password_start(update_pass: UpdatePasswordRequest, request: Request):
     dsrc: Source = request.state.dsrc
+    cd: Code = request.state.cd
 
     try:
         stored_email = await data.trs.pop_string(dsrc, update_pass.flow_id)
@@ -81,9 +90,11 @@ async def update_password_start(update_pass: UpdatePasswordRequest, request: Req
         )
 
     async with data.get_conn(dsrc) as conn:
-        u = await data.user.get_user_by_email(conn, update_pass.email)
+        u = await ops.user.get_user_by_email(conn, update_pass.email)
 
-    return await send_register_start(dsrc, u.user_id, update_pass.client_request)
+    return await send_register_start(
+        dsrc.store, cd.context.register_ctx, u.user_id, update_pass.client_request
+    )
 
 
 class UpdatePasswordFinish(BaseModel):
@@ -106,10 +117,9 @@ async def update_password_finish(update_finish: UpdatePasswordFinish, request: R
 
     password_file = opq.register_finish(update_finish.client_request)
 
-    async with data.get_conn(dsrc) as conn:
-        await data.user.update_password_file(conn, saved_state.user_id, password_file)
-
-        await data.refreshtoken.delete_by_user_id(conn, saved_state.user_id)
+    await change_password(
+        dsrc.store, data.schema.OPS, password_file, saved_state.user_id
+    )
 
 
 class UpdateEmail(BaseModel):
@@ -130,25 +140,28 @@ async def update_email(
 
     try:
         async with data.get_conn(dsrc) as conn:
-            u = await data.user.get_user_by_id(conn, user_id)
+            u = await ops.user.get_user_by_id(conn, user_id)
     except NoDataError:
         raise ErrorResponse(
             400, "bad_update", "User no longer exists.", "update_user_empty"
         )
     old_email = u.email
 
-    flow_id = util.random_time_hash_hex(user_id)
+    flow_id = auth.core.util.random_time_hash_hex(user_id)
     params = {
         "flow_id": flow_id,
         "user": old_email,
         "redirect": "client:account/email/",
         "extra": new_email.new_email,
     }
-    reset_url = f"{credentials_url}?{urlencode(params)}"
+    reset_url = f"{DEFINE.credentials_url}?{urlencode(params)}"
 
-    config: Config = request.state.config
     send_change_email_email(
-        background_tasks, new_email.new_email, config.MAIL_PASS, reset_url, old_email
+        background_tasks,
+        new_email.new_email,
+        mail_from_config(dsrc.config),
+        reset_url,
+        old_email,
     )
 
     state = UpdateEmailState(
@@ -183,7 +196,7 @@ async def update_email_check(update_check: UpdateEmailCheck, request: Request):
     user_id = stored_email.user_id
 
     async with data.get_conn(dsrc) as conn:
-        await data.refreshtoken.delete_by_user_id(conn, flow_user.user_id)
+        await data.schema.OPS.refresh.delete_by_user_id(conn, flow_user.user_id)
 
         count_ud = await data.user.update_user_email(
             conn, user_id, stored_email.new_email
@@ -216,7 +229,7 @@ async def delete_account(
 
     try:
         async with data.get_conn(dsrc) as conn:
-            ud = await data.user.get_userdata_by_id(conn, user_id)
+            ud = await ops.userdata.get_userdata_by_id(conn, user_id)
     except NoDataError:
         raise ErrorResponse(
             400, "bad_update", "User no longer exists.", "update_user_empty"
@@ -229,13 +242,13 @@ async def delete_account(
             debug_key="delete_not_registered",
         )
 
-    flow_id = util.random_time_hash_hex(user_id)
+    flow_id = auth.core.util.random_time_hash_hex(user_id)
     params = {
         "flow_id": flow_id,
         "user": ud.email,
         "redirect": "client:account/delete/",
     }
-    delete_url = f"{credentials_url}?{urlencode(params)}"
+    delete_url = f"{DEFINE.credentials_url}?{urlencode(params)}"
 
     await data.trs.store_string(dsrc, flow_id, user_id, 1000)
 

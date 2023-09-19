@@ -38,7 +38,7 @@ jobs:
         npm run build
       working-directory: ${{ github.workspace }}/authpage
     - name: Pytest
-      run: poetry run pytest tests/app_test.py
+      run: poetry run pytest
     - name: Black
       run: poetry run black src tests
     - name: Ruff

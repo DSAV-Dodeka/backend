@@ -1,12 +1,8 @@
-from apiserver.data import Source, get_kv, NoDataError
-from apiserver.data.kv import store_json, get_json, pop_json
-from apiserver.lib.model.entities import SavedRegisterState, UpdateEmailState, Signup
-
-
-async def store_auth_register_state(
-    dsrc: Source, auth_id: str, state: SavedRegisterState
-):
-    await store_json(get_kv(dsrc), auth_id, state.model_dump(), expire=1000)
+from store.kv import store_json, get_json, pop_json
+from apiserver.data import Source, get_kv
+from store.error import NoDataError
+from apiserver.lib.model.entities import UpdateEmailState, Signup
+from auth.core.model import SavedRegisterState
 
 
 async def get_register_state(dsrc: Source, auth_id: str) -> SavedRegisterState:

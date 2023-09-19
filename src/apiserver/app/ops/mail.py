@@ -1,18 +1,12 @@
-from typing import Optional, Any
+from typing import Optional, Any, TypedDict
 
 import logging
 
 from fastapi import BackgroundTasks
-from apiserver.lib.actions.mail import send_email_vars
-from apiserver.app.define import (
-    template_env,
-    onboard_email,
-    smtp_server,
-    smtp_port,
-    loc_dict,
-    LOGGER_NAME,
-)
 
+from apiserver.env import Config
+from apiserver.lib.actions.mail import send_email_vars
+from apiserver.define import template_env, loc_dict, LOGGER_NAME, DEFINE
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -21,14 +15,29 @@ __all__ = [
     "send_register_email",
     "send_change_email_email",
     "send_reset_email",
+    "mail_from_config",
 ]
+
+
+class MailServer(TypedDict):
+    mail_pass: str
+    smtp_server: str
+    smtp_port: int
+
+
+def mail_from_config(config: Config) -> MailServer:
+    return {
+        "mail_pass": config.MAIL_PASS,
+        "smtp_port": config.SMTP_PORT,
+        "smtp_server": config.SMTP_SERVER,
+    }
 
 
 def send_email(
     logger_sent,
     template: str,
     receiver_email: str,
-    mail_pass: str,
+    mail_server: MailServer,
     subject: str,
     receiver_name: Optional[str] = None,
     add_vars: Optional[dict[str, Any]] = None,
@@ -46,11 +55,11 @@ def send_email(
         templ_vars=templ_vars,
         receiver_email=receiver_email,
         receiver_name=receiver_name,
-        mail_pass=mail_pass,
-        from_email=onboard_email,
+        mail_pass=mail_server["mail_pass"],
+        from_email=DEFINE.onboard_email,
         from_name=loc_dict["loc"]["org_name"],
-        l_smtp_server=smtp_server,
-        l_smtp_port=smtp_port,
+        l_smtp_server=mail_server["smtp_server"],
+        l_smtp_port=mail_server["smtp_port"],
         subject=subject,
     )
 
@@ -59,7 +68,7 @@ def send_signup_email(
     background_tasks: BackgroundTasks,
     receiver: str,
     receiver_name: str,
-    mail_pass: str,
+    mail_server: MailServer,
     redirect_link: str,
     signup_link: str,
 ):
@@ -70,7 +79,7 @@ def send_signup_email(
             logger,
             "confirm.jinja2",
             receiver,
-            mail_pass,
+            mail_server,
             "Please confirm your email",
             receiver_name,
             add_vars=add_vars,
@@ -80,7 +89,10 @@ def send_signup_email(
 
 
 def send_register_email(
-    background_tasks: BackgroundTasks, receiver: str, mail_pass: str, register_link: str
+    background_tasks: BackgroundTasks,
+    receiver: str,
+    mail_server: MailServer,
+    register_link: str,
 ):
     add_vars = {"register_link": register_link}
 
@@ -90,7 +102,7 @@ def send_register_email(
             logger,
             "register.jinja2",
             receiver,
-            mail_pass,
+            mail_server,
             f"Welcome to {org_name}",
             add_vars=add_vars,
         )
@@ -99,7 +111,10 @@ def send_register_email(
 
 
 def send_reset_email(
-    background_tasks: BackgroundTasks, receiver: str, mail_pass: str, reset_link: str
+    background_tasks: BackgroundTasks,
+    receiver: str,
+    mail_server: MailServer,
+    reset_link: str,
 ):
     add_vars = {
         "reset_link": reset_link,
@@ -110,7 +125,7 @@ def send_reset_email(
             logger,
             "passwordchange.jinja2",
             receiver,
-            mail_pass,
+            mail_server,
             "Request for password reset",
             add_vars=add_vars,
         )
@@ -121,7 +136,7 @@ def send_reset_email(
 def send_change_email_email(
     background_tasks: BackgroundTasks,
     receiver: str,
-    mail_pass: str,
+    mail_server: MailServer,
     reset_link: str,
     old_email: str,
 ):
@@ -135,7 +150,7 @@ def send_change_email_email(
             logger,
             "emailchange.jinja2",
             receiver,
-            mail_pass,
+            mail_server,
             "Please confirm your new email",
             add_vars=add_vars,
         )

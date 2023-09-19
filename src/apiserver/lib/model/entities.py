@@ -3,15 +3,16 @@ from typing import Optional, Literal
 
 from pydantic import field_validator, BaseModel
 
+from auth.core.model import IdInfo as AuthIdInfo, AccessTokenBase as AuthAccessToken
+from auth.data.schemad.entities import User as AuthUser, UserData as AuthUserData
 
-class User(BaseModel):
+
+class User(AuthUser):
     # Set by the database
     id: int = -1
     id_name: str
     # Computed in the database
     user_id: str = ""
-    email: str
-    password_file: str
     scope: str = "member"
 
 
@@ -26,41 +27,12 @@ class Key(BaseModel):
     private_encoding: str
 
 
-class SavedRefreshToken(BaseModel):
-    # Set by the database
-    id: int = -1
-    user_id: str
-    family_id: str
-    access_value: str
-    id_token_value: str
-    iat: int
-    exp: int
-    nonce: str
-
-
-class RefreshToken(BaseModel):
-    id: int
-    family_id: str
-    nonce: str
-
-
-class AccessToken(BaseModel):
-    sub: str
-    iss: str
-    aud: list[str]
-    scope: str
+class AccessToken(AuthAccessToken):
     iat: int
     exp: int
 
 
-class SavedAccessToken(BaseModel):
-    sub: str
-    iss: str
-    aud: list[str]
-    scope: str
-
-
-class IdInfo(BaseModel):
+class IdInfo(AuthIdInfo):
     email: str
     name: str
     given_name: str
@@ -68,14 +40,6 @@ class IdInfo(BaseModel):
     nickname: str
     preferred_username: str
     birthdate: str
-
-
-class IdToken(IdInfo):
-    sub: str
-    iss: str
-    aud: list[str]
-    auth_time: int
-    nonce: str
 
 
 class SignedUp(BaseModel):
@@ -86,7 +50,7 @@ class SignedUp(BaseModel):
     confirmed: bool = False
 
 
-class UserData(BaseModel):
+class UserData(AuthUserData):
     user_id: str
     active: bool
     firstname: str
@@ -143,18 +107,15 @@ class JWKSRow(BaseModel):
     encrypted_value: str
 
 
-class A256GCMKey(BaseModel):
-    kid: str
-    symmetric: str  # base64url encoded symmetric 256-bit key
-
-
 class OpaqueSetup(BaseModel):
     id: int
     value: str
 
 
 class JWK(BaseModel):
-    kty: Literal["okp", "oct"]
+    """Parameters are as standardized in the IANA JOSE registry (https://www.iana.org/assignments/jose/jose.xhtml)"""
+
+    kty: Literal["OKP", "oct"]
     use: Literal["sig", "enc"]
     alg: Literal["EdDSA", "A256GCM"]
     kid: str
@@ -164,6 +125,15 @@ class JWK(BaseModel):
     d: Optional[str] = None  # private asymmetric key base64url bytes
 
 
+class JWKPublicEdDSA(JWK):
+    kty: Literal["OKP"]
+    use: Literal["sig"]
+    alg: Literal["EdDSA"]
+    kid: str
+    crv: Literal["Ed448"]
+    x: str  # public asymmetric key base64url bytes
+
+
 class JWKSet(BaseModel):
     keys: list[JWK]
 
@@ -171,7 +141,6 @@ class JWKSet(BaseModel):
 class PEMKey(BaseModel):
     kid: str
     public: str  # PEM encoded X509PKCS#1 as unicode
-    private: str  # PEM encoded PKCS#8 as unicode
 
 
 class AuthRequest(BaseModel):
@@ -184,22 +153,11 @@ class AuthRequest(BaseModel):
     nonce: str
 
 
-class SavedRegisterState(BaseModel):
-    user_id: str
-
-
 class SavedState(BaseModel):
     user_id: str
     user_email: str
     scope: str
     state: str
-
-
-class FlowUser(BaseModel):
-    user_id: str
-    scope: str
-    flow_id: str
-    auth_time: int
 
 
 class UpdateEmailState(BaseModel):

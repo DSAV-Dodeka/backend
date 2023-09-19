@@ -13,3 +13,6 @@ KV_PASS="redisredis"
 
 KEY_PASS="AT_av0v62Z3hQH50VYwKBks1-VSukK9xDN_Ur34mdZ4"
 MAIL_PASS=""
+
+SMTP_SERVER = "abcmail"
+SMTP_PORT = 587

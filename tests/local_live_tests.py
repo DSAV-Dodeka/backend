@@ -4,7 +4,7 @@ import pytest
 import pytest_asyncio
 from httpx import AsyncClient
 
-from apiserver.app.env import load_config
+from auth.env2 import load_config
 from apiserver.resources import project_path
 
 

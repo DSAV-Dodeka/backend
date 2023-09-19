@@ -5,6 +5,7 @@ from random import random
 
 from sqlalchemy import create_engine
 
+from apiserver.data.source import KeyState
 from apiserver.env import Config
 from apiserver.lib.model.entities import JWKSet, User, UserData, JWKPublicEdDSA
 from auth.data.schemad.opaque import insert_opaque_row
@@ -146,7 +147,21 @@ async def initial_population(dsrc: Source, config: Config):
         assert user_id == "1_fakerecord"
 
 
-async def load_keys(dsrc: Source, config: Config):
+async def get_keystate(dsrc: Source):
+    async with data.get_conn(dsrc) as conn:
+        # We get the Key IDs (kid) of the newest keys and also previous symmetric key
+        # These newest ones will be used for signing new tokens
+        new_pem_kid = await data.key.get_newest_pem(conn)
+        new_symmetric_kid, old_symmetric_kid = await data.key.get_newest_symmetric(conn)
+
+    return KeyState(
+        current_symmetric=new_symmetric_kid,
+        old_symmetric=old_symmetric_kid,
+        current_signing=f"{new_pem_kid}-pem-private",
+    )
+
+
+async def load_keys_from_jwk(dsrc: Source, config: Config):
     # Key used to decrypt the keys stored in the database
     runtime_key = aes_from_symmetric(config.KEY_PASS)
     async with data.get_conn(dsrc) as conn:
@@ -156,10 +171,13 @@ async def load_keys(dsrc: Source, config: Config):
         # We re-encrypt as is required when using AES encryption
         reencrypted_key_set = encrypt_dict(runtime_key.private, key_set_dict)
         await data.key.update_jwk(conn, reencrypted_key_set)
-        # We get the Key IDs (kid) of the newest keys and also previous symmetric key
-        # These newest ones will be used for signing new tokens
-        new_pem_kid = await data.key.get_newest_pem(conn)
-        new_symmetric_kid, old_symmetric_kid = await data.key.get_newest_symmetric(conn)
+
+    return key_set
+
+
+async def load_keys(dsrc: Source, config: Config):
+    key_set = await load_keys_from_jwk(dsrc, config)
+    key_state = await get_keystate(dsrc)
 
     pem_keys = []
     pem_private_keys = []
@@ -193,6 +211,5 @@ async def load_keys(dsrc: Source, config: Config):
     await data.trs.key.store_jwks(dsrc, public_jwk_set)
     # We don't store these in the KV since that is an additional roundtrip that is not worth it
     # Consequently, they can only be refreshed at restart
-    dsrc.key_state.current_signing = f"{new_pem_kid}-pem-private"
-    dsrc.key_state.current_symmetric = new_symmetric_kid
-    dsrc.key_state.old_symmetric = old_symmetric_kid
+
+    dsrc.key_state = key_state

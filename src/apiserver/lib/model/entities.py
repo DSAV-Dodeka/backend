@@ -1,7 +1,7 @@
 from datetime import date
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 
-from pydantic import field_validator, BaseModel
+from pydantic import field_validator, BaseModel, TypeAdapter
 
 from auth.core.model import IdInfo as AuthIdInfo, AccessTokenBase as AuthAccessToken
 from auth.data.schemad.entities import User as AuthUser, UserData as AuthUserData
@@ -204,9 +204,13 @@ class ClassView(BaseModel):
 
 
 class UserPoints(BaseModel):
-    name: str
+    user_id: str
+    firstname: str
+    lastname: str
     points: int
 
+
+UserPointsList = TypeAdapter(List[UserPoints])
 
 # class PointsData(BaseModel):
 #     points: int

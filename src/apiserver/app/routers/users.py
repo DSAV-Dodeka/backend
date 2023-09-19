@@ -1,9 +1,13 @@
+from typing import List
+
 from fastapi import APIRouter, Request
-from fastapi.responses import ORJSONResponse
+from fastapi.responses import ORJSONResponse, JSONResponse
+from pydantic import TypeAdapter
 
 import apiserver.data.api.ud.birthday
 from apiserver import data
-from apiserver.lib.model.entities import BirthdayData
+from apiserver.app.response import RawJSONResponse
+from apiserver.lib.model.entities import BirthdayData, UserPointsList
 from apiserver.app.error import ErrorResponse
 from apiserver.app.ops.header import Authorization
 from apiserver.data import Source
@@ -11,6 +15,8 @@ from apiserver.data import Source
 from apiserver.app.routers.helper import require_member
 
 router = APIRouter()
+
+BirthdayList = TypeAdapter(List[BirthdayData])
 
 
 @router.get("/members/birthdays/", response_model=list[BirthdayData])
@@ -20,7 +26,8 @@ async def get_user_birthdays(request: Request, authorization: Authorization):
 
     async with data.get_conn(dsrc) as conn:
         birthday_data = await apiserver.data.api.ud.birthday.get_all_birthdays(conn)
-    return ORJSONResponse([bd.model_dump() for bd in birthday_data])
+
+    return RawJSONResponse(BirthdayList.dump_json(birthday_data))
 
 
 @router.get("/members/rankings/{rank_type}")
@@ -61,8 +68,10 @@ async def get_classification(rank_type, request: Request, authorization: Authori
             debug_key="bad_ranking",
         )
     async with data.get_conn(dsrc) as conn:
-        class_view = await data.classifications.recent_class_id_updated(conn, rank_type)
+        class_view = await data.classifications.most_recent_class_of_type(
+            conn, rank_type
+        )
         user_points = await data.classifications.all_points_in_class(
             conn, class_view.classification_id
         )
-    return ORJSONResponse([up.model_dump() for up in user_points])
+    return RawJSONResponse(UserPointsList.dump_json(user_points))

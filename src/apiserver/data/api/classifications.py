@@ -1,10 +1,12 @@
-from datetime import date, datetime
-from typing import Literal
+from datetime import date, datetime, timedelta
+from typing import Literal, List, Sequence
 
 from fastapi.responses import ORJSONResponse
+from pydantic import TypeAdapter
+from sqlalchemy import RowMapping
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from store.error import DataError
+from store.error import DataError, NoDataError
 from schema.model import (
     CLASSIFICATION_TABLE,
     CLASS_TYPE,
@@ -23,7 +25,7 @@ from schema.model import (
     CLASS_EVENTS_TABLE,
     TRUE_POINTS,
     C_EVENTS_ID,
-    C_EVENTS_POINTS_POINTS,
+    C_EVENTS_POINTS,
     CLASS_EVENTS_POINTS_TABLE,
     CLASS_HIDDEN_DATE,
 )
@@ -36,22 +38,37 @@ from store.db import (
     select_some_two_where,
     insert_return_col,
 )
-from apiserver.lib.model.entities import Classification, ClassView, UserPoints
+from apiserver.lib.model.entities import (
+    Classification,
+    ClassView,
+    UserPoints,
+    UserPointsList,
+)
 
 
-async def insert_classification(conn: AsyncConnection):
-    a = Classification(
-        type="abc",
+def parse_user_points(user_points: list[RowMapping]) -> list[UserPoints]:
+    if len(user_points) == 0:
+        raise NoDataError("UserPoints does not exist.", "userpoints_data_empty")
+    return UserPointsList.validate_python(user_points)
+
+
+async def insert_classification(
+    conn: AsyncConnection, class_type: str, start_date: date = None
+):
+    if start_date is None:
+        start_date = date.today()
+    new_classification = Classification(
+        type=class_type,
         last_updated=date.today(),
-        start_date=date.today(),
-        end_date=date.today(),
-        hidden_date=date.today(),
+        start_date=start_date,
+        end_date=start_date + timedelta(days=30 * 5),
+        hidden_date=start_date + timedelta(days=30 * 4),
     )
-    return await insert_many(conn, CLASSIFICATION_TABLE, [a])
+    return await insert(conn, CLASSIFICATION_TABLE, new_classification.model_dump())
 
 
-async def recent_class_id_updated(
-    conn: AsyncConnection, class_type: Literal["training"] | Literal["points"]
+async def most_recent_class_of_type(
+    conn: AsyncConnection, class_type: Literal["training", "points"]
 ) -> ClassView:
     if class_type == "training":
         query_class_type = "training"
@@ -73,7 +90,7 @@ async def recent_class_id_updated(
         1,
     )
     if len(largest_class_list) == 0:
-        raise DataError(
+        raise NoDataError(
             "No most recent training classification found!",
             "no_most_recent_training_class",
         )
@@ -84,7 +101,7 @@ async def recent_class_id_updated(
 async def all_points_in_class(conn: AsyncConnection, class_id: int) -> list[UserPoints]:
     user_points = await select_some_join_where(
         conn,
-        {DISPLAY_POINTS, UD_FIRSTNAME, UD_LASTNAME},
+        {DISPLAY_POINTS, UD_FIRSTNAME, UD_LASTNAME, USER_ID},
         CLASS_POINTS_TABLE,
         USERDATA_TABLE,
         USER_ID,
@@ -93,10 +110,7 @@ async def all_points_in_class(conn: AsyncConnection, class_id: int) -> list[User
         class_id,
     )
 
-    return [
-        UserPoints(points=u[DISPLAY_POINTS], name=f"{u[UD_FIRSTNAME]} {u[UD_LASTNAME]}")
-        for u in user_points
-    ]
+    return parse_user_points(user_points)
 
 
 async def add_class_event(
@@ -123,7 +137,7 @@ async def add_points_to_event(
     row_to_insert = {
         USER_ID: user_id,
         C_EVENTS_ID: event_id,
-        C_EVENTS_POINTS_POINTS: points,
+        C_EVENTS_POINTS: points,
     }
 
     await insert(conn, CLASS_EVENTS_POINTS_TABLE, row_to_insert)

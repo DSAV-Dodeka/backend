@@ -127,7 +127,7 @@ async def select_some_join_where(
     where_col: str,
     value,
 ) -> list[RowMapping]:
-    """Ensure columsn and atbles are never user-defined. If some select column exists in both tables, they must be
+    """Ensure columns and tables are never user-defined. If some select column exists in both tables, they must be
     namespaced: i.e. <table_1 name>.column, <table_2 name>.column."""
     some = select_set(sel_col)
     query = text(

@@ -230,7 +230,7 @@ class_events = sqla.Table(
 CLASS_EVENTS_POINTS_TABLE = "class_event_points"
 # C_EVENTS_ID is foreign key
 # USER_ID is foreign key
-C_EVENTS_POINTS_POINTS = "points"
+C_EVENTS_POINTS = "points"
 class_events_points = sqla.Table(
     CLASS_EVENTS_POINTS_TABLE,
     metadata,
@@ -246,7 +246,7 @@ class_events_points = sqla.Table(
         sqla.ForeignKey(f"{CLASS_EVENTS_TABLE}.{C_EVENTS_ID}", ondelete="CASCADE"),
         primary_key=True,
     ),
-    sqla.Column(C_EVENTS_POINTS_POINTS, sqla.Integer, nullable=False),
+    sqla.Column(C_EVENTS_POINTS, sqla.Integer, nullable=False),
 )
 
 CLASS_POINTS_TABLE = "class_points"

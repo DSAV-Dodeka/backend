@@ -1,10 +1,17 @@
 from auth.core.model import SavedRegisterState
+from auth.core.util import random_time_hash_hex
+from auth.data.context import register_context
 from store import Store
 from store.conn import get_kv
 from store.kv import store_json
 
 
+@register_context
 async def store_auth_register_state(
-    store: Store, auth_id: str, state: SavedRegisterState
-):
+    store: Store, user_id: str, state: SavedRegisterState
+) -> str:
+    auth_id = random_time_hash_hex(user_id)
+
     await store_json(get_kv(store), auth_id, state.model_dump(), expire=1000)
+
+    return auth_id

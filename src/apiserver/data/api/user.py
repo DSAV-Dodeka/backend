@@ -23,6 +23,7 @@ from schema.model import (
 )
 from auth.data.schemad.user import (
     UserOps as AuthUserOps,
+    UserErrors,
 )
 from store.error import DataError, NoDataError
 from apiserver.lib.model.entities import (
@@ -45,7 +46,7 @@ __all__ = [
 
 def parse_user(user_dict: Optional[dict]) -> User:
     if user_dict is None:
-        raise NoDataError("User does not exist.", "user_empty")
+        raise NoDataError("User does not exist.", UserErrors.U_EMPTY)
     return User.model_validate(user_dict)
 
 

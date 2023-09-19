@@ -11,6 +11,7 @@ from auth.core.model import (
     IdInfo,
     AuthKeys,
     RefreshToken,
+    SavedRegisterState,
 )
 from auth.data.schemad.entities import SavedRefreshToken
 from auth.data.schemad.ops import SchemaOps
@@ -127,6 +128,18 @@ class TokenContext(Protocol):
         ...
 
 
+class RegisterContext(Protocol):
+    @classmethod
+    async def get_apake_setup(cls, store: Store) -> str:
+        ...
+
+    @classmethod
+    async def store_auth_register_state(
+        cls, store: Store, user_id: str, state: SavedRegisterState
+    ) -> str:
+        ...
+
+
 class ContextImpl:
     """By making an empty class, we ensure that it breaks if called without it being registered, instead of silently
     returning None."""
@@ -144,9 +157,10 @@ class Context:
     login_ctx: LoginContext = field(default_factory=create_context_impl)
     authorize_ctx: AuthorizeContext = field(default_factory=create_context_impl)
     token_ctx: TokenContext = field(default_factory=create_context_impl)
+    register_ctx: RegisterContext = field(default_factory=create_context_impl)
 
 
-context = Context()
+data_context = Context()
 
 
 # Decorators, apply these to the actual function definitions
@@ -154,18 +168,24 @@ context = Context()
 
 
 def login_context(arg):
-    make_data_context(context.login_ctx, LoginContext, arg)
+    make_data_context(data_context.login_ctx, LoginContext, arg)
 
     return arg
 
 
 def authorize_context(arg):
-    make_data_context(context.authorize_ctx, AuthorizeContext, arg)
+    make_data_context(data_context.authorize_ctx, AuthorizeContext, arg)
 
     return arg
 
 
 def token_context(arg):
-    make_data_context(context.token_ctx, TokenContext, arg)
+    make_data_context(data_context.token_ctx, TokenContext, arg)
+
+    return arg
+
+
+def register_context(arg):
+    make_data_context(data_context.register_ctx, RegisterContext, arg)
 
     return arg

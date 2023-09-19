@@ -4,6 +4,7 @@ from fastapi import APIRouter, Response, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
+from apiserver.data.frame import Code
 from auth.core.error import RedirectError, AuthError
 from auth.core.model import PasswordRequest, FinishLogin, TokenResponse, TokenRequest
 from auth.core.response import PasswordResponse
@@ -33,18 +34,20 @@ async def start_login(login_start: PasswordRequest, request: Request):
     """Login can be initiated in 2 different flows: the first is the OAuth 2 flow, the second is a simple password
     check flow."""
     dsrc: Source = request.state.dsrc
+    cd: Code = request.state.cd
 
     return await auth_start_login(
-        dsrc.store, schema.UserOps, dsrc.context.login_ctx, login_start
+        dsrc.store, schema.UserOps, cd.context.login_ctx, login_start
     )
 
 
 @router.post("/login/finish/")
 async def finish_login(login_finish: FinishLogin, request: Request):
     dsrc: Source = request.state.dsrc
+    cd: Code = request.state.cd
 
     try:
-        await auth_finish_login(dsrc.store, dsrc.context.login_ctx, login_finish)
+        await auth_finish_login(dsrc.store, cd.context.login_ctx, login_finish)
     except AuthError as e:
         raise ErrorResponse(
             status_code=400,
@@ -69,12 +72,13 @@ async def oauth_endpoint(
     is no error, the /oauth/callback/ endpoint returns the successful response after authentication. Authentication is
     not specified by either OpenID Connect or OAuth 2.1."""
     dsrc: Source = request.state.dsrc
+    cd: Code = request.state.cd
 
     try:
         redirect = await oauth_start(
             DEFINE,
             dsrc.store,
-            dsrc.context.authorize_ctx,
+            cd.context.authorize_ctx,
             response_type,
             client_id,
             redirect_uri,
@@ -103,10 +107,11 @@ async def oauth_finish(flow_id: str, code: str, response: Response, request: Req
     response.headers["Pragma"] = "no-cache"
 
     dsrc: Source = request.state.dsrc
+    cd: Code = request.state.cd
 
     try:
         redirect = await oauth_callback(
-            dsrc.store, dsrc.context.authorize_ctx, flow_id, code
+            dsrc.store, cd.context.authorize_ctx, flow_id, code
         )
     except AuthError as e:
         logger.debug(e.err_desc)
@@ -122,13 +127,14 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
     response.headers["Pragma"] = "no-cache"
 
     dsrc: Source = request.state.dsrc
+    cd: Code = request.state.cd
 
     try:
         token_response = await process_token_request(
             dsrc.store,
             DEFINE,
             schema.OPS,
-            dsrc.context.token_ctx,
+            cd.context.token_ctx,
             dsrc.key_state,
             token_request,
         )
@@ -152,10 +158,12 @@ class LogoutRequest(BaseModel):
 @router.post("/logout/delete/")
 async def delete_token(logout: LogoutRequest, request: Request):
     dsrc: Source = request.state.dsrc
+    cd: Code = request.state.cd
+
     await delete_refresh(
         dsrc.store,
         schema.OPS,
-        dsrc.context.token_ctx,
+        cd.context.token_ctx,
         dsrc.key_state,
         logout.refresh_token,
     )

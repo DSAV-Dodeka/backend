@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from typing import TypedDict
 import logging
 
@@ -8,15 +9,18 @@ import apiserver.lib.utilities as util
 
 from apiserver.app.ops.startup import startup
 from apiserver.data import Source
+from apiserver.data.frame import Code, source_frame
 from apiserver.define import LOGGER_NAME, DEFINE
 from apiserver.env import load_config, Config
 from apiserver.resources import res_path
+from auth.data.context import Context, data_context
 
 logger = logging.getLogger(LOGGER_NAME)
 
 
 class State(TypedDict):
     dsrc: Source
+    cd: Code
 
 
 # Should always be manually run in tests
@@ -69,11 +73,15 @@ async def app_shutdown(dsrc_inst: Source):
     await dsrc_inst.store.shutdown()
 
 
+def define_code():
+    return Code(context=data_context, frame=source_frame)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> State:
     logger.info("Running startup...")
     dsrc = Source()
     dsrc_started = await app_startup(dsrc)
-    yield {"dsrc": dsrc_started}
+    yield {"dsrc": dsrc_started, "cd": define_code()}
     logger.info("Running shutdown...")
     await app_shutdown(dsrc_started)

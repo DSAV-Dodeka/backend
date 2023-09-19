@@ -1,3 +1,4 @@
+from enum import StrEnum
 from typing import Protocol, Type
 
 from sqlalchemy.ext.asyncio import AsyncConnection
@@ -6,9 +7,15 @@ from auth.core.model import IdInfo
 from auth.data.schemad.entities import User, UserData
 
 
+class UserErrors(StrEnum):
+    U_EMPTY = "user_empty"
+    UD_EMPTY = "userdata_empty"
+
+
 class UserOps(Protocol):
     @classmethod
     async def get_user_by_id(cls, conn: AsyncConnection, user_id: str) -> User:
+        """THROWS NoDataError if user does not exist, with key U_EMPTY."""
         ...
 
     @classmethod

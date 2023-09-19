@@ -16,6 +16,7 @@ from apiserver.app.ops.mail import (
 from apiserver.app.routers.helper import authentication
 from apiserver.app.ops.header import Authorization
 from apiserver.data import Source, ops
+from apiserver.data.frame import Code
 from auth.modules.update import change_password
 from store.error import DataError, NoDataError
 from apiserver.define import LOGGER_NAME, DEFINE
@@ -68,6 +69,7 @@ class UpdatePasswordRequest(BaseModel):
 @router.post("/update/password/start/")
 async def update_password_start(update_pass: UpdatePasswordRequest, request: Request):
     dsrc: Source = request.state.dsrc
+    cd: Code = request.state.cd
 
     try:
         stored_email = await data.trs.pop_string(dsrc, update_pass.flow_id)
@@ -91,7 +93,9 @@ async def update_password_start(update_pass: UpdatePasswordRequest, request: Req
     async with data.get_conn(dsrc) as conn:
         u = await ops.user.get_user_by_email(conn, update_pass.email)
 
-    return await send_register_start(dsrc.store, u.user_id, update_pass.client_request)
+    return await send_register_start(
+        dsrc.store, cd.context.register_ctx, u.user_id, update_pass.client_request
+    )
 
 
 class UpdatePasswordFinish(BaseModel):

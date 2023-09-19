@@ -1,7 +1,24 @@
+from enum import StrEnum
 from typing import Optional
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
+
+
+class ErrorKeys(StrEnum):
+    REGISTER = "invalid_register"
+
+
+class AppError(Exception):
+    def __init__(
+        self,
+        err_type: ErrorKeys,
+        err_desc: str,
+        debug_key: Optional[str] = None,
+    ):
+        self.err_type = err_type
+        self.err_desc = err_desc
+        self.debug_key = debug_key
 
 
 class ErrorResponse(Exception):

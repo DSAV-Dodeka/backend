@@ -12,5 +12,4 @@ __all__ = [
     "token",
     "keys",
     "update",
-    "opaque",
 ]

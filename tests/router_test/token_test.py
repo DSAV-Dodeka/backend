@@ -10,8 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 from starlette.testclient import TestClient
 
 from apiserver.app_def import create_app
-from apiserver.app_lifespan import State, safe_startup
+from apiserver.app_lifespan import State, safe_startup, define_code
 from apiserver.data import Source
+from apiserver.data.frame import Code
 from apiserver.define import DEFINE
 from apiserver.env import load_config
 from apiserver.lib.model.entities import IdInfo
@@ -24,7 +25,7 @@ from auth.core.model import (
     RefreshToken,
 )
 from auth.core.util import utc_timestamp
-from auth.data.context import TokenContext
+from auth.data.context import TokenContext, data_context
 from auth.data.schemad.entities import SavedRefreshToken
 from auth.data.schemad.ops import SchemaOps
 from auth.define import refresh_exp, id_exp, access_exp
@@ -76,12 +77,18 @@ def make_dsrc(module_mocker: MockerFixture):
 
 
 @pytest.fixture(scope="module")
-def lifespan_fixture(api_config, make_dsrc: Source):
+def make_cd():
+    cd = define_code()
+    yield cd
+
+
+@pytest.fixture(scope="module")
+def lifespan_fixture(api_config, make_dsrc: Source, make_cd: Code):
     safe_startup(make_dsrc, api_config)
 
     @asynccontextmanager
     async def mock_lifespan(app: FastAPI) -> State:
-        yield {"dsrc": make_dsrc}
+        yield {"dsrc": make_dsrc, "cd": make_cd}
 
     yield mock_lifespan
 
@@ -177,7 +184,7 @@ def mock_token_code_context(
 
 
 def test_auth_code(
-    test_client, make_dsrc: Source, user_mock_flow_user, auth_keys: AuthKeys
+    test_client, make_cd: Code, user_mock_flow_user, auth_keys: AuthKeys
 ):
     mock_flow_user, test_token_scope, mock_flow_id, test_user = user_mock_flow_user
     code_session_key = "somecomplexsessionkey"
@@ -185,7 +192,7 @@ def test_auth_code(
     test_refresh_id = 88
     mock_db = {}
 
-    make_dsrc.context.token_ctx = mock_token_code_context(
+    make_cd.context.token_ctx = mock_token_code_context(
         mock_flow_user,
         code_session_key,
         mock_auth_request,
@@ -286,7 +293,7 @@ def mock_token_refresh_context(
     return MockTokenContext
 
 
-def test_refresh(test_client, make_dsrc: Source, gen_ext_user, auth_keys: AuthKeys):
+def test_refresh(test_client, make_cd: Code, gen_ext_user, auth_keys: AuthKeys):
     test_user, test_id_info = gen_ext_user
     test_scope = "itest refresh"
     test_refresh_id = 48
@@ -297,7 +304,7 @@ def test_refresh(test_client, make_dsrc: Source, gen_ext_user, auth_keys: AuthKe
     new_refresh_id = 50
     mock_db = {test_refresh_id: refresh_save}
 
-    make_dsrc.context.token_ctx = mock_token_refresh_context(
+    make_cd.context.token_ctx = mock_token_refresh_context(
         auth_keys, refresh_save, new_refresh_id, mock_db
     )
 

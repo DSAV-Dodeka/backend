@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 
 from apiserver.lib.model.entities import UserData, SignedUp, IdInfo, UserNames
 from auth.core.model import IdInfo as AuthIdInfo
-from auth.data.schemad.user import UserDataOps as AuthUserDataOps
+from auth.data.schemad.user import UserDataOps as AuthUserDataOps, UserErrors
 from schema.model import (
     USERDATA_TABLE,
     USER_ID,
@@ -29,7 +29,7 @@ from store.error import NoDataError, DataError
 
 def parse_userdata(user_dict: Optional[dict]) -> UserData:
     if user_dict is None:
-        raise NoDataError("UserData does not exist.", "userdata_empty")
+        raise NoDataError("UserData does not exist.", UserErrors.UD_EMPTY)
     return UserData.model_validate(user_dict)
 
 

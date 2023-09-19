@@ -10,8 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 from starlette.testclient import TestClient
 
 from apiserver.app_def import create_app
-from apiserver.app_lifespan import State, safe_startup
+from apiserver.app_lifespan import State, safe_startup, define_code
 from apiserver.data import Source
+from apiserver.data.frame import Code
 from apiserver.env import load_config
 from auth.core.model import SavedState, FlowUser
 from auth.data.context import LoginContext
@@ -50,12 +51,18 @@ def make_dsrc(module_mocker: MockerFixture):
 
 
 @pytest.fixture(scope="module")
-def lifespan_fixture(api_config, make_dsrc: Source):
+def make_cd():
+    cd = define_code()
+    yield cd
+
+
+@pytest.fixture(scope="module")
+def lifespan_fixture(api_config, make_dsrc: Source, make_cd: Code):
     safe_startup(make_dsrc, api_config)
 
     @asynccontextmanager
     async def mock_lifespan(app: FastAPI) -> State:
-        yield {"dsrc": make_dsrc}
+        yield {"dsrc": make_dsrc, "cd": make_cd}
 
     yield mock_lifespan
 
@@ -116,12 +123,12 @@ def mock_login_start_context(
     return MockLoginContext
 
 
-def test_login(test_client, make_dsrc, gen_user: GenUser, opq_val: OpaqueValues):
+def test_login(test_client, make_cd, gen_user: GenUser, opq_val: OpaqueValues):
     state_store = {}
     test_auth_id = "12345"
     test_scope = "some_scope another"
 
-    make_dsrc.context.login_ctx = mock_login_start_context(
+    make_cd.context.login_ctx = mock_login_start_context(
         gen_user,
         opq_val.correct_password_file,
         opq_val.server_setup,
@@ -164,7 +171,7 @@ def mock_login_finish_context(
     return MockLoginContext
 
 
-def test_finish_login(test_client, make_dsrc, gen_user: GenUser, opq_val: OpaqueValues):
+def test_finish_login(test_client, make_cd, gen_user: GenUser, opq_val: OpaqueValues):
     flow_store = {}
     test_auth_id = "15dae3786b6d0f20629cf"
     test_scope = "new_scope triple another"
@@ -172,7 +179,7 @@ def test_finish_login(test_client, make_dsrc, gen_user: GenUser, opq_val: Opaque
     # password 'clientele' with mock_opq_key
     test_state = opq_val.login_start_state
 
-    make_dsrc.context.login_ctx = mock_login_finish_context(
+    make_cd.context.login_ctx = mock_login_finish_context(
         gen_user, test_state, test_scope, flow_store
     )
 

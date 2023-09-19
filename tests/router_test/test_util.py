@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from faker import Faker
 from pydantic import BaseModel
 
-from apiserver.lib.model.entities import IdInfo
+from apiserver.lib.model.entities import IdInfo, UserData
 from apiserver.lib.utilities import gen_id_name
 from auth.core.model import AuthRequest
 
@@ -59,6 +59,28 @@ def make_extended_test_user(faker: Faker):
         nickname=user_fn,
         preferred_username=user_fn,
         birthdate=faker.date_of_birth(minimum_age=16).isoformat(),
+    )
+
+
+def make_base_ud(faker: Faker):
+    user_fn = faker.first_name()
+    user_ln = faker.last_name()
+    test_user_id_int = faker.random_int(min=3, max=300)
+    test_id_name = gen_id_name(user_fn, user_ln)
+    test_user_id = cr_user_id(test_user_id_int, test_id_name)
+    test_user_email = faker.email()
+
+    return UserData(
+        user_id=test_user_id,
+        active=True,
+        firstname=user_fn,
+        lastname=user_ln,
+        email=test_user_email,
+        phone=faker.phone_number(),
+        av40id=faker.random_int(min=3, max=30000),
+        joined=faker.date_this_century(),
+        registered=False,
+        showage=True,
     )
 
 

@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from faker import Faker
 from pydantic import BaseModel
 
+from apiserver.lib.model.entities import IdInfo
 from apiserver.lib.utilities import gen_id_name
 from auth.core.model import AuthRequest
 
@@ -12,7 +13,7 @@ def cr_user_id(id_int: int, g_id_name: str):
 
 
 @dataclass
-class TestUser:
+class GenUser:
     id_int: int
     user_id: str
     user_email: str
@@ -34,8 +35,30 @@ def make_test_user(faker: Faker):
     test_user_id = cr_user_id(test_user_id_int, test_id_name)
     test_user_email = faker.email()
 
-    return TestUser(
+    return GenUser(
         id_int=test_user_id_int, user_id=test_user_id, user_email=test_user_email
+    )
+
+
+def make_extended_test_user(faker: Faker):
+    user_fn = faker.first_name()
+    user_ln = faker.last_name()
+    test_user_id_int = faker.random_int(min=3, max=300)
+    test_id_name = gen_id_name(user_fn, user_ln)
+    test_user_id = cr_user_id(test_user_id_int, test_id_name)
+    test_user_email = faker.email()
+
+    test_user = GenUser(
+        id_int=test_user_id_int, user_id=test_user_id, user_email=test_user_email
+    )
+    return test_user, IdInfo(
+        email=test_user_email,
+        name=user_fn + " " + user_ln,
+        given_name=user_fn,
+        family_name=user_ln,
+        nickname=user_fn,
+        preferred_username=user_fn,
+        birthdate=faker.date_of_birth(minimum_age=16).isoformat(),
     )
 
 
@@ -49,3 +72,9 @@ mock_auth_request = AuthRequest(
     code_challenge_method="S256",
     nonce="-eB2lpr1IqZdJzt9CfDZ5jrHGa6yE87UUTFd4CWweOI",
 )
+
+
+class KeyValues(BaseModel):
+    symmetric: str
+    signing_public: str
+    signing_private: str

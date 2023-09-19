@@ -16,7 +16,7 @@ from apiserver.env import load_config
 from auth.core.model import SavedState, FlowUser
 from auth.data.context import LoginContext
 from auth.data.schemad.user import UserOps
-from router_tests.test_util import TestUser, OpaqueValues, make_test_user
+from router_test.test_util import GenUser, OpaqueValues, make_test_user
 from store import Store
 from test_resources import res_path
 
@@ -88,7 +88,7 @@ def opq_val(test_values: dict):
 
 
 def mock_login_start_context(
-    test_user: TestUser,
+    test_user: GenUser,
     pw_file: str,
     server_setup: str,
     test_scope: str,
@@ -116,7 +116,7 @@ def mock_login_start_context(
     return MockLoginContext
 
 
-def test_login(test_client, make_dsrc, gen_user: TestUser, opq_val: OpaqueValues):
+def test_login(test_client, make_dsrc, gen_user: GenUser, opq_val: OpaqueValues):
     state_store = {}
     test_auth_id = "12345"
     test_scope = "some_scope another"
@@ -143,7 +143,7 @@ def test_login(test_client, make_dsrc, gen_user: TestUser, opq_val: OpaqueValues
 
 
 def mock_login_finish_context(
-    test_user: TestUser, test_state: str, test_scope: str, flow_store: dict
+    test_user: GenUser, test_state: str, test_scope: str, flow_store: dict
 ):
     class MockLoginContext(LoginContext):
         @classmethod
@@ -164,9 +164,7 @@ def mock_login_finish_context(
     return MockLoginContext
 
 
-def test_finish_login(
-    test_client, make_dsrc, gen_user: TestUser, opq_val: OpaqueValues
-):
+def test_finish_login(test_client, make_dsrc, gen_user: GenUser, opq_val: OpaqueValues):
     flow_store = {}
     test_auth_id = "15dae3786b6d0f20629cf"
     test_scope = "new_scope triple another"

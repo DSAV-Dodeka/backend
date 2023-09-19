@@ -1,6 +1,9 @@
+from dataclasses import dataclass
 from typing import Optional
 
 from pydantic import BaseModel
+
+from auth.hazmat.structs import SymmetricKey, PEMPrivateKey
 
 
 class AuthRequest(BaseModel):
@@ -108,3 +111,10 @@ class AccessTokenBase(BaseModel):
     iss: str
     aud: list[str]
     scope: str
+
+
+@dataclass
+class AuthKeys:
+    symmetric: SymmetricKey
+    old_symmetric: SymmetricKey
+    signing: PEMPrivateKey

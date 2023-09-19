@@ -1,4 +1,3 @@
-from auth import data
 from auth.core.error import AuthError, RefreshOperationError
 from auth.core.model import (
     CodeGrantRequest,
@@ -104,6 +103,9 @@ async def auth_code_grant(
     token_user_id = flow_user.user_id
 
     token_scope = flow_user.scope
+    # GETS keys, GETS id_info
+    # Creates new tokens
+    # SAVES refresh_token
     return await new_token(
         store,
         define,

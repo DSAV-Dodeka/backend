@@ -1,5 +1,5 @@
 from auth.core.error import RefreshOperationError, AuthError
-from auth.core.model import IdInfo
+from auth.core.model import IdInfo, RefreshToken
 from auth.data.context import token_context
 from auth.data.schemad.entities import SavedRefreshToken
 from auth.data.schemad.ops import SchemaOps
@@ -44,7 +44,7 @@ async def delete_refresh_token_by_user(
 
 @token_context
 async def get_saved_refresh(
-    store: Store, ops: SchemaOps, old_refresh
+    store: Store, ops: SchemaOps, old_refresh: RefreshToken
 ) -> SavedRefreshToken:
     async with get_conn(store) as conn:
         try:

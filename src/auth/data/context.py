@@ -1,13 +1,20 @@
 import inspect
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable, Protocol
 
-from auth.core.model import SavedState, FlowUser, AuthRequest, KeyState, IdInfo
+from auth.core.model import (
+    SavedState,
+    FlowUser,
+    AuthRequest,
+    KeyState,
+    IdInfo,
+    AuthKeys,
+    RefreshToken,
+)
 from auth.data.schemad.entities import SavedRefreshToken
 from auth.data.schemad.ops import SchemaOps
 from auth.data.schemad.user import UserOps
-from auth.hazmat.structs import SymmetricKey, PEMPrivateKey
 from store import Store
 
 
@@ -84,9 +91,7 @@ class TokenContext(Protocol):
         ...
 
     @classmethod
-    async def get_keys(
-        cls, store: Store, key_state: KeyState
-    ) -> tuple[SymmetricKey, SymmetricKey, PEMPrivateKey]:
+    async def get_keys(cls, store: Store, key_state: KeyState) -> AuthKeys:
         ...
 
     @classmethod
@@ -101,7 +106,7 @@ class TokenContext(Protocol):
 
     @classmethod
     async def get_saved_refresh(
-        cls, store: Store, ops: SchemaOps, old_refresh
+        cls, store: Store, ops: SchemaOps, old_refresh: RefreshToken
     ) -> SavedRefreshToken:
         ...
 
@@ -129,11 +134,16 @@ class ContextImpl:
     pass
 
 
+def create_context_impl() -> ContextImpl:
+    return ContextImpl()
+
+
 @dataclass
 class Context:
-    login_ctx: LoginContext = ContextImpl()
-    authorize_ctx: AuthorizeContext = ContextImpl()
-    token_ctx: TokenContext = ContextImpl()
+    # Using this default factory makes sure that different instances of Context don't share ContextImpl's
+    login_ctx: LoginContext = field(default_factory=create_context_impl)
+    authorize_ctx: AuthorizeContext = field(default_factory=create_context_impl)
+    token_ctx: TokenContext = field(default_factory=create_context_impl)
 
 
 context = Context()

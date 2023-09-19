@@ -18,11 +18,9 @@ async def do_refresh(
     key_state: KeyState,
     old_refresh_token: str,
 ) -> Tokens:
-    symmetric_key, old_symmetric_key, signing_key = await context.get_keys(
-        store, key_state
-    )
+    keys = await context.get_keys(store, key_state)
     old_refresh = decrypt_old_refresh(
-        symmetric_key, old_symmetric_key, old_refresh_token
+        keys.symmetric, keys.old_symmetric, old_refresh_token
     )
 
     utc_now = utc_timestamp()
@@ -50,12 +48,12 @@ async def do_refresh(
     refresh_token, access_token, id_token = finish_tokens(
         new_refresh_id,
         new_refresh_save,
-        symmetric_key,
+        keys.symmetric,
         access_token_data,
         id_token_data,
         id_info,
         utc_now,
-        signing_key,
+        keys.signing,
         access_exp,
         id_exp,
         nonce=new_nonce,
@@ -83,7 +81,7 @@ async def new_token(
     id_nonce: str,
 ) -> Tokens:
     # THROWS UnexpectedError if keys are not present
-    symmetric_key, _, signing_key = await context.get_keys(store, key_state)
+    keys = await context.get_keys(store, key_state)
 
     utc_now = utc_timestamp()
 
@@ -110,12 +108,12 @@ async def new_token(
     refresh_token, access_token, id_token = finish_tokens(
         refresh_id,
         refresh_save,
-        symmetric_key,
+        keys.symmetric,
         access_token_data,
         id_token_data,
         id_info,
         utc_now,
-        signing_key,
+        keys.signing,
         access_exp,
         id_exp,
         nonce="",
@@ -138,11 +136,9 @@ async def delete_refresh(
     key_state: KeyState,
     refresh_token: str,
 ) -> None:
-    symmetric_key, old_symmetric_key, signing_key = await context.get_keys(
-        store, key_state
-    )
+    keys = await context.get_keys(store, key_state)
     try:
-        refresh = decrypt_old_refresh(symmetric_key, old_symmetric_key, refresh_token)
+        refresh = decrypt_old_refresh(keys.symmetric, keys.old_symmetric, refresh_token)
     except InvalidRefresh:
         return
 

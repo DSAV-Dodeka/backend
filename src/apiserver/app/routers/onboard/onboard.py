@@ -25,7 +25,6 @@ from apiserver.app.ops.mail import (
 from apiserver.data import Source, ops
 from auth.core.util import enc_b64url, random_time_hash_hex
 from store.error import DataError, NoDataError
-from apiserver.env import Config
 from apiserver.lib.model.entities import SignedUp, Signup
 from auth.core.response import PasswordResponse
 from auth.modules.register import send_register_start

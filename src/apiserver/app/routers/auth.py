@@ -4,14 +4,6 @@ from fastapi import APIRouter, Response, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
-from apiserver import data
-from apiserver.app.error import ErrorResponse
-from apiserver.app.ops.header import Authorization
-from auth.modules.token.create import delete_refresh
-from apiserver.app.routers.helper import require_user
-from apiserver.data import Source
-from auth.modules.token.process import process_token_request
-from apiserver.define import LOGGER_NAME, DEFINE
 from auth.core.error import RedirectError, AuthError
 from auth.core.model import PasswordRequest, FinishLogin, TokenResponse, TokenRequest
 from auth.core.response import PasswordResponse
@@ -20,6 +12,14 @@ from auth.modules.login import (
     start_login as auth_start_login,
     finish_login as auth_finish_login,
 )
+from auth.modules.token.create import delete_refresh
+from auth.modules.token.process import process_token_request
+
+from apiserver.define import LOGGER_NAME, DEFINE
+from apiserver.data import Source, schema
+from apiserver.app.error import ErrorResponse
+from apiserver.app.ops.header import Authorization
+from apiserver.app.routers.helper import require_user
 
 router = APIRouter()
 
@@ -35,7 +35,7 @@ async def start_login(login_start: PasswordRequest, request: Request):
     dsrc: Source = request.state.dsrc
 
     return await auth_start_login(
-        dsrc.store, data.user.UserOps, dsrc.context.login_ctx, login_start
+        dsrc.store, schema.UserOps, dsrc.context.login_ctx, login_start
     )
 
 
@@ -125,7 +125,12 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
 
     try:
         token_response = await process_token_request(
-            dsrc.store, DEFINE, data.schema.OPS, dsrc.key_state, token_request
+            dsrc.store,
+            DEFINE,
+            schema.OPS,
+            dsrc.context.token_ctx,
+            dsrc.key_state,
+            token_request,
         )
     except AuthError as e:
         raise ErrorResponse(400, err_type=e.err_type, err_desc=e.err_desc)
@@ -148,5 +153,9 @@ class LogoutRequest(BaseModel):
 async def delete_token(logout: LogoutRequest, request: Request):
     dsrc: Source = request.state.dsrc
     await delete_refresh(
-        dsrc.store, data.schema.OPS, dsrc.key_state, logout.refresh_token
+        dsrc.store,
+        schema.OPS,
+        dsrc.context.token_ctx,
+        dsrc.key_state,
+        logout.refresh_token,
     )

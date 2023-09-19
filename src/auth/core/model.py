@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from auth.hazmat.structs import SymmetricKey, PEMPrivateKey
 
@@ -56,9 +56,9 @@ class TokenRequest(BaseModel):
 
 
 class CodeGrantRequest(BaseModel):
-    code: str
-    redirect_uri: str
-    code_verifier: str
+    code: str = Field(min_length=1)
+    redirect_uri: str = Field(min_length=1)
+    code_verifier: str = Field(min_length=1)
     client_id: str
 
 

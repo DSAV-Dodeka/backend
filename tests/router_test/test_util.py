@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from faker import Faker
 from pydantic import BaseModel
 
-from apiserver.lib.model.entities import IdInfo, UserData
+from apiserver.lib.model.entities import IdInfo, UserData, User
 from apiserver.lib.utilities import gen_id_name
 from auth.core.model import AuthRequest
 
@@ -25,6 +25,8 @@ class OpaqueValues(BaseModel):
     fake_password_file: str
     correct_password_file: str
     login_start_state: str
+    client_registration: str
+    final_registration: str
 
 
 def make_test_user(faker: Faker):
@@ -81,6 +83,12 @@ def make_base_ud(faker: Faker):
         joined=faker.date_this_century(),
         registered=False,
         showage=True,
+    ), User(
+        user_id=test_user_id,
+        id_name=test_id_name,
+        id=test_user_id_int,
+        password_file="",
+        email=test_user_email,
     )
 
 

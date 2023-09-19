@@ -139,7 +139,9 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
             token_request,
         )
     except AuthError as e:
-        raise ErrorResponse(400, err_type=e.err_type, err_desc=e.err_desc)
+        raise ErrorResponse(
+            400, err_type=e.err_type, err_desc=e.err_desc, debug_key=e.debug_key
+        )
 
     return token_response
 

@@ -71,7 +71,7 @@ We can use Alembic for migrations, which allow you to programatically apply larg
 
 First you need to have the Poetry environment running as described earlier and ensure the database is on as well. 
 
-* Navigate to the /server/src/apiserver/db/migrations directory.
+* Navigate to the /server/src/schema directory.
 * From there run `poetry run alembic revision --autogenerate -m "Some message"`
 * This will generate a Python file in the migrations/versions directory, which you can view to see if everything looks good. It basically looks at the database, looks at the schema described in db/model.py and generates code to migrate to the described schema.
 * Then, you can run `poetry run alembic upgrade head`, which will apply the latest generated revision. If you now use your database viewer, the table will have hopefully appeared.

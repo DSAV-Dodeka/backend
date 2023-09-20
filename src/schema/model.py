@@ -201,9 +201,9 @@ classification = sqla.Table(
     sqla.Column(CLASS_LAST_UPDATED, sqla.DateTime, nullable=True),
 )
 
+MAX_EVENT_ID_LEN = 30
 CLASS_EVENTS_TABLE = "class_events"
 C_EVENTS_ID = "event_id"
-# Refactoring the variable named below won't update the comment :(
 # CLASS_ID is a foreign key
 C_EVENTS_CATEGORY = "category"
 C_EVENTS_DESCRIPTION = "description"
@@ -213,14 +213,14 @@ class_events = sqla.Table(
     metadata,
     sqla.Column(
         C_EVENTS_ID,
-        sqla.Integer,
+        sqla.String(length=MAX_EVENT_ID_LEN),
         primary_key=True,
     ),
     sqla.Column(
         CLASS_ID,
         sqla.Integer,
-        sqla.ForeignKey(f"{CLASSIFICATION_TABLE}.{CLASS_ID}", ondelete="CASCADE"),
-        nullable=False,
+        sqla.ForeignKey(f"{CLASSIFICATION_TABLE}.{CLASS_ID}", ondelete="SET NULL"),
+        nullable=True,
     ),
     sqla.Column(C_EVENTS_CATEGORY, sqla.String(length=100), nullable=False),
     sqla.Column(C_EVENTS_DESCRIPTION, sqla.String(length=500)),
@@ -242,7 +242,7 @@ class_events_points = sqla.Table(
     ),
     sqla.Column(
         C_EVENTS_ID,
-        sqla.Integer,
+        sqla.String(length=30),
         sqla.ForeignKey(f"{CLASS_EVENTS_TABLE}.{C_EVENTS_ID}", ondelete="CASCADE"),
         primary_key=True,
     ),

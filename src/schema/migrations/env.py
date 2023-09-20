@@ -5,9 +5,9 @@ from sqlalchemy import pool
 
 from alembic import context
 
+from apiserver.env import load_config
 from apiserver.resources import project_path
-from auth.env2 import load_config
-from apiserver.data.db.model import metadata
+from schema.model import metadata
 
 
 # this is the Alembic Config object, which provides

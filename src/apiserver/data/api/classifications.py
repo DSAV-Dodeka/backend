@@ -6,6 +6,7 @@ from pydantic import TypeAdapter
 from sqlalchemy import RowMapping
 from sqlalchemy.ext.asyncio import AsyncConnection
 
+from apiserver.lib.utilities import usp_hex
 from store.error import DataError, NoDataError
 from schema.model import (
     CLASSIFICATION_TABLE,
@@ -28,6 +29,7 @@ from schema.model import (
     C_EVENTS_POINTS,
     CLASS_EVENTS_POINTS_TABLE,
     CLASS_HIDDEN_DATE,
+    MAX_EVENT_ID_LEN,
 )
 from store.db import (
     insert_many,
@@ -98,40 +100,38 @@ async def most_recent_class_of_type(
     return ClassView.model_validate(largest_class_list[0])
 
 
-async def all_points_in_class(conn: AsyncConnection, class_id: int) -> list[UserPoints]:
-    user_points = await select_some_join_where(
-        conn,
-        {DISPLAY_POINTS, UD_FIRSTNAME, UD_LASTNAME, USER_ID},
-        CLASS_POINTS_TABLE,
-        USERDATA_TABLE,
-        USER_ID,
-        USER_ID,
-        CLASS_ID,
-        class_id,
-    )
-
-    return parse_user_points(user_points)
-
-
 async def add_class_event(
     conn: AsyncConnection,
+    event_id: str,
     classification_id: int,
     category: str,
-    description: str,
     event_date: datetime.date,
-) -> int:
-    points_row = {
+    description: str = "",
+) -> str:
+    """It's important they use a descriptive, unique id for the event like 'nsk_weg_2023'. We only accept simple ascii
+    strings. The name is also usp_hex'd to ensure it is readable inside the database. It returns the id, which is also
+    usp_hex'd."""
+    if len(event_id) > MAX_EVENT_ID_LEN:
+        raise DataError(
+            f"event_id is longer than {MAX_EVENT_ID_LEN}! Please use a short,"
+            " descriptive name, like 'nsk_weg_2023'.",
+            "event_id_too_long",
+        )
+    usph_id = usp_hex(event_id)
+
+    event_row = {
+        C_EVENTS_ID: usph_id,
         CLASS_ID: classification_id,
         C_EVENTS_CATEGORY: category,
         C_EVENTS_DATE: event_date,
+        C_EVENTS_DESCRIPTION: description,
     }
-    if description != "Empty":
-        points_row[C_EVENTS_DESCRIPTION] = description
 
-    return await insert_return_col(conn, CLASS_EVENTS_TABLE, points_row, C_EVENTS_ID)
+    await insert(conn, CLASS_EVENTS_TABLE, event_row)
+    return usph_id
 
 
-async def add_points_to_event(
+async def upsert_user_event_points(
     conn: AsyncConnection, event_id: int, user_id: str, points: int
 ):
     row_to_insert = {

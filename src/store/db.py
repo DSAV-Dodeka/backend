@@ -1,14 +1,9 @@
-from typing import Optional, Any, TypeVar
+from typing import Optional, Any, TypeVar, LiteralString
 
 from pydantic import BaseModel
 from sqlalchemy import CursorResult, text, RowMapping
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection
-
-# Model type
-# Ensure the type of model is never user-defined, as attribute (column) names are used as strings
-#
-M = TypeVar("M", bound=BaseModel)
 
 
 def _row_keys_vars_set(row: dict):
@@ -56,7 +51,7 @@ def row_cnt(res: CursorResult) -> int:
 
 
 async def retrieve_by_id(
-    conn: AsyncConnection, table: str, id_int: int
+    conn: AsyncConnection, table: LiteralString, id_int: int
 ) -> Optional[dict]:
     """Ensure `table` is never user-defined."""
     query = text(f"SELECT * FROM {table} WHERE id = :id;")
@@ -65,7 +60,7 @@ async def retrieve_by_id(
 
 
 async def retrieve_by_unique(
-    conn: AsyncConnection, table: str, unique_column: str, value
+    conn: AsyncConnection, table: LiteralString, unique_column: LiteralString, value
 ) -> Optional[dict]:
     """Ensure `table` and `unique_column` are never user-defined."""
     query = text(f"SELECT * FROM {table} WHERE {unique_column} = :val;")
@@ -75,9 +70,9 @@ async def retrieve_by_unique(
 
 async def select_some_where(
     conn: AsyncConnection,
-    table: str,
-    sel_col: set[str],
-    where_col: str,
+    table: LiteralString,
+    sel_col: set[LiteralString],
+    where_col: LiteralString,
     where_value,
 ) -> list[RowMapping]:
     """Ensure `table`, `where_col` and `sel_col` are never user-defined."""
@@ -89,11 +84,11 @@ async def select_some_where(
 
 async def select_some_two_where(
     conn: AsyncConnection,
-    table: str,
-    sel_col: set[str],
-    where_col1: str,
+    table: LiteralString,
+    sel_col: set[LiteralString],
+    where_col1: LiteralString,
     where_value1,
-    where_col2: str,
+    where_col2: LiteralString,
     where_value2,
 ) -> list[RowMapping]:
     """Ensure `table`, `where_col` and `sel_col` are never user-defined."""
@@ -119,12 +114,12 @@ async def select_where(
 
 async def select_some_join_where(
     conn: AsyncConnection,
-    sel_col: set[str],
-    table_1: str,
-    table_2: str,
-    join_col_1: str,
-    join_col_2: str,
-    where_col: str,
+    sel_col: set[LiteralString],
+    table_1: LiteralString,
+    table_2: LiteralString,
+    join_col_1: LiteralString,
+    join_col_2: LiteralString,
+    where_col: LiteralString,
     value,
 ) -> list[RowMapping]:
     """Ensure columns and tables are never user-defined. If some select column exists in both tables, they must be
@@ -140,11 +135,11 @@ async def select_some_join_where(
 
 async def get_largest_where(
     conn: AsyncConnection,
-    table: str,
-    sel_col: set[str],
-    where_col: str,
+    table: LiteralString,
+    sel_col: set[LiteralString],
+    where_col: LiteralString,
     where_val,
-    order_col: str,
+    order_col: LiteralString,
     num: int,
     descending: bool = True,
 ) -> list[RowMapping]:
@@ -160,7 +155,7 @@ async def get_largest_where(
 
 
 async def exists_by_unique(
-    conn: AsyncConnection, table: str, unique_column: str, value
+    conn: AsyncConnection, table: LiteralString, unique_column: LiteralString, value
 ) -> bool:
     """Ensure `unique_column` and `table` are never user-defined."""
     query = text(
@@ -172,7 +167,7 @@ async def exists_by_unique(
 
 
 async def upsert_by_unique(
-    conn: AsyncConnection, table: str, row: dict, unique_column: str
+    conn: AsyncConnection, table: LiteralString, row: dict, unique_column: LiteralString
 ) -> int:
     """Note that while the values are safe from injection, the column names are not. Ensure the row dict
     is validated using the model and not just passed directly by the user. This does not allow changing
@@ -190,10 +185,10 @@ async def upsert_by_unique(
 
 async def update_column_by_unique(
     conn: AsyncConnection,
-    table: str,
-    set_column: str,
+    table: LiteralString,
+    set_column: LiteralString,
     set_value,
-    unique_column: str,
+    unique_column: LiteralString,
     value,
 ) -> int:
     """Note that while the values are safe from injection, the column names are not."""
@@ -208,13 +203,13 @@ async def update_column_by_unique(
 
 async def concat_column_by_unique_returning(
     conn: AsyncConnection,
-    table: str,
-    concat_source_column: str,
-    concat_target_column: str,
+    table: LiteralString,
+    concat_source_column: LiteralString,
+    concat_target_column: LiteralString,
     concat_value,
-    unique_column: str,
+    unique_column: LiteralString,
     value,
-    return_col: str,
+    return_col: LiteralString,
 ) -> Any:
     """Note that while the values are safe from injection, the column names are not."""
 
@@ -229,7 +224,7 @@ async def concat_column_by_unique_returning(
     return res.scalar()
 
 
-async def insert(conn: AsyncConnection, table: str, row: dict) -> int:
+async def insert(conn: AsyncConnection, table: LiteralString, row: dict) -> int:
     """Note that while the values are safe from injection, the column names are not. Ensure the row dict
     is validated using the model and not just passed directly by the user."""
 
@@ -241,7 +236,7 @@ async def insert(conn: AsyncConnection, table: str, row: dict) -> int:
 
 
 async def insert_return_col(
-    conn: AsyncConnection, table: str, row: dict, return_col: str
+    conn: AsyncConnection, table: LiteralString, row: dict, return_col: str
 ) -> Any:
     """Note that while the values are safe from injection, the column names are not. Ensure the row dict
     is validated using the model and not just passed directly by the user."""
@@ -255,7 +250,7 @@ async def insert_return_col(
     return await conn.scalar(query, parameters=row)
 
 
-async def delete_by_id(conn: AsyncConnection, table: str, id_int: int) -> int:
+async def delete_by_id(conn: AsyncConnection, table: LiteralString, id_int: int) -> int:
     """Ensure `table` is never user-defined."""
     query = text(f"DELETE FROM {table} WHERE id = :id;")
     res: CursorResult = await conn.execute(query, parameters={"id": id_int})
@@ -263,20 +258,28 @@ async def delete_by_id(conn: AsyncConnection, table: str, id_int: int) -> int:
 
 
 async def delete_by_column(
-    conn: AsyncConnection, table: str, column: str, column_val
+    conn: AsyncConnection, table: LiteralString, column: LiteralString, column_val
 ) -> int:
-    """Ensure `table`, `column` and `column_val` are never user-defined."""
+    """Ensure `table` and `column` are never user-defined."""
     query = text(f"DELETE FROM {table} WHERE {column} = :val;")
     res: CursorResult = await conn.execute(query, parameters={"val": column_val})
     return row_cnt(res)
 
 
-async def insert_many(conn: AsyncConnection, table: str, model_list: list[M]):
-    row_list = [r.model_dump() for r in model_list]
+async def insert_many(
+    conn: AsyncConnection, table: LiteralString, row_list: list[dict]
+) -> int:
+    """The model type must be known beforehand, it cannot be defined by the user! Same goes for table string. The dict
+    column values must also be checked!"""
+    if len(row_list) == 0:
+        raise DbError(
+            "List must contain at least one element!", "", "insert_at_least_one_element"
+        )
     row_keys, row_keys_vars, _ = _row_keys_vars_set(row_list[0])
     query = text(f"INSERT INTO {table} ({row_keys}) VALUES ({row_keys_vars});")
 
-    return await execute_catch_conn(conn, query, params=row_list)
+    res: CursorResult = await execute_catch_conn(conn, query, params=row_list)
+    return row_cnt(res)
 
 
 class DbError(Exception):

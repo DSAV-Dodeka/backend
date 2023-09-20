@@ -1,57 +1,43 @@
 from datetime import date, datetime, timedelta
-from typing import Literal, List, Sequence
+from typing import Literal
 
-from fastapi.responses import ORJSONResponse
-from pydantic import TypeAdapter
-from sqlalchemy import RowMapping
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncConnection
 
+from apiserver.lib.model.entities import (
+    Classification,
+    ClassView,
+)
 from apiserver.lib.utilities import usp_hex
-from store.error import DataError, NoDataError
 from schema.model import (
     CLASSIFICATION_TABLE,
     CLASS_TYPE,
     CLASS_START_DATE,
     CLASS_ID,
-    CLASS_POINTS_TABLE,
-    DISPLAY_POINTS,
     CLASS_LAST_UPDATED,
     USER_ID,
-    USERDATA_TABLE,
-    UD_FIRSTNAME,
-    UD_LASTNAME,
     C_EVENTS_CATEGORY,
     C_EVENTS_DATE,
     C_EVENTS_DESCRIPTION,
     CLASS_EVENTS_TABLE,
-    TRUE_POINTS,
     C_EVENTS_ID,
     C_EVENTS_POINTS,
     CLASS_EVENTS_POINTS_TABLE,
-    CLASS_HIDDEN_DATE,
     MAX_EVENT_ID_LEN,
+    CLASS_HIDDEN_DATE,
 )
 from store.db import (
-    insert_many,
     get_largest_where,
-    select_some_where,
-    select_some_join_where,
     insert,
-    select_some_two_where,
-    insert_return_col,
+    insert_many,
 )
-from apiserver.lib.model.entities import (
-    Classification,
-    ClassView,
-    UserPoints,
-    UserPointsList,
-)
+from store.error import DataError, NoDataError
 
 
-def parse_user_points(user_points: list[RowMapping]) -> list[UserPoints]:
-    if len(user_points) == 0:
-        raise NoDataError("UserPoints does not exist.", "userpoints_data_empty")
-    return UserPointsList.validate_python(user_points)
+# def parse_user_points(user_points: list[RowMapping]) -> list[UserPoints]:
+#     if len(user_points) == 0:
+#         raise NoDataError("UserPoints does not exist.", "userpoints_data_empty")
+#     return UserPointsList.validate_python(user_points)
 
 
 async def insert_classification(
@@ -85,7 +71,7 @@ async def most_recent_class_of_type(
     largest_class_list = await get_largest_where(
         conn,
         CLASSIFICATION_TABLE,
-        {CLASS_ID, CLASS_LAST_UPDATED},
+        {CLASS_ID, CLASS_LAST_UPDATED, CLASS_START_DATE, CLASS_HIDDEN_DATE},
         CLASS_TYPE,
         query_class_type,
         CLASS_START_DATE,
@@ -132,7 +118,7 @@ async def add_class_event(
 
 
 async def upsert_user_event_points(
-    conn: AsyncConnection, event_id: int, user_id: str, points: int
+    conn: AsyncConnection, event_id: str, user_id: str, points: int
 ):
     row_to_insert = {
         USER_ID: user_id,
@@ -143,30 +129,45 @@ async def upsert_user_event_points(
     await insert(conn, CLASS_EVENTS_POINTS_TABLE, row_to_insert)
 
 
-async def check_user_in_class(
-    conn: AsyncConnection,
-    user_id: str,
-    classification_id: int,
-) -> bool:
-    data = await select_some_two_where(
-        conn,
-        CLASS_POINTS_TABLE,
-        {TRUE_POINTS},
-        USER_ID,
-        user_id,
-        CLASS_ID,
-        classification_id,
-    )
-
-    return data is not None
+class UserPoints(BaseModel):
+    user_id: str
+    points: int
 
 
-async def get_hidden_date(conn: AsyncConnection, classification_id: int) -> str:
-    hidden_date_data = await select_some_where(
-        conn, CLASSIFICATION_TABLE, {CLASS_HIDDEN_DATE}, CLASS_ID, classification_id
-    )
+async def add_users_to_event(
+    conn: AsyncConnection, event_id: str, points: list[UserPoints]
+) -> int:
+    points_with_events = [
+        {"event_id": event_id, "user_id": up.user_id, "points": up.points}
+        for up in points
+    ]
+    return await insert_many(conn, CLASS_EVENTS_POINTS_TABLE, points_with_events)
 
-    print(
-        ORJSONResponse([hidden_date.model_dump() for hidden_date in hidden_date_data])
-    )
-    return "str"
+
+# async def check_user_in_class(
+#     conn: AsyncConnection,
+#     user_id: str,
+#     classification_id: int,
+# ) -> bool:
+#     data = await select_some_two_where(
+#         conn,
+#         CLASS_POINTS_TABLE,
+#         {TRUE_POINTS},
+#         USER_ID,
+#         user_id,
+#         CLASS_ID,
+#         classification_id,
+#     )
+#
+#     return data is not None
+
+
+# async def get_hidden_date(conn: AsyncConnection, classification_id: int) -> str:
+#     hidden_date_data = await select_some_where(
+#         conn, CLASSIFICATION_TABLE, {CLASS_HIDDEN_DATE}, CLASS_ID, classification_id
+#     )
+#
+#     print(
+#         ORJSONResponse([hidden_date.model_dump() for hidden_date in hidden_date_data])
+#     )
+#     return "str"

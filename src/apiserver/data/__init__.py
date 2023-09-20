@@ -10,6 +10,7 @@ from apiserver.data.api.ud import userdata as ud
 from apiserver.data.api.ud import birthday
 from apiserver.data import schema
 from apiserver.data import trs
+from apiserver.data import special
 
 ops = schema.OPS
 
@@ -29,4 +30,5 @@ __all__ = [
     "ud",
     "birthday",
     "ops",
+    "special",
 ]

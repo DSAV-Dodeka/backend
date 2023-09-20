@@ -201,6 +201,8 @@ class UserNames(BaseModel):
 class ClassView(BaseModel):
     classification_id: int
     last_updated: date
+    start_date: date
+    hidden_date: date
 
 
 class UserPoints(BaseModel):

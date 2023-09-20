@@ -9,14 +9,16 @@ from faker import Faker
 import apiserver.lib.utilities as util
 import auth.core.util
 from apiserver import data
+from apiserver.app.modules.ranking import add_new_event, NewEvent
 from apiserver.app.ops.startup import get_keystate
+from apiserver.app.routers.ranking import add_new_event
 from apiserver.data import Source, get_conn
-from apiserver.data.api.classifications import insert_classification
+from apiserver.data.api.classifications import insert_classification, UserPoints
 from apiserver.data.api.ud.userdata import new_userdata
-from apiserver.data.special.db import update_class_points
+from apiserver.data.special import update_class_points
 from apiserver.define import DEFINE
 from apiserver.env import load_config
-from apiserver.lib.model.entities import SignedUp
+from apiserver.lib.model.entities import SignedUp, UserNames
 from auth.core.model import IdInfo
 from auth.data.authentication import get_apake_setup
 from auth.data.keys import get_keys
@@ -172,3 +174,32 @@ async def test_add_classification(local_dsrc):
 async def test_update_points(local_dsrc):
     async with get_conn(local_dsrc) as conn:
         await update_class_points(conn, 4, True)
+
+
+@pytest.mark.asyncio
+async def test_add_event(local_dsrc, faker: Faker):
+    faker.seed_instance(424)
+    async with get_conn(local_dsrc) as conn:
+        users = await data.ud.get_all_usernames(conn)
+
+    events_users = 15
+    if len(users) < events_users:
+        events_users = len(users)
+
+    chosen_users: list[UserNames] = faker.random_choices(users, length=events_users)
+    point_amount = 13
+
+    user_points = [
+        UserPoints(user_id=u.user_id, points=point_amount) for u in chosen_users
+    ]
+
+    new_event = NewEvent(
+        users=user_points,
+        class_type="points",
+        date=faker.date_this_month(),
+        event_id="hithisisdifferent",
+        category="cool catego242ry",
+        description="desc",
+    )
+
+    await add_new_event(local_dsrc, new_event)

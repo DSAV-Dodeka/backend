@@ -33,6 +33,7 @@ from schema.model import (
     UD_FIRSTNAME,
     UD_LASTNAME,
     CLASS_POINTS_TABLE,
+    TRUE_POINTS,
 )
 from store.db import (
     get_largest_where,
@@ -98,13 +99,17 @@ async def most_recent_class_of_type(
 
 
 async def all_points_in_class(
-    conn: AsyncConnection, class_id: int
+    conn: AsyncConnection, class_id: int, show_true_points: bool = False
 ) -> list[UserPointsNames]:
+    points_col = DISPLAY_POINTS
+    if show_true_points:
+        points_col = TRUE_POINTS
+
     # Necessary because user_id is present in both tables
     user_id_select = f"{USERDATA_TABLE}.{USER_ID}"
     user_points = await select_some_join_where(
         conn,
-        {DISPLAY_POINTS, UD_FIRSTNAME, UD_LASTNAME, user_id_select},
+        {points_col, UD_FIRSTNAME, UD_LASTNAME, user_id_select},
         CLASS_POINTS_TABLE,
         USERDATA_TABLE,
         USER_ID,

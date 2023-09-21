@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Optional, Literal, List
 
-from pydantic import field_validator, BaseModel, TypeAdapter, Field
+from pydantic import field_validator, BaseModel, TypeAdapter, Field, AliasChoices
 
 from auth.core.model import IdInfo as AuthIdInfo, AccessTokenBase as AuthAccessToken
 from auth.data.schemad.entities import User as AuthUser, UserData as AuthUserData
@@ -209,8 +209,8 @@ class UserPointsNames(BaseModel):
     user_id: str
     firstname: str
     lastname: str
-    # In the database it is 'display_points', but we want to export as points
-    points: int = Field(validation_alias="display_points")
+    # In the database it is 'display_points'/'true_points', but we want to export as points
+    points: int = Field(validation_alias=AliasChoices("display_points", "true_points"))
 
 
 UserPointsNamesList = TypeAdapter(List[UserPointsNames])

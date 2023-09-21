@@ -167,13 +167,13 @@ async def test_generate_rand():
 @pytest.mark.asyncio
 async def test_add_classification(local_dsrc):
     async with get_conn(local_dsrc) as conn:
-        await insert_classification(conn, "points")
+        await insert_classification(conn, "training")
 
 
 @pytest.mark.asyncio
 async def test_update_points(local_dsrc):
     async with get_conn(local_dsrc) as conn:
-        await update_class_points(conn, 4, True)
+        await update_class_points(conn, 5, True)
 
 
 @pytest.mark.asyncio

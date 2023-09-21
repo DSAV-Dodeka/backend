@@ -2,11 +2,14 @@ from datetime import date, datetime, timedelta
 from typing import Literal
 
 from pydantic import BaseModel
+from sqlalchemy import RowMapping
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from apiserver.lib.model.entities import (
     Classification,
     ClassView,
+    UserPointsNames,
+    UserPointsNamesList,
 )
 from apiserver.lib.utilities import usp_hex
 from schema.model import (
@@ -25,23 +28,31 @@ from schema.model import (
     CLASS_EVENTS_POINTS_TABLE,
     MAX_EVENT_ID_LEN,
     CLASS_HIDDEN_DATE,
+    USERDATA_TABLE,
+    DISPLAY_POINTS,
+    UD_FIRSTNAME,
+    UD_LASTNAME,
+    CLASS_POINTS_TABLE,
 )
 from store.db import (
     get_largest_where,
     insert,
     insert_many,
+    select_some_join_where,
 )
-from store.error import DataError, NoDataError
+from store.error import DataError, NoDataError, DbError, DbErrors
 
 
-# def parse_user_points(user_points: list[RowMapping]) -> list[UserPoints]:
-#     if len(user_points) == 0:
-#         raise NoDataError("UserPoints does not exist.", "userpoints_data_empty")
-#     return UserPointsList.validate_python(user_points)
+def parse_user_points(user_points: list[RowMapping]) -> list[UserPointsNames]:
+    if len(user_points) == 0:
+        raise NoDataError(
+            "UserPointsNames does not exist.", "userpointsnames_data_empty"
+        )
+    return UserPointsNamesList.validate_python(user_points)
 
 
 async def insert_classification(
-    conn: AsyncConnection, class_type: str, start_date: date = None
+    conn: AsyncConnection, class_type: str, start_date: date | None = None
 ):
     if start_date is None:
         start_date = date.today()
@@ -84,6 +95,25 @@ async def most_recent_class_of_type(
         )
 
     return ClassView.model_validate(largest_class_list[0])
+
+
+async def all_points_in_class(
+    conn: AsyncConnection, class_id: int
+) -> list[UserPointsNames]:
+    # Necessary because user_id is present in both tables
+    user_id_select = f"{USERDATA_TABLE}.{USER_ID}"
+    user_points = await select_some_join_where(
+        conn,
+        {DISPLAY_POINTS, UD_FIRSTNAME, UD_LASTNAME, user_id_select},
+        CLASS_POINTS_TABLE,
+        USERDATA_TABLE,
+        USER_ID,
+        USER_ID,
+        CLASS_ID,
+        class_id,
+    )
+
+    return parse_user_points(user_points)
 
 
 async def add_class_event(
@@ -141,7 +171,16 @@ async def add_users_to_event(
         {"event_id": event_id, "user_id": up.user_id, "points": up.points}
         for up in points
     ]
-    return await insert_many(conn, CLASS_EVENTS_POINTS_TABLE, points_with_events)
+
+    try:
+        return await insert_many(conn, CLASS_EVENTS_POINTS_TABLE, points_with_events)
+    except DbError as e:
+        if e.key == DbErrors.INTEGRITY:
+            raise DataError(
+                f"Input {points_with_events} violates database integrity, most likely a"
+                " duplicate value!",
+                "database_integrity",
+            )
 
 
 # async def check_user_in_class(

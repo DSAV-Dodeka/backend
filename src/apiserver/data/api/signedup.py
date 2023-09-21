@@ -3,7 +3,6 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from store.db import (
-    DbError,
     retrieve_by_unique,
     insert,
     exists_by_unique,
@@ -17,7 +16,7 @@ from schema.model import (
     SU_EMAIL,
     SU_CONFIRMED,
 )
-from store.error import DataError
+from store.error import DataError, DbError
 
 __all__ = [
     "get_signedup_by_email",
@@ -58,7 +57,7 @@ async def insert_su_row(conn: AsyncConnection, su_row: dict):
     try:
         result = await insert(conn, SIGNEDUP_TABLE, su_row)
     except DbError as e:
-        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
+        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.key)
     return result
 
 

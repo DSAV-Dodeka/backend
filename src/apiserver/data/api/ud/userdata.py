@@ -18,13 +18,12 @@ from schema.model import (
 from store.db import (
     retrieve_by_unique,
     insert_return_col,
-    DbError,
     upsert_by_unique,
     update_column_by_unique,
     select_where,
     select_some_where,
 )
-from store.error import NoDataError, DataError
+from store.error import NoDataError, DataError, DbError
 
 
 def parse_userdata(user_dict: Optional[dict]) -> UserData:
@@ -115,7 +114,7 @@ async def insert_userdata(conn: AsyncConnection, userdata: UserData):
             conn, USERDATA_TABLE, userdata.model_dump(), USER_ID
         )
     except DbError as e:
-        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
+        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.key)
     return user_id
 
 
@@ -126,7 +125,7 @@ async def upsert_userdata(conn: AsyncConnection, userdata: UserData):
             conn, USERDATA_TABLE, userdata.model_dump(), USER_ID
         )
     except DbError as e:
-        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
+        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.key)
     return result
 
 
@@ -136,7 +135,7 @@ async def update_ud_email(conn: AsyncConnection, user_id: str, new_email: str) -
             conn, USERDATA_TABLE, UD_EMAIL, new_email, UD_EMAIL, user_id
         )
     except DbError as e:
-        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
+        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.key)
     return bool(count)
 
 

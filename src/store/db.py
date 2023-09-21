@@ -1,9 +1,12 @@
-from typing import Optional, Any, TypeVar, LiteralString
+from typing import Optional, Any, LiteralString, TypeAlias
 
-from pydantic import BaseModel
 from sqlalchemy import CursorResult, text, RowMapping
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection
+
+from store.error import DbError, DbErrors
+
+LiteralDict: TypeAlias = dict[LiteralString, Any]
 
 
 def _row_keys_vars_set(row: dict):
@@ -31,7 +34,7 @@ async def execute_catch_conn(
         result = await conn.execute(query, parameters=params)
     except IntegrityError as e:
         raise DbError(
-            "Database relational integrity violation", str(e), "integrity_violation"
+            "Database relational integrity violation", str(e), DbErrors.INTEGRITY
         )
 
     return result
@@ -104,7 +107,7 @@ async def select_some_two_where(
 
 
 async def select_where(
-    conn: AsyncConnection, table: str, column, value
+    conn: AsyncConnection, table: LiteralString, column: LiteralString, value
 ) -> list[RowMapping]:
     """Ensure `table` and `column` are never user-defined."""
     query = text(f"SELECT * FROM {table} WHERE {column} = :val;")
@@ -167,7 +170,10 @@ async def exists_by_unique(
 
 
 async def upsert_by_unique(
-    conn: AsyncConnection, table: LiteralString, row: dict, unique_column: LiteralString
+    conn: AsyncConnection,
+    table: LiteralString,
+    row: LiteralDict,
+    unique_column: LiteralString,
 ) -> int:
     """Note that while the values are safe from injection, the column names are not. Ensure the row dict
     is validated using the model and not just passed directly by the user. This does not allow changing
@@ -224,7 +230,7 @@ async def concat_column_by_unique_returning(
     return res.scalar()
 
 
-async def insert(conn: AsyncConnection, table: LiteralString, row: dict) -> int:
+async def insert(conn: AsyncConnection, table: LiteralString, row: LiteralDict) -> int:
     """Note that while the values are safe from injection, the column names are not. Ensure the row dict
     is validated using the model and not just passed directly by the user."""
 
@@ -236,7 +242,7 @@ async def insert(conn: AsyncConnection, table: LiteralString, row: dict) -> int:
 
 
 async def insert_return_col(
-    conn: AsyncConnection, table: LiteralString, row: dict, return_col: str
+    conn: AsyncConnection, table: LiteralString, row: LiteralDict, return_col: str
 ) -> Any:
     """Note that while the values are safe from injection, the column names are not. Ensure the row dict
     is validated using the model and not just passed directly by the user."""
@@ -272,20 +278,9 @@ async def insert_many(
     """The model type must be known beforehand, it cannot be defined by the user! Same goes for table string. The dict
     column values must also be checked!"""
     if len(row_list) == 0:
-        raise DbError(
-            "List must contain at least one element!", "", "insert_at_least_one_element"
-        )
+        raise DbError("List must contain at least one element!", "", DbErrors.INPUT)
     row_keys, row_keys_vars, _ = _row_keys_vars_set(row_list[0])
     query = text(f"INSERT INTO {table} ({row_keys}) VALUES ({row_keys_vars});")
 
     res: CursorResult = await execute_catch_conn(conn, query, params=row_list)
     return row_cnt(res)
-
-
-class DbError(Exception):
-    """Exception that represents special internal errors."""
-
-    def __init__(self, err_desc: str, err_internal: str, debug_key: str | None = None):
-        self.err_desc = err_desc
-        self.err_internal = err_internal
-        self.debug_key = debug_key

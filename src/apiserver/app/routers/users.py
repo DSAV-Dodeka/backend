@@ -1,18 +1,16 @@
 from typing import List
 
 from fastapi import APIRouter, Request
-from fastapi.responses import ORJSONResponse, JSONResponse
 from pydantic import TypeAdapter
 
 import apiserver.data.api.ud.birthday
 from apiserver import data
-from apiserver.app.response import RawJSONResponse
-from apiserver.lib.model.entities import BirthdayData, UserPointsList
 from apiserver.app.error import ErrorResponse
 from apiserver.app.ops.header import Authorization
-from apiserver.data import Source
-
+from apiserver.app.response import RawJSONResponse
 from apiserver.app.routers.helper import require_member
+from apiserver.data import Source
+from apiserver.lib.model.entities import BirthdayData, UserPointsNamesList
 
 router = APIRouter()
 
@@ -74,4 +72,4 @@ async def get_classification(rank_type, request: Request, authorization: Authori
         user_points = await data.classifications.all_points_in_class(
             conn, class_view.classification_id
         )
-    return RawJSONResponse(UserPointsList.dump_json(user_points))
+    return RawJSONResponse(UserPointsNamesList.dump_json(user_points))

@@ -186,7 +186,9 @@ async def test_add_event(local_dsrc, faker: Faker):
     if len(users) < events_users:
         events_users = len(users)
 
-    chosen_users: list[UserNames] = faker.random_choices(users, length=events_users)
+    chosen_users: list[UserNames] = faker.random_elements(
+        users, length=events_users, unique=True
+    )
     point_amount = 13
 
     user_points = [

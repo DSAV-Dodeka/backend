@@ -15,12 +15,11 @@ from schema.model import (
 )
 from store.db import (
     concat_column_by_unique_returning,
-    DbError,
     select_some_where,
     update_column_by_unique,
     select_some_join_where,
 )
-from store.error import DataError, NoDataError
+from store.error import DataError, NoDataError, DbError
 
 
 def parse_scope_data(scope_dict: Optional[dict]) -> ScopeData:
@@ -65,7 +64,7 @@ async def add_scope(conn: AsyncConnection, user_id: str, new_scope: str):
             conn, USER_TABLE, SCOPES, SCOPES, scope_usph, USER_ID, user_id, SCOPES
         )
     except DbError as e:
-        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
+        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.key)
 
     if final_scope is None:
         raise NoDataError(
@@ -86,7 +85,7 @@ async def remove_scope(conn: AsyncConnection, user_id: str, old_scope: str):
             conn, USER_TABLE, {SCOPES}, USER_ID, user_id
         )
     except DbError as e:
-        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
+        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.key)
 
     # With 'where USER_ID = user_id', the result should only contain one dict.
     # Maybe in the future we can make the user_id attribute a list to bulk remove roles.
@@ -113,7 +112,7 @@ async def remove_scope(conn: AsyncConnection, user_id: str, old_scope: str):
             conn, USER_TABLE, SCOPES, result, USER_ID, user_id
         )
     except DbError as e:
-        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
+        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.key)
 
 
 async def get_all_users_scopes(conn: AsyncConnection) -> list[UserScopeData]:

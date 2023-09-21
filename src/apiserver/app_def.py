@@ -30,6 +30,7 @@ from apiserver.app.routers import (
     users,
     onboard_router,
     auth_router,
+    ranking,
 )
 
 
@@ -106,6 +107,7 @@ def add_routers(new_app: FastAPI):
     new_app.include_router(update_router)
     new_app.include_router(admin.router)
     new_app.include_router(users.router)
+    new_app.include_router(ranking.router)
 
     return new_app
 

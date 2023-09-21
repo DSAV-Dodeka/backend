@@ -1,11 +1,14 @@
+from fastapi import APIRouter
 from starlette.requests import Request
 
 from apiserver.app.error import ErrorResponse, AppError
 from apiserver.app.modules.ranking import add_new_event, NewEvent
 from apiserver.app.ops.header import Authorization
-from apiserver.app.routers.admin import router
 from apiserver.app.routers.helper import require_admin
 from apiserver.data import Source
+
+
+router = APIRouter()
 
 
 @router.post("/admin/ranking/update/")

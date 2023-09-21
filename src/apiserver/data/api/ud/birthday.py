@@ -1,4 +1,4 @@
-from typing import Optional, List, Sequence
+from typing import List
 
 from pydantic import TypeAdapter
 from sqlalchemy import RowMapping

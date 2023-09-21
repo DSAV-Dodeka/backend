@@ -62,7 +62,7 @@ async def update_class_points(
             (
                 SELECT ud.id, SUM(COALESCE(points, 0)) as new_points FROM
                 (
-                    SELECT ev.{C_EVENTS_ID}, uev.{USER_ID} as id, uev.{C_EVENTS_POINTS} as points 
+                    SELECT ev.{C_EVENTS_ID}, uev.{USER_ID} as id, uev.{C_EVENTS_POINTS} as points
                     FROM
                         {CLASS_EVENTS_POINTS_TABLE} as uev
                     JOIN
@@ -75,7 +75,7 @@ async def update_class_points(
                 GROUP BY ud.id
             ) as sm
         )
-        ON CONFLICT ({USER_ID}, {CLASS_ID}) DO UPDATE SET 
+        ON CONFLICT ({USER_ID}, {CLASS_ID}) DO UPDATE SET
         {TRUE_POINTS} = excluded.{TRUE_POINTS}
         {set_display};
     """)

@@ -42,9 +42,18 @@ async def add_new_event(dsrc: Source, new_event: NewEvent):
             new_event.description,
         )
 
-        await data.classifications.add_users_to_event(
-            conn, event_id=event_id, points=new_event.users
-        )
+        try:
+            await data.classifications.add_users_to_event(
+                conn, event_id=event_id, points=new_event.users
+            )
+        except DataError as e:
+            if e.key != "database_integrity":
+                raise e
+            raise AppError(
+                ErrorKeys.RANKING_UPDATE,
+                e.message,
+                "add_event_users_violates_integrity",
+            )
 
         today = date.today()
         show_points = today < classification.hidden_date

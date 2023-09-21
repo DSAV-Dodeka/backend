@@ -11,7 +11,6 @@ from store.db import (
     delete_by_column,
     insert,
     select_some_where,
-    DbError,
 )
 from schema.model import (
     USER_TABLE,
@@ -25,7 +24,7 @@ from auth.data.schemad.user import (
     UserOps as AuthUserOps,
     UserErrors,
 )
-from store.error import DataError, NoDataError
+from store.error import DataError, NoDataError, DbError
 from apiserver.lib.model.entities import (
     User,
     SignedUp,
@@ -79,7 +78,7 @@ async def insert_user(conn: AsyncConnection, user: User):
     try:
         await insert(conn, USER_TABLE, user_row)
     except DbError as e:
-        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
+        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.key)
 
 
 async def insert_return_user_id(conn: AsyncConnection, user: User) -> str:
@@ -87,7 +86,7 @@ async def insert_return_user_id(conn: AsyncConnection, user: User) -> str:
     try:
         user_id = await insert_return_col(conn, USER_TABLE, user_row, USER_ID)
     except DbError as e:
-        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
+        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.key)
     return user_id
 
 
@@ -117,7 +116,7 @@ async def update_user_email(
             conn, USER_TABLE, USER_EMAIL, new_email, USER_ID, user_id
         )
     except DbError as e:
-        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
+        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.key)
     return bool(count)
 
 

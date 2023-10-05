@@ -37,12 +37,12 @@ class RegisterFrame(Protocol):
     @classmethod
     async def get_registration(
         cls, dsrc: Source, register_id: str
-    ) -> tuple[UserData, User]:
-        ...
+    ) -> tuple[UserData, User]: ...
 
     @classmethod
-    async def get_register_state(cls, dsrc: Source, auth_id: str) -> SavedRegisterState:
-        ...
+    async def get_register_state(
+        cls, dsrc: Source, auth_id: str
+    ) -> SavedRegisterState: ...
 
     @classmethod
     async def check_userdata_register(

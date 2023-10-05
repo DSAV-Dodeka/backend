@@ -1,17 +1,18 @@
 from datetime import date
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 
-from pydantic import BaseModel, validator
+from pydantic import field_validator, BaseModel, TypeAdapter, Field, AliasChoices
+
+from auth.core.model import IdInfo as AuthIdInfo, AccessTokenBase as AuthAccessToken
+from auth.data.schemad.entities import User as AuthUser, UserData as AuthUserData
 
 
-class User(BaseModel):
+class User(AuthUser):
     # Set by the database
     id: int = -1
     id_name: str
     # Computed in the database
     user_id: str = ""
-    email: str
-    password_file: str
     scope: str = "member"
 
 
@@ -26,41 +27,12 @@ class Key(BaseModel):
     private_encoding: str
 
 
-class SavedRefreshToken(BaseModel):
-    # Set by the database
-    id: int = -1
-    user_id: str
-    family_id: str
-    access_value: str
-    id_token_value: str
-    iat: int
-    exp: int
-    nonce: str
-
-
-class RefreshToken(BaseModel):
-    id: int
-    family_id: str
-    nonce: str
-
-
-class AccessToken(BaseModel):
-    sub: str
-    iss: str
-    aud: list[str]
-    scope: str
+class AccessToken(AuthAccessToken):
     iat: int
     exp: int
 
 
-class SavedAccessToken(BaseModel):
-    sub: str
-    iss: str
-    aud: list[str]
-    scope: str
-
-
-class IdInfo(BaseModel):
+class IdInfo(AuthIdInfo):
     email: str
     name: str
     given_name: str
@@ -68,14 +40,6 @@ class IdInfo(BaseModel):
     nickname: str
     preferred_username: str
     birthdate: str
-
-
-class IdToken(IdInfo):
-    sub: str
-    iss: str
-    aud: list[str]
-    auth_time: int
-    nonce: str
 
 
 class SignedUp(BaseModel):
@@ -86,7 +50,7 @@ class SignedUp(BaseModel):
     confirmed: bool = False
 
 
-class UserData(BaseModel):
+class UserData(AuthUserData):
     user_id: str
     active: bool
     firstname: str
@@ -103,8 +67,8 @@ class UserData(BaseModel):
     showage: bool
 
     # Coerces null in database to false
-    @validator("showage", pre=True)
-    def parse_field3_as_bar(cls, value):
+    @field_validator("showage")
+    def coerce_showage(cls, value):
         if value is None:
             return False
         else:
@@ -143,25 +107,31 @@ class JWKSRow(BaseModel):
     encrypted_value: str
 
 
-class A256GCMKey(BaseModel):
-    kid: str
-    symmetric: str  # base64url encoded symmetric 256-bit key
-
-
 class OpaqueSetup(BaseModel):
     id: int
     value: str
 
 
 class JWK(BaseModel):
-    kty: Literal["okp", "oct"]
+    """Parameters are as standardized in the IANA JOSE registry (https://www.iana.org/assignments/jose/jose.xhtml)"""
+
+    kty: Literal["OKP", "oct"]
     use: Literal["sig", "enc"]
     alg: Literal["EdDSA", "A256GCM"]
     kid: str
-    crv: Optional[Literal["Ed448"]]
-    k: Optional[str]  # symmetric key base64url bytes
-    x: Optional[str]  # public asymmetric key base64url bytes
-    d: Optional[str]  # private asymmetric key base64url bytes
+    crv: Optional[Literal["Ed448"]] = None
+    k: Optional[str] = None  # symmetric key base64url bytes
+    x: Optional[str] = None  # public asymmetric key base64url bytes
+    d: Optional[str] = None  # private asymmetric key base64url bytes
+
+
+class JWKPublicEdDSA(JWK):
+    kty: Literal["OKP"]
+    use: Literal["sig"]
+    alg: Literal["EdDSA"]
+    kid: str
+    crv: Literal["Ed448"]
+    x: str  # public asymmetric key base64url bytes
 
 
 class JWKSet(BaseModel):
@@ -171,7 +141,6 @@ class JWKSet(BaseModel):
 class PEMKey(BaseModel):
     kid: str
     public: str  # PEM encoded X509PKCS#1 as unicode
-    private: str  # PEM encoded PKCS#8 as unicode
 
 
 class AuthRequest(BaseModel):
@@ -184,22 +153,11 @@ class AuthRequest(BaseModel):
     nonce: str
 
 
-class SavedRegisterState(BaseModel):
-    user_id: str
-
-
 class SavedState(BaseModel):
     user_id: str
     user_email: str
     scope: str
     state: str
-
-
-class FlowUser(BaseModel):
-    user_id: str
-    scope: str
-    flow_id: str
-    auth_time: int
 
 
 class UpdateEmailState(BaseModel):
@@ -213,3 +171,49 @@ class Signup(BaseModel):
     lastname: str
     email: str
     phone: str
+
+
+class Classification(BaseModel):
+    type: str
+    start_date: date
+    end_date: date
+    hidden_date: date
+    last_updated: date
+
+
+class ClassPoints(BaseModel):
+    user_id: str
+    classification_id: str
+    true_points: str
+    display_points: str
+
+
+class UserID(BaseModel):
+    user_id: str
+
+
+class UserNames(BaseModel):
+    user_id: str
+    firstname: str
+    lastname: str
+
+
+class ClassView(BaseModel):
+    classification_id: int
+    last_updated: date
+    start_date: date
+    hidden_date: date
+
+
+class UserPointsNames(BaseModel):
+    user_id: str
+    firstname: str
+    lastname: str
+    # In the database it is 'display_points'/'true_points', but we want to export as points
+    points: int = Field(validation_alias=AliasChoices("display_points", "true_points"))
+
+
+UserPointsNamesList = TypeAdapter(List[UserPointsNames])
+
+# class PointsData(BaseModel):
+#     points: int

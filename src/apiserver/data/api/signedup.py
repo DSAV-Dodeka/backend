@@ -2,14 +2,7 @@ from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from apiserver.lib.model.entities import SignedUp
-from apiserver.data.db.model import (
-    SIGNEDUP_TABLE,
-    SU_EMAIL,
-    SU_CONFIRMED,
-)
-from apiserver.data.db.ops import (
-    DbError,
+from store.db import (
     retrieve_by_unique,
     insert,
     exists_by_unique,
@@ -17,7 +10,13 @@ from apiserver.data.db.ops import (
     select_where,
     delete_by_column,
 )
-from apiserver.data.source import DataError
+from apiserver.lib.model.entities import SignedUp
+from schema.model import (
+    SIGNEDUP_TABLE,
+    SU_EMAIL,
+    SU_CONFIRMED,
+)
+from store.error import DataError, DbError
 
 __all__ = [
     "get_signedup_by_email",
@@ -31,7 +30,7 @@ __all__ = [
 def parse_signedup(signedup_dict: Optional[dict]) -> SignedUp:
     if signedup_dict is None:
         raise DataError("User does not exist.", "signedup_empty")
-    return SignedUp.parse_obj(signedup_dict)
+    return SignedUp.model_validate(signedup_dict)
 
 
 async def get_signedup_by_email(conn: AsyncConnection, email: str) -> SignedUp:
@@ -47,7 +46,7 @@ async def confirm_signup(conn: AsyncConnection, email: str):
 
 async def get_all_signedup(conn: AsyncConnection) -> list[SignedUp]:
     all_signed_up = await select_where(conn, SIGNEDUP_TABLE, SU_CONFIRMED, False)
-    return [parse_signedup(su_dct) for su_dct in all_signed_up]
+    return [parse_signedup(dict(su_dct)) for su_dct in all_signed_up]
 
 
 async def signedup_exists(conn: AsyncConnection, email: str) -> bool:
@@ -58,7 +57,7 @@ async def insert_su_row(conn: AsyncConnection, su_row: dict):
     try:
         result = await insert(conn, SIGNEDUP_TABLE, su_row)
     except DbError as e:
-        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.debug_key)
+        raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.key)
     return result
 
 

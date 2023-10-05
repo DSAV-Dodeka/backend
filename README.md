@@ -28,13 +28,6 @@ The backend relies on some basic cryptography. It is nice to know something abou
 
 **Deployment**: Everything is designed to run easily inside a **[Docker](https://www.docker.com/)** container. The total package (Server, DB, KV) is recommended to be deployed using separate Docker containers using **[Docker Compose](https://docs.docker.com/compose/)**. We manage deployment from the **[DSAV-Dodeka/dodeka](https://github.com/DSAV-Dodeka/dodeka)** repository.
 
-
-#### Telemetry
-
-```
-APISERVER_CONFIG=./localenv.toml OTEL_RESOURCE_ATTRIBUTES=service.name=apiserver OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4318" OTEL_METRICS_EXPORTER=none poetry run opentelemetry-instrument --traces_exporter otlp_proto_http python src/apiserver/dev.py
-```
-
 ## Development
 
 #### Running locally
@@ -78,7 +71,7 @@ We can use Alembic for migrations, which allow you to programatically apply larg
 
 First you need to have the Poetry environment running as described earlier and ensure the database is on as well. 
 
-* Navigate to the /server/src/apiserver/db/migrations directory.
+* Navigate to the /server/src/schema directory.
 * From there run `poetry run alembic revision --autogenerate -m "Some message"`
 * This will generate a Python file in the migrations/versions directory, which you can view to see if everything looks good. It basically looks at the database, looks at the schema described in db/model.py and generates code to migrate to the described schema.
 * Then, you can run `poetry run alembic upgrade head`, which will apply the latest generated revision. If you now use your database viewer, the table will have hopefully appeared.
@@ -123,3 +116,12 @@ Implementing good authentication/authorization for a website is hard. There are 
 OPAQUE is an in-development protocol that seeks to provide a permanent solution to the question of how to best store passwords and authenticate users using them. A simple hash-based solution would have been good enough, but there are many (good and bad) ways to implement this, while OPAQUE makes it much more straightforward to implement it the right way. It also provides tangible security benefits. It has also been used by big companies (for example by WhatsApp for their end-to-end encrypted backups), so it is mature enough for production use.
 
 Our implementation relies on [opaque-ke](https://github.com/novifinancial/opaque-ke), a library written in Rust. As there is no Python library, a simple wrapper for the Rust library, [opquepy](https://github.com/tiptenbrink/opaquebind/tree/main/opaquepy), was written for this project. It exposes the necessary functions for using OPAQUE and consists of very little code, making it easy to maintain. The wrapper is part of a library that also includes a WebAssembly wrapper, which allows it to be called from JavaScript in the browser.
+
+## Maybe implement in future
+
+- https://datatracker.ietf.org/doc/html/rfc8959 secret-token
+- https://datatracker.ietf.org/doc/html/rfc7009 token revocation request
+- https://auth0.com/docs/secure/tokens/json-web-tokens/json-web-key-sets JSON web key sets
+- https://datatracker.ietf.org/doc/html/rfc8414 OAuth 2 discovery
+- https://www.rfc-editor.org/rfc/rfc9068 Access token standard (also proper OpenID scope)
+- https://datatracker.ietf.org/doc/html/rfc7662 token metadata (introspection)

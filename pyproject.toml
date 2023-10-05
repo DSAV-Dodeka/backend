@@ -5,24 +5,25 @@ description = ""
 authors = ["Tip ten Brink <75669206+tiptenbrink@users.noreply.github.com>"]
 
 [tool.poetry.dependencies]
-python = ">=3.11, <3.12"
+python = ">=3.11, <3.13"
 tomli = "2.0.1"
-fastapi = "0.95.1"
-uvicorn = { extras = ["standard"], version = "^0.21.1" }
-asyncpg = "^0.27.0"
-gunicorn = "^20.1.0"
+fastapi = "0.103.0"
+uvicorn = { extras = ["standard"], version = "^0.23.2" }
+asyncpg = "^0.28.0"
+gunicorn = "^21.2.0"
 redis = "^4.5.1"
 PyJWT = "2.6.0"
-cryptography = "40.0.2"
-pydantic = "^1.10.5"
+cryptography = "41.0.3"
+pydantic = "^2.3.0"
 jinja2 = "^3.1.2"
 anyio = "^3.6.1"
-opaquepy = "^0.3.4"
-sqlalchemy = { extras = ["asyncio"], version = "^2.0.4" }
+opaquepy = "^0.3.5"
+sqlalchemy = { extras = ["asyncio"], version = "^2.0.20" }
+psycopg = { extras = ["binary"], version="^3.1.0" }
 typing-extensions = "^4.5.0"
-psycopg2-binary = "^2.9.2"
-regex = "^2023.3.23"
-
+regex = "^2023.8.8"
+orjson = "^3.9.5"
+yarl = "^1.9.2"
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
@@ -31,20 +32,20 @@ asyncio_mode = "strict"
 s-api = "apiserver.dev:run"
 
 [tool.poetry.group.dev.dependencies]
-sqlalchemy = { extras = ["mypy", "asyncio"], version = "^2.0.4" }
+sqlalchemy = { extras = ["mypy", "asyncio"], version = "^2.0.20" }
 pytest = "^7.0.1"
 pytest-asyncio = "^0.20.3"
 pytest-mock = "^3.7.0"
 pre-commit = "^2.20.0"
-httpx = "^0.23.0"
-alembic = "^1.8.0"
+httpx = "^0.24.1"
+alembic = "^1.12.0"
 coverage = "^6.3.2"
-black = "^22.8.0"
-mypy = "^1.0.1"
+black = "^23.7.0"
+mypy = "^1.5.1"
 types-redis = "^4.3.21"
 # sqlalchemy-stubs = "^0.4"
-faker = "^15.3.3"
-ruff = "^0.0.259"
+faker = "^19.3.1"
+ruff = "^0.0.287"
 
 [tool.black]
 target-version = ['py311']
@@ -83,7 +84,6 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
-
 select = ["F", "PL", "E", "W", "RUF"]
 # We ignore too-many-arguments and line length, as black fixes line length for code
 ignore = ["PLR0913", "E501"]

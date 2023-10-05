@@ -5,12 +5,11 @@ from pydantic import TypeAdapter
 
 import apiserver.data.api.ud.birthday
 from apiserver import data
-from apiserver.app.error import ErrorResponse
 from apiserver.app.ops.header import Authorization
 from apiserver.app.response import RawJSONResponse
 from apiserver.app.routers.helper import require_member
 from apiserver.data import Source
-from apiserver.lib.model.entities import BirthdayData, UserPointsNamesList
+from apiserver.lib.model.entities import BirthdayData
 
 router = APIRouter()
 

@@ -1,7 +1,6 @@
 from typing import Optional
 
 from apiserver.data import Source, get_kv
-from store.error import NoDataError
 from store.kv import store_string, get_string
 
 

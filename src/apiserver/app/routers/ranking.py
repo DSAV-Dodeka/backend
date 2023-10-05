@@ -56,7 +56,7 @@ async def member_classification(
 
 
 @router.get("/admin/classification/{rank_type}")
-async def member_classification(
+async def member_classification_admin(
     rank_type, request: Request, authorization: Authorization
 ):
     dsrc: Source = request.state.dsrc

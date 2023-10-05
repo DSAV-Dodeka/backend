@@ -85,7 +85,7 @@ def drop_create_database(config: Config):
 
     sync_engine = create_engine(f"postgresql+psycopg://{db_url}")
     db_model.create_all(bind=sync_engine)
-    logger.debug(f"Recreated database.")
+    logger.debug("Recreated database.")
     del admin_engine
     del sync_engine
 

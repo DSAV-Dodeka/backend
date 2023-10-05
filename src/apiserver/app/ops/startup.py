@@ -26,9 +26,11 @@ logger = logging.getLogger(LOGGER_NAME)
 
 
 async def startup(dsrc: Source, config: Config, recreate=False):
-    # Checks lock: returns True if no lock had been in place, False otherwise
+    # Checks lock: returns True if it is the first lock since at least 25 seconds (lock expire time)
     first_lock = await waiting_lock(dsrc)
-    logger.debug(f"{first_lock} - lock status")
+    logger.debug(f"{first_lock} - first lock status")
+    # Only recreates if it is also the first lock since at least 25 seconds (lock expire time)
+    logger.debug(f"Startup with recreate={recreate and first_lock}")
 
     # Set lock
     await data.trs.startup.set_startup_lock(dsrc)
@@ -39,6 +41,7 @@ async def startup(dsrc: Source, config: Config, recreate=False):
     await dsrc.store.startup()
 
     if first_lock and recreate:
+        logger.debug("Initial population...")
         await initial_population(dsrc, config)
     # Load keys
     await load_keys(dsrc, config)
@@ -51,18 +54,22 @@ MAX_WAIT_INDEX = 15
 
 
 async def waiting_lock(dsrc: Source):
-    """We need this lock because in production we spawn multiple processes, which each startup separately."""
+    """We need this lock because in production we spawn multiple processes, which each startup separately. Returns
+    true if it is the first lock since at least 25 seconds (lock expire time)."""
     await sleep(random() + 0.1)
     was_locked = await data.trs.startup.startup_is_locked(dsrc)
     logger.debug(f"{was_locked} - was_locked init")
+    if was_locked is None:
+        return True
+    elif was_locked is False:
+        return False
     i = 0
-    while was_locked and await data.trs.startup.startup_is_locked(dsrc):
-        was_locked = True
+    while await data.trs.startup.startup_is_locked(dsrc):
         await sleep(1)
         i += 1
         if i > MAX_WAIT_INDEX:
             raise StoreError("Waited too long during startup!")
-    return was_locked is None
+    return False
 
 
 def drop_create_database(config: Config):
@@ -72,12 +79,13 @@ def drop_create_database(config: Config):
     admin_db_url = f"{db_cluster}/{config.DB_NAME_ADMIN}"
 
     admin_engine = create_engine(
-        f"postgresql://{admin_db_url}", isolation_level="AUTOCOMMIT"
+        f"postgresql+psycopg://{admin_db_url}", isolation_level="AUTOCOMMIT"
     )
     drop_recreate_database(admin_engine, config.DB_NAME)
 
-    sync_engine = create_engine(f"postgresql://{db_url}")
-    db_model.metadata.create_all(bind=sync_engine)
+    sync_engine = create_engine(f"postgresql+psycopg://{db_url}")
+    db_model.create_all(bind=sync_engine)
+    logger.debug(f"Recreated database.")
     del admin_engine
     del sync_engine
 

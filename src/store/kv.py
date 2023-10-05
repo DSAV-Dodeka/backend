@@ -110,7 +110,7 @@ async def pop_string(kv: Redis, key: str) -> str:
     return string_return(value)
 
 
-async def get_string(kv: Redis, key: str) -> str:
+async def get_string(kv: Redis, key: str) -> Optional[str]:
     value = await get_val_kv(kv, key)
     return string_return(value)
 

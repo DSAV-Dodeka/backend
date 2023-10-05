@@ -41,6 +41,8 @@ class Config(StoreConfig):
 
     RECREATE: str = "no"
 
+    DB_NAME_ADMIN: str
+
 
 def load_config(config_path_name: Optional[os.PathLike] = None) -> Config:
     env_config_path = os.environ.get("APISERVER_CONFIG")

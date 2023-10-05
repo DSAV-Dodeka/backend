@@ -1,6 +1,6 @@
 import React, {useEffect} from "react";
 import { zxcvbn, zxcvbnOptions } from '@zxcvbn-ts/core'
-import zxcvbnCommonPackage from '@zxcvbn-ts/language-common'
+import { dictionary, adjacencyGraphs } from '@zxcvbn-ts/language-common'
 
 export interface Props {
     password: string;
@@ -9,8 +9,8 @@ export interface Props {
 }
 
 zxcvbnOptions.setOptions({
-    dictionary: zxcvbnCommonPackage.dictionary,
-    graphs: zxcvbnCommonPackage.adjacencyGraphs,
+    dictionary,
+    graphs: adjacencyGraphs,
 })
 
 const mapper = (score: number): string => {

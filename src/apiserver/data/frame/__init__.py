@@ -1,9 +1,8 @@
 from apiserver.data.frame.frame import (
     SourceFrame,
     RegisterFrame,
-    register_frame,
-    source_frame,
+    FrameRegistry,
     Code,
 )
 
-__all__ = ["SourceFrame", "RegisterFrame", "Code", "register_frame", "source_frame"]
+__all__ = ["SourceFrame", "RegisterFrame", "Code", "FrameRegistry"]

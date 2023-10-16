@@ -1,4 +1,4 @@
-from auth.data.context import login_context, token_context
+from auth.data.context import ContextRegistry
 from store import Store
 from store.conn import get_conn, get_kv
 from store.kv import store_json, get_json, pop_json
@@ -9,15 +9,18 @@ from store.error import NoDataError
 from auth.data.schemad.user import UserOps
 from auth.data.schemad.opaque import get_setup
 
+ctx_reg = ContextRegistry()
 
-@login_context
+
+@ctx_reg.register_context
+@ctx_reg.login_context
 async def get_apake_setup(store: Store) -> str:
     """We get server setup required for using OPAQUE protocol (which is an aPAKE)."""
     async with get_conn(store) as conn:
         return await get_setup(conn)
 
 
-@login_context
+@ctx_reg.login_context
 async def get_user_auth_data(
     store: Store, user_ops: UserOps, login_mail: str
 ) -> tuple[str, str, str, str]:
@@ -43,12 +46,12 @@ async def get_user_auth_data(
     return user_id, scope, password_file, auth_id
 
 
-@login_context
+@ctx_reg.login_context
 async def store_auth_state(store: Store, auth_id: str, state: SavedState) -> None:
     await store_json(get_kv(store), auth_id, state.model_dump(), expire=60)
 
 
-@login_context
+@ctx_reg.login_context
 async def get_state(store: Store, auth_id: str) -> SavedState:
     state_dict: dict = await get_json(get_kv(store), auth_id)
     if state_dict is None:
@@ -56,7 +59,7 @@ async def get_state(store: Store, auth_id: str) -> SavedState:
     return SavedState.model_validate(state_dict)
 
 
-@token_context
+@ctx_reg.token_context
 async def pop_flow_user(store: Store, authorization_code: str) -> FlowUser:
     flow_user_dict: dict = await pop_json(get_kv(store), authorization_code)
     if flow_user_dict is None:
@@ -64,6 +67,6 @@ async def pop_flow_user(store: Store, authorization_code: str) -> FlowUser:
     return FlowUser.model_validate(flow_user_dict)
 
 
-@login_context
+@ctx_reg.login_context
 async def store_flow_user(store: Store, session_key: str, flow_user: FlowUser) -> None:
     await store_json(get_kv(store), session_key, flow_user.model_dump(), expire=60)

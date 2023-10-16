@@ -1,14 +1,16 @@
 from apiserver import data
 from apiserver.app.error import AppError, ErrorKeys
-from apiserver.data.frame import register_frame
+from apiserver.data.frame import FrameRegistry
 from apiserver.data import Source, ops
 from apiserver.lib.model.entities import UserData, User
 from auth.core.model import SavedRegisterState
 from auth.data.schemad.user import UserErrors
 from store.error import NoDataError
 
+frm_reg = FrameRegistry()
 
-@register_frame
+
+@frm_reg.register_frame
 async def get_registration(dsrc: Source, register_id: str) -> tuple[UserData, User]:
     try:
         async with data.get_conn(dsrc) as conn:
@@ -32,7 +34,7 @@ async def get_registration(dsrc: Source, register_id: str) -> tuple[UserData, Us
     return ud, u
 
 
-@register_frame
+@frm_reg.register_frame
 async def get_register_state(dsrc: Source, auth_id: str) -> SavedRegisterState:
     try:
         saved_state = await data.trs.reg.get_register_state(dsrc, auth_id)
@@ -48,7 +50,7 @@ async def get_register_state(dsrc: Source, auth_id: str) -> SavedRegisterState:
     return saved_state
 
 
-@register_frame
+@frm_reg.register_frame
 async def check_userdata_register(
     dsrc: Source, register_id: str, request_email: str, saved_user_id: str
 ) -> UserData:
@@ -94,7 +96,7 @@ async def check_userdata_register(
     return ud
 
 
-@register_frame
+@frm_reg.register_frame
 async def save_registration(dsrc: Source, pw_file: str, new_userdata: UserData) -> None:
     async with data.get_conn(dsrc) as conn:
         await ops.user.update_password_file(conn, new_userdata.user_id, pw_file)

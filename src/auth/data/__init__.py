@@ -1,3 +1,5 @@
+# Currently, we rely on the import of these modules for all contexts to be run at startup
+
 from auth.data import authorize
 from auth.data import authentication
 from auth.data import register

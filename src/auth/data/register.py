@@ -1,12 +1,15 @@
 from auth.core.model import SavedRegisterState
 from auth.core.util import random_time_hash_hex
-from auth.data.context import register_context
+from auth.data.context import ContextRegistry
 from store import Store
 from store.conn import get_kv
 from store.kv import store_json
 
 
-@register_context
+ctx_reg = ContextRegistry()
+
+
+@ctx_reg.register_context
 async def store_auth_register_state(
     store: Store, user_id: str, state: SavedRegisterState
 ) -> str:

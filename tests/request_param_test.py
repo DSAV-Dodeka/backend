@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 from starlette.testclient import TestClient
 
 from apiserver.app_def import create_app
-from apiserver.app_lifespan import safe_startup, State, define_code
+from apiserver.app_lifespan import safe_startup, State, register_and_define_code
 from apiserver.data import Source
 from apiserver.data.frame import Code
 from apiserver.define import DEFINE
@@ -36,7 +36,7 @@ def make_dsrc(module_mocker: MockerFixture):
 
 @pytest.fixture(scope="module")
 def make_cd():
-    cd = define_code()
+    cd = register_and_define_code()
     yield cd
 
 

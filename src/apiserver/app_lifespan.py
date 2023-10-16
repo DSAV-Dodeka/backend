@@ -4,14 +4,23 @@ from typing import TypedDict
 
 from fastapi import FastAPI
 
+from auth.data.context import Context
+from auth.data.authentication import ctx_reg as auth_reg
+from auth.data.authorize import ctx_reg as athrz_reg
+from auth.data.keys import ctx_reg as key_reg
+from auth.data.register import ctx_reg as register_reg
+from auth.data.token import ctx_reg as token_reg
+
+
 import apiserver.lib.utilities as util
 from apiserver.app.ops.startup import startup
 from apiserver.data import Source
-from apiserver.data.frame import Code, source_frame
+from apiserver.data.frame import Code, SourceFrame
+from apiserver.data.frame.register import frm_reg as register_frm_reg
 from apiserver.define import LOGGER_NAME, DEFINE
 from apiserver.env import load_config, Config
 from apiserver.resources import res_path
-from auth.data.context import data_context
+
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -71,7 +80,17 @@ async def app_shutdown(dsrc_inst: Source):
     await dsrc_inst.store.shutdown()
 
 
-def define_code():
+def register_and_define_code():
+    data_context = Context()
+    data_context.include_registry(auth_reg)
+    data_context.include_registry(athrz_reg)
+    data_context.include_registry(key_reg)
+    data_context.include_registry(register_reg)
+    data_context.include_registry(token_reg)
+
+    source_frame = SourceFrame()
+    source_frame.include_registry(register_frm_reg)
+
     return Code(context=data_context, frame=source_frame)
 
 
@@ -80,6 +99,6 @@ async def lifespan(_app: FastAPI) -> State:
     logger.info("Running startup...")
     dsrc = Source()
     dsrc_started = await app_startup(dsrc)
-    yield {"dsrc": dsrc_started, "cd": define_code()}
+    yield {"dsrc": dsrc_started, "cd": register_and_define_code()}
     logger.info("Running shutdown...")
     await app_shutdown(dsrc_started)

@@ -1,12 +1,15 @@
 from auth.core.error import UnexpectedDataError
 from auth.core.model import KeyState, AuthKeys
-from auth.data.context import token_context
+from auth.data.context import ContextRegistry
 from auth.hazmat.key_decode import aes_from_symmetric
 from auth.hazmat.structs import PEMPrivateKey, A256GCMKey
 from store import Store
 from store.conn import get_kv
 from store.error import NoDataError
 from store.kv import get_json
+
+
+ctx_reg = ContextRegistry()
 
 
 async def get_pem_private_key(store: Store, kid_key: str) -> PEMPrivateKey:
@@ -25,7 +28,7 @@ async def get_symmetric_key(store: Store, kid: str) -> A256GCMKey:
     return A256GCMKey.model_validate(symmetric_dict)
 
 
-@token_context
+@ctx_reg.token_context
 async def get_keys(store: Store, key_state: KeyState) -> AuthKeys:
     symmetric_kid = key_state.current_symmetric
     old_symmetric_kid = key_state.old_symmetric

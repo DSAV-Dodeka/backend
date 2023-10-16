@@ -1,14 +1,16 @@
 from auth.core.error import RefreshOperationError, AuthError
 from auth.core.model import IdInfo, RefreshToken
-from auth.data.context import token_context
+from auth.data.context import ContextRegistry
 from auth.data.schemad.entities import SavedRefreshToken
 from auth.data.schemad.ops import SchemaOps
 from store import Store
 from store.conn import get_conn
 from store.error import NoDataError
 
+ctx_reg = ContextRegistry()
 
-@token_context
+
+@ctx_reg.token_context
 async def get_id_info(store: Store, ops: SchemaOps, user_id: str) -> IdInfo:
     async with get_conn(store) as conn:
         try:
@@ -19,7 +21,7 @@ async def get_id_info(store: Store, ops: SchemaOps, user_id: str) -> IdInfo:
     return ops.userdata.id_info_from_ud(ud)
 
 
-@token_context
+@ctx_reg.token_context
 async def add_refresh_token(
     store: Store, ops: SchemaOps, refresh_save: SavedRefreshToken
 ) -> int:
@@ -29,7 +31,7 @@ async def add_refresh_token(
     return refresh_id
 
 
-@token_context
+@ctx_reg.token_context
 async def delete_refresh_token(store: Store, ops: SchemaOps, family_id: str) -> int:
     async with get_conn(store) as conn:
         return await ops.refresh.delete_family(conn, family_id)
@@ -42,7 +44,7 @@ async def delete_refresh_token_by_user(
         return await ops.refresh.delete_by_user_id(conn, user_id)
 
 
-@token_context
+@ctx_reg.token_context
 async def get_saved_refresh(
     store: Store, ops: SchemaOps, old_refresh: RefreshToken
 ) -> SavedRefreshToken:
@@ -64,7 +66,7 @@ async def get_saved_refresh(
     return saved_refresh
 
 
-@token_context
+@ctx_reg.token_context
 async def replace_refresh(
     store: Store,
     ops: SchemaOps,

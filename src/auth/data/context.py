@@ -24,11 +24,12 @@ class ContextError(Exception):
 
 
 def make_data_context(context_inst, context_protocol, func: Callable):
+    # We check if the target protocol has a name of that function
     if not hasattr(context_protocol, func.__name__):
         raise ContextError(
             f"Have you forgotten to write a protocol for function {func!s}?"
         )
-
+    # We get the protocol's function definition
     old_func = getattr(context_protocol, func.__name__)
 
     # We compare the type annotations
@@ -41,64 +42,76 @@ def make_data_context(context_inst, context_protocol, func: Callable):
             f" annotation:\n {new_anno!s}!"
         )
 
+    # We add the function to the context instance
     setattr(context_inst, func.__name__, func)
 
 
 class LoginContext(Protocol):
     @classmethod
-    async def get_apake_setup(cls, store: Store) -> str: ...
+    async def get_apake_setup(cls, store: Store) -> str:
+        ...
 
     @classmethod
     async def get_user_auth_data(
         cls, store: Store, user_ops: UserOps, login_mail: str
-    ) -> tuple[str, str, str, str]: ...
+    ) -> tuple[str, str, str, str]:
+        ...
 
     @classmethod
     async def store_auth_state(
         cls, store: Store, auth_id: str, state: SavedState
-    ) -> None: ...
+    ) -> None:
+        ...
 
     @classmethod
-    async def get_state(cls, store: Store, auth_id: str) -> SavedState: ...
+    async def get_state(cls, store: Store, auth_id: str) -> SavedState:
+        ...
 
     @classmethod
     async def store_flow_user(
         cls, store: Store, session_key: str, flow_user: FlowUser
-    ) -> None: ...
+    ) -> None:
+        ...
 
 
 class AuthorizeContext(Protocol):
     @classmethod
-    async def store_auth_request(cls, store: Store, auth_request: AuthRequest): ...
+    async def store_auth_request(cls, store: Store, auth_request: AuthRequest):
+        ...
 
     @classmethod
-    async def get_auth_request(cls, store: Store, flow_id: str) -> AuthRequest: ...
+    async def get_auth_request(cls, store: Store, flow_id: str) -> AuthRequest:
+        ...
 
 
 class TokenContext(Protocol):
     @classmethod
-    async def pop_flow_user(cls, store: Store, authorization_code: str) -> FlowUser: ...
+    async def pop_flow_user(cls, store: Store, authorization_code: str) -> FlowUser:
+        ...
 
     @classmethod
-    async def get_auth_request(cls, store: Store, flow_id: str) -> AuthRequest: ...
+    async def get_auth_request(cls, store: Store, flow_id: str) -> AuthRequest:
+        ...
 
     @classmethod
-    async def get_keys(cls, store: Store, key_state: KeyState) -> AuthKeys: ...
+    async def get_keys(cls, store: Store, key_state: KeyState) -> AuthKeys:
+        ...
 
     @classmethod
-    async def get_id_info(
-        cls, store: Store, ops: SchemaOps, user_id: str
-    ) -> IdInfo: ...
+    async def get_id_info(cls, store: Store, ops: SchemaOps, user_id: str) -> IdInfo:
+        ...
 
     @classmethod
     async def add_refresh_token(
         cls, store: Store, ops: SchemaOps, refresh_save: SavedRefreshToken
-    ) -> int: ...
+    ) -> int:
+        ...
 
     @classmethod
     async def get_saved_refresh(
         cls, store: Store, ops: SchemaOps, old_refresh: RefreshToken
-    ) -> SavedRefreshToken: ...
+    ) -> SavedRefreshToken:
+        ...
 
     @classmethod
     async def replace_refresh(
@@ -107,22 +120,26 @@ class TokenContext(Protocol):
         ops: SchemaOps,
         old_refresh_id: int,
         new_refresh_save: SavedRefreshToken,
-    ) -> int: ...
+    ) -> int:
+        ...
 
     @classmethod
     async def delete_refresh_token(
         cls, store: Store, ops: SchemaOps, family_id: str
-    ) -> int: ...
+    ) -> int:
+        ...
 
 
 class RegisterContext(Protocol):
     @classmethod
-    async def get_apake_setup(cls, store: Store) -> str: ...
+    async def get_apake_setup(cls, store: Store) -> str:
+        ...
 
     @classmethod
     async def store_auth_register_state(
         cls, store: Store, user_id: str, state: SavedRegisterState
-    ) -> str: ...
+    ) -> str:
+        ...
 
 
 class ContextImpl:
@@ -136,6 +153,40 @@ def create_context_impl() -> ContextImpl:
     return ContextImpl()
 
 
+def include_contexts(funcs: list[Callable], context_inst, context_protocol):
+    for func in funcs:
+        make_data_context(context_inst, context_protocol, func)
+
+
+@dataclass
+class ContextRegistry:
+    login_funcs: list[Callable] = field(default_factory=list)
+    authorize_funcs: list[Callable] = field(default_factory=list)
+    token_funcs: list[Callable] = field(default_factory=list)
+    register_funcs: list[Callable] = field(default_factory=list)
+
+    # These are all decorators and are useful to find the actual functions
+    def login_context(self, func):
+        self.login_funcs.append(func)
+
+        return func
+
+    def authorize_context(self, func):
+        self.authorize_funcs.append(func)
+
+        return func
+
+    def token_context(self, func):
+        self.token_funcs.append(func)
+
+        return func
+
+    def register_context(self, func):
+        self.register_funcs.append(func)
+
+        return func
+
+
 @dataclass
 class Context:
     # Using this default factory makes sure that different instances of Context don't share ContextImpl's
@@ -144,33 +195,8 @@ class Context:
     token_ctx: TokenContext = field(default_factory=create_context_impl)
     register_ctx: RegisterContext = field(default_factory=create_context_impl)
 
-
-data_context = Context()
-
-
-# Decorators, apply these to the actual function definitions
-# These are also useful to quickly find the functions
-
-
-def login_context(arg):
-    make_data_context(data_context.login_ctx, LoginContext, arg)
-
-    return arg
-
-
-def authorize_context(arg):
-    make_data_context(data_context.authorize_ctx, AuthorizeContext, arg)
-
-    return arg
-
-
-def token_context(arg):
-    make_data_context(data_context.token_ctx, TokenContext, arg)
-
-    return arg
-
-
-def register_context(arg):
-    make_data_context(data_context.register_ctx, RegisterContext, arg)
-
-    return arg
+    def include_registry(self, registry: ContextRegistry):
+        include_contexts(registry.login_funcs, self.login_ctx, LoginContext)
+        include_contexts(registry.authorize_funcs, self.authorize_ctx, AuthorizeContext)
+        include_contexts(registry.token_funcs, self.token_ctx, TokenContext)
+        include_contexts(registry.register_funcs, self.register_ctx, RegisterContext)

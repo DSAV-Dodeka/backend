@@ -66,7 +66,7 @@ let initialState: RegisterState = {
     callname: "",
     password: "",
     password_confirm: "",
-    date_of_birth: "25-02-2019",
+    date_of_birth: "2019-02-25",
     birthday_check: false,
     student: false,
     eduinstitution: "",
@@ -229,7 +229,7 @@ const Register = () => {
                        onChange={handleFormChange}/>
                 <div className="dropdown">
                 <label>Geboortedatum:</label>
-                <input className={submitted} required id="date_of_birth" type="text" placeholder="Geboortedatum" onFocus={handleFocus} onBlur={handleBlur} name="date_of_birth" value={state.date_of_birth}
+                <input className={submitted} required id="date_of_birth" type="date" placeholder="Geboortedatum" name="date_of_birth" value={state.date_of_birth}
                         onChange={handleFormChange} />
                 </div>
                 

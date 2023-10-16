@@ -2,7 +2,7 @@ from typing import Optional
 
 import os
 from pathlib import Path
-import tomli
+import tomllib
 
 from apiserver.resources import res_path
 from store import StoreConfig
@@ -54,7 +54,7 @@ def load_config(config_path_name: Optional[os.PathLike] = None) -> Config:
         config_path = Path(config_path_name)
 
     with open(config_path, "rb") as f:
-        config = tomli.load(f)
+        config = tomllib.load(f)
 
     # Config will contain all variables in a dict
     config |= os.environ  # override loaded values with environment variables

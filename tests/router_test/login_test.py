@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
+import tomllib
 
 import pytest
-import tomli
 from faker import Faker
 from fastapi import FastAPI
 from httpx import codes
@@ -84,7 +84,7 @@ def test_client(app):
 def test_values():
     test_values_pth = res_path.joinpath("test_values.toml")
     with open(test_values_pth, "rb") as f:
-        test_values_dict = tomli.load(f)
+        test_values_dict = tomllib.load(f)
 
     yield test_values_dict
 

@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 
 import pytest
-import tomli
+import tomllib
 from faker import Faker
 from fastapi import FastAPI
 from httpx import codes
@@ -123,7 +123,7 @@ def user_mock_flow_user(gen_user: GenUser):
 def test_values():
     test_values_pth = res_path.joinpath("test_values.toml")
     with open(test_values_pth, "rb") as f:
-        test_values_dict = tomli.load(f)
+        test_values_dict = tomllib.load(f)
 
     yield test_values_dict
 

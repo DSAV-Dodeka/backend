@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from typing import Optional
 
-import tomli
+import tomllib
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from apiserver.resources import res_path
@@ -38,7 +38,7 @@ def load_define(define_path_name: Optional[os.PathLike] = None) -> Define:
     define_path_resolved = Path(define_path_name)
 
     with open(define_path_resolved, "rb") as f:
-        config = tomli.load(f)
+        config = tomllib.load(f)
 
     define_dict = (
         default_define | config
@@ -51,7 +51,7 @@ def load_loc(loc_path_name: Optional[os.PathLike] = None) -> dict:
     loc_path_resolved = Path(loc_path_name)
 
     with open(loc_path_resolved, "rb") as f:
-        loc_loaded = tomli.load(f)
+        loc_loaded = tomllib.load(f)
 
     return loc_loaded
 

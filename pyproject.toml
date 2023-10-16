@@ -1,8 +1,14 @@
 [tool.poetry]
 name = "apiserver"
-version = "0.1.2"
+version = "0.2.0"
 description = ""
 authors = ["Tip ten Brink <75669206+tiptenbrink@users.noreply.github.com>"]
+packages = [
+    { include = "apiserver", from = "src" },
+    { include = "auth", from = "src" },
+    { include = "schema", from = "src" },
+    { include = "store", from = "src" }
+]
 
 [tool.poetry.dependencies]
 python = ">=3.11, <3.12"

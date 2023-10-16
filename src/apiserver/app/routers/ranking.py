@@ -45,7 +45,7 @@ async def get_classification(dsrc: Source, rank_type, admin: bool = False):
     return RawJSONResponse(UserPointsNamesList.dump_json(user_points))
 
 
-@router.get("/members/classification/{rank_type}")
+@router.get("/members/classification/{rank_type}/")
 async def member_classification(
     rank_type, request: Request, authorization: Authorization
 ):
@@ -55,7 +55,7 @@ async def member_classification(
     return await get_classification(dsrc, rank_type, False)
 
 
-@router.get("/admin/classification/{rank_type}")
+@router.get("/admin/classification/{rank_type}/")
 async def member_classification_admin(
     rank_type, request: Request, authorization: Authorization
 ):

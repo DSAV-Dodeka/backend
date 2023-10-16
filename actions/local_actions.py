@@ -11,7 +11,6 @@ import auth.core.util
 from apiserver import data
 from apiserver.app.modules.ranking import add_new_event, NewEvent
 from apiserver.app.ops.startup import get_keystate
-from apiserver.app.routers.ranking import add_new_event
 from apiserver.data import Source, get_conn
 from apiserver.data.api.classifications import insert_classification, UserPoints
 from apiserver.data.api.ud.userdata import new_userdata

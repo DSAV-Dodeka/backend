@@ -5,6 +5,7 @@ from random import random
 
 from sqlalchemy import create_engine
 
+from apiserver.data.api.classifications import insert_classification
 from apiserver.data.source import KeyState
 from apiserver.env import Config
 from apiserver.lib.model.entities import JWKSet, User, UserData, JWKPublicEdDSA
@@ -153,6 +154,9 @@ async def initial_population(dsrc: Source, config: Config):
         await data.ud.insert_userdata(conn, admin_userdata)
         user_id = await data.user.insert_return_user_id(conn, fake_user)
         assert user_id == "1_fakerecord"
+
+        await insert_classification(conn, "training")
+        await insert_classification(conn, "points")
 
 
 async def get_keystate(dsrc: Source):

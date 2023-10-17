@@ -1,0 +1,8 @@
+{
+  "DB_USER": "dodeka",
+  "DB_PASS": "postpost",
+  "DB_HOST": "localhost",
+  "DB_PORT": 3141,
+  "DB_NAME": "dodeka",
+  "DB_NAME_ADMIN": "postgres"
+}

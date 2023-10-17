@@ -4,20 +4,43 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
-
-from apiserver.env import load_config
-from apiserver.resources import project_path
 from schema.model import metadata
 
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-api_config = load_config(project_path.joinpath("devenv.toml"))
-db_cluster = f"postgresql://{api_config.DB_USER}:{api_config.DB_PASS}@{api_config.DB_HOST}:{api_config.DB_PORT}"
-db_url = f"{db_cluster}/{api_config.DB_NAME}"
-config.set_main_option("sqlalchemy.url", db_url)
 
+# the following is necessary because we want to be able to call this from the deploy server
+# we don't want any dependencies on apiserver or other things as a result in the schema package
+try:
+    from apiserver.env import load_config
+    from apiserver.resources import project_path
+
+    api_config = load_config(project_path.joinpath("devenv.toml"))
+    db_cluster = f"postgresql://{api_config.DB_USER}:{api_config.DB_PASS}@{api_config.DB_HOST}:{api_config.DB_PORT}"
+    db_url = f"{db_cluster}/{api_config.DB_NAME}"
+except ImportError:
+    # we use json so we don't have to worry about tomli/tomllib
+    # when server uses 3.11 we can switch to TOML
+    import json
+    import getpass
+
+    # relative to where the alembic command is run
+    with open("connect.json", "rb") as f:
+        db_config = json.load(f)
+
+    db_pass = getpass.getpass("Input the DB password (press enter to use default):\n")
+    if not db_pass:
+        db_pass = db_config["DB_PASS"]
+    db_cluster = (
+        f"postgresql://{db_config['DB_USER']}:{db_pass}"
+        + f"@{db_config['DB_HOST']}:{db_config['DB_PORT']}"
+    )
+    db_url = f"{db_cluster}/{db_config['DB_NAME']}"
+
+
+config.set_main_option("sqlalchemy.url", db_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

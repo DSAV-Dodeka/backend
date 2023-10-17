@@ -98,10 +98,6 @@ class UserScopeData(BaseModel):
     scope: list[str]
 
 
-class EasterEggData(BaseModel):
-    easter_egg_id: str
-
-
 class JWKSRow(BaseModel):
     id: int
     encrypted_value: str

@@ -156,6 +156,15 @@ async def update_email(
     }
     reset_url = f"{DEFINE.credentials_url}?{urlencode(params)}"
 
+    state = UpdateEmailState(
+        flow_id=flow_id,
+        old_email=old_email,
+        new_email=new_email.new_email,
+        user_id=user_id,
+    )
+
+    await data.trs.reg.store_update_email(dsrc, user_id, state)
+
     send_change_email_email(
         background_tasks,
         new_email.new_email,
@@ -163,12 +172,6 @@ async def update_email(
         reset_url,
         old_email,
     )
-
-    state = UpdateEmailState(
-        old_email=old_email, new_email=new_email.new_email, user_id=user_id
-    )
-
-    await data.trs.reg.store_update_email(dsrc, flow_id, state)
 
 
 class UpdateEmailCheck(BaseModel):
@@ -188,14 +191,43 @@ async def update_email_check(update_check: UpdateEmailCheck, request: Request):
     flow_user = await authentication.check_password(dsrc, update_check.code)
 
     try:
-        stored_email = await data.trs.reg.get_update_email(dsrc, update_check.flow_id)
+        stored_email = await data.trs.reg.get_update_email(dsrc, flow_user.user_id)
     except NoDataError:
         reason = "Update request has expired, please try again!"
         logger.debug(reason + f" {flow_user.user_id}")
-        raise ErrorResponse(status_code=400, err_type="bad_update", err_desc=reason)
+        raise ErrorResponse(
+            status_code=400,
+            err_type="bad_update",
+            err_desc=reason,
+            debug_key="update_flow_expired",
+        )
+
     user_id = stored_email.user_id
+    # The flow ID is the proof that the person who get the email is requesting the change
+    # The code proves the person has the password, the flow ID proves the person has the old email
+    if stored_email.flow_id != update_check.flow_id:
+        reason = "Update check code and update flow ID do not match!"
+        raise ErrorResponse(
+            400,
+            err_type="bad_update",
+            err_desc=reason,
+            debug_key="update_email_flow_not_equal",
+        )
 
     async with data.get_conn(dsrc) as conn:
+        u = await ops.user.get_user_by_id(conn, user_id)
+
+        # If someone changed their email by now, we do not want it possible to happen again
+        if stored_email.old_email != u.email:
+            reason = "Old email and current email do not match!"
+            raise ErrorResponse(
+                400,
+                err_type="bad_update",
+                err_desc=reason,
+                debug_key="update_email_email_not_equal",
+            )
+
+        # Refresh tokens are no longer valid
         await data.schema.OPS.refresh.delete_by_user_id(conn, flow_user.user_id)
 
         count_ud = await data.user.update_user_email(

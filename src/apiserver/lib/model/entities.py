@@ -159,6 +159,7 @@ class SavedState(BaseModel):
 class UpdateEmailState(BaseModel):
     user_id: str
     old_email: str
+    flow_id: str
     new_email: str
 
 

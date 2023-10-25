@@ -172,7 +172,14 @@ async def test_add_classification(local_dsrc):
 @pytest.mark.asyncio
 async def test_update_points(local_dsrc):
     async with get_conn(local_dsrc) as conn:
-        await update_class_points(conn, 5, True)
+        training_class = await data.classifications.most_recent_class_of_type(
+            conn, "training"
+        )
+        points_class = await data.classifications.most_recent_class_of_type(
+            conn, "points"
+        )
+        await update_class_points(conn, training_class.classification_id, True)
+        await update_class_points(conn, points_class.classification_id, True)
 
 
 @pytest.mark.asyncio

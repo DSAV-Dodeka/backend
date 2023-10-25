@@ -35,10 +35,10 @@ async def store_update_email(
     await store_json(get_kv(dsrc), flow_id, update_email.model_dump(), expire=1000)
 
 
-async def get_update_email(dsrc: Source, flow_id: str) -> UpdateEmailState:
-    email_dict: dict = await pop_json(get_kv(dsrc), flow_id)
+async def get_update_email(dsrc: Source, user_id: str) -> UpdateEmailState:
+    email_dict: dict = await pop_json(get_kv(dsrc), user_id)
     if email_dict is None:
         raise NoDataError(
-            "Flow ID does not exist or expired.", "saved_email_update_empty"
+            "User ID has no active update request.", "saved_email_update_empty"
         )
     return UpdateEmailState.model_validate(email_dict)

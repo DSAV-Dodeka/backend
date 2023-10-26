@@ -8,21 +8,21 @@ from pydantic import BaseModel
 import auth.core.util
 from apiserver import data
 from apiserver.app.error import ErrorResponse
+from apiserver.app.ops.header import Authorization
 from apiserver.app.ops.mail import (
     send_change_email_email,
     send_reset_email,
     mail_from_config,
 )
 from apiserver.app.routers.helper import authentication
-from apiserver.app.ops.header import Authorization
+from apiserver.app.routers.helper import require_user
 from apiserver.data import Source, ops
 from apiserver.data.frame import Code
-from auth.modules.update import change_password
-from store.error import DataError, NoDataError
 from apiserver.define import LOGGER_NAME, DEFINE
 from apiserver.lib.model.entities import UpdateEmailState
-from apiserver.app.routers.helper import require_user
 from auth.modules.register import send_register_start
+from auth.modules.update import change_password
+from store.error import DataError, NoDataError
 
 router = APIRouter()
 
@@ -41,8 +41,13 @@ async def request_password_change(
 ):
     """Initiated from authpage. Sends out e-mail with reset link."""
     dsrc: Source = request.state.dsrc
-    async with data.get_conn(dsrc) as conn:
-        ud = await data.ud.get_userdata_by_email(conn, change_pass.email)
+    try:
+        async with data.get_conn(dsrc) as conn:
+            ud = await data.ud.get_userdata_by_email(conn, change_pass.email)
+    except NoDataError:
+        logger.debug(f"Reset requested - email {change_pass.email} does not exist.")
+        return
+
     logger.debug(f"Reset requested - is_registered={ud.registered}")
     flow_id = auth.core.util.random_time_hash_hex()
     params = {"reset_id": flow_id, "email": change_pass.email}

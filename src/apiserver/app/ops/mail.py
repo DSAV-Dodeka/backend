@@ -25,7 +25,9 @@ class MailServer(TypedDict):
     smtp_port: int
 
 
-def mail_from_config(config: Config) -> MailServer:
+def mail_from_config(config: Config) -> Optional[MailServer]:
+    if not config.MAIL_ENABLED:
+        return None
     return {
         "mail_pass": config.MAIL_PASS,
         "smtp_port": config.SMTP_PORT,
@@ -37,13 +39,16 @@ def send_email(
     logger_sent,
     template: str,
     receiver_email: str,
-    mail_server: MailServer,
+    mail_server: Optional[MailServer],
     subject: str,
     receiver_name: Optional[str] = None,
     add_vars: Optional[dict[str, Any]] = None,
 ) -> None:
     """Automatically loads the localization dictionary from the filesystem, with add_vars replacing any keys and adding
     any ones that are undefined by the localization."""
+    if mail_server is None:
+        # Don't send anything
+        return
     if add_vars is None:
         add_vars = dict()
     templ_vars = loc_dict | add_vars
@@ -68,7 +73,7 @@ def send_signup_email(
     background_tasks: BackgroundTasks,
     receiver: str,
     receiver_name: str,
-    mail_server: MailServer,
+    mail_server: Optional[MailServer],
     redirect_link: str,
     signup_link: str,
 ):
@@ -91,7 +96,7 @@ def send_signup_email(
 def send_register_email(
     background_tasks: BackgroundTasks,
     receiver: str,
-    mail_server: MailServer,
+    mail_server: Optional[MailServer],
     register_link: str,
 ):
     add_vars = {"register_link": register_link}
@@ -113,7 +118,7 @@ def send_register_email(
 def send_reset_email(
     background_tasks: BackgroundTasks,
     receiver: str,
-    mail_server: MailServer,
+    mail_server: Optional[MailServer],
     reset_link: str,
 ):
     add_vars = {
@@ -136,7 +141,7 @@ def send_reset_email(
 def send_change_email_email(
     background_tasks: BackgroundTasks,
     receiver: str,
-    mail_server: MailServer,
+    mail_server: Optional[MailServer],
     reset_link: str,
     old_email: str,
 ):

@@ -8,21 +8,21 @@ from pydantic import BaseModel
 import auth.core.util
 from apiserver import data
 from apiserver.app.error import ErrorResponse
+from apiserver.app.ops.header import Authorization
 from apiserver.app.ops.mail import (
     send_change_email_email,
     send_reset_email,
     mail_from_config,
 )
 from apiserver.app.routers.helper import authentication
-from apiserver.app.ops.header import Authorization
+from apiserver.app.routers.helper import require_user
 from apiserver.data import Source, ops
 from apiserver.data.frame import Code
-from auth.modules.update import change_password
-from store.error import DataError, NoDataError
 from apiserver.define import LOGGER_NAME, DEFINE
 from apiserver.lib.model.entities import UpdateEmailState
-from apiserver.app.routers.helper import require_user
 from auth.modules.register import send_register_start
+from auth.modules.update import change_password
+from store.error import DataError, NoDataError
 
 router = APIRouter()
 
@@ -39,24 +39,33 @@ async def request_password_change(
     request: Request,
     background_tasks: BackgroundTasks,
 ):
-    """Initiated from authpage. Sends out e-mail with reset link."""
+    """Initiated from authpage. Sends out e-mail with reset link. Does nothing if user does not exist or is not yet
+    properly registered."""
     dsrc: Source = request.state.dsrc
-    async with data.get_conn(dsrc) as conn:
-        ud = await data.ud.get_userdata_by_email(conn, change_pass.email)
-    logger.debug(f"Reset requested - is_registered={ud.registered}")
-    flow_id = auth.core.util.random_time_hash_hex()
+    cd: Code = request.state.cd
+
+    # Check if registered user exists and if they have finished registration
+    # If yes, then we generate a random flow ID that can later be used to confirm the password change
+    flow_id = await cd.frame.update_frm.store_email_flow_password_change(
+        dsrc, change_pass.email
+    )
+
+    if flow_id is None:
+        logger.debug(
+            f"Reset requested - email {change_pass.email} does not exist or not"
+            " registered."
+        )
+        return
+
     params = {"reset_id": flow_id, "email": change_pass.email}
     reset_url = f"{DEFINE.credentials_url}reset/?{urlencode(params)}"
 
-    await data.trs.store_string(dsrc, flow_id, change_pass.email, 1000)
-
-    if ud.registered:
-        send_reset_email(
-            background_tasks,
-            change_pass.email,
-            mail_from_config(dsrc.config),
-            reset_url,
-        )
+    send_reset_email(
+        background_tasks,
+        change_pass.email,
+        mail_from_config(dsrc.config),
+        reset_url,
+    )
 
 
 class UpdatePasswordRequest(BaseModel):

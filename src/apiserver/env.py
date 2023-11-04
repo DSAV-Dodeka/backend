@@ -32,6 +32,8 @@ class Config(StoreConfig):
     # RECOMMENDED TO LOAD AS ENVIRON
     KEY_PASS: str
 
+    MAIL_ENABLED: bool
+
     # 'envless' MUST BE DUMMY
     # RECOMMENDED TO LOAD AS ENVIRON
     MAIL_PASS: str

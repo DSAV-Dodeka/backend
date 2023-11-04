@@ -15,6 +15,7 @@ KV_PASS="redisredis"
 # This key set contains the refresh token keys and JWT signing keys
 KEY_PASS="AT_av0v62Z3hQH50VYwKBks1-VSukK9xDN_Ur34mdZ4"
 
+MAIL_ENABLED=false
 # Webmail API key to connect to SMTP server
 # USE WITH CAUTION, as actual emails are sent
 MAIL_PASS=""

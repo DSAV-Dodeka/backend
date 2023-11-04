@@ -1,5 +1,13 @@
 from auth.core.error import InvalidRefresh
 from auth.data.context import TokenContext
+from auth.data.keys import get_keys
+from auth.data.token import (
+    get_saved_refresh,
+    get_id_info,
+    add_refresh_token,
+    replace_refresh,
+    delete_refresh_token,
+)
 from auth.token.build import build_refresh_save, create_tokens, finish_tokens
 from auth.token.crypt_token import decrypt_old_refresh
 from auth.hazmat.verify_token import verify_refresh
@@ -18,14 +26,14 @@ async def do_refresh(
     key_state: KeyState,
     old_refresh_token: str,
 ) -> Tokens:
-    keys = await context.get_keys(store, key_state)
+    keys = await get_keys(context, store, key_state)
     old_refresh = decrypt_old_refresh(
         keys.symmetric, keys.old_symmetric, old_refresh_token
     )
 
     utc_now = utc_timestamp()
 
-    saved_refresh = await context.get_saved_refresh(store, ops, old_refresh)
+    saved_refresh = await get_saved_refresh(context, store, ops, old_refresh)
 
     verify_refresh(saved_refresh, old_refresh, utc_now, grace_period)
 
@@ -41,8 +49,8 @@ async def do_refresh(
 
     # Deletes previous token, saves new one, only succeeds if all components of the
     # transaction succeed
-    new_refresh_id = await context.replace_refresh(
-        store, ops, old_refresh.id, new_refresh_save
+    new_refresh_id = await replace_refresh(
+        context, store, ops, old_refresh.id, new_refresh_save
     )
 
     refresh_token, access_token, id_token = finish_tokens(
@@ -81,13 +89,13 @@ async def new_token(
     id_nonce: str,
 ) -> Tokens:
     # THROWS UnexpectedError if keys are not present
-    keys = await context.get_keys(store, key_state)
+    keys = await get_keys(context, store, key_state)
 
     utc_now = utc_timestamp()
 
     async with store_session(store) as session:
         # THROWS AuthError if user does not exist
-        id_info = await context.get_id_info(session, ops, user_id)
+        id_info = await get_id_info(context, session, ops, user_id)
 
         access_token_data, id_token_data, access_scope, refresh_save = create_tokens(
             user_id,
@@ -103,7 +111,7 @@ async def new_token(
         )
 
         # Stores the refresh token in the database
-        refresh_id = await context.add_refresh_token(store, ops, refresh_save)
+        refresh_id = await add_refresh_token(context, store, ops, refresh_save)
 
     refresh_token, access_token, id_token = finish_tokens(
         refresh_id,
@@ -136,11 +144,11 @@ async def delete_refresh(
     key_state: KeyState,
     refresh_token: str,
 ) -> None:
-    keys = await context.get_keys(store, key_state)
+    keys = await get_keys(context, store, key_state)
     try:
         refresh = decrypt_old_refresh(keys.symmetric, keys.old_symmetric, refresh_token)
     except InvalidRefresh:
         return
 
     # Do not check rowcount, which would be zero if no token is deleted
-    await context.delete_refresh_token(store, ops, refresh.family_id)
+    await delete_refresh_token(context, store, ops, refresh.family_id)

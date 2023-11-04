@@ -12,10 +12,10 @@ from starlette.testclient import TestClient
 from apiserver.app_def import create_app
 from apiserver.app_lifespan import State, safe_startup, register_and_define_code
 from apiserver.data import Source
-from apiserver.data.frame import Code
-from apiserver.data.frame.frame import UpdateFrame
+from apiserver.data.context import Code, UpdateContext
 from apiserver.env import load_config
 from apiserver.lib.model.entities import UserData, User
+from datacontext.context import Context
 from router_test.test_util import (
     make_test_user,
     make_base_ud,
@@ -81,13 +81,13 @@ def test_client(app):
         yield test_client
 
 
-def mock_update_frame(
+def mock_update_ctx(
     mock_db: dict[str, UserData], mock_kv: dict[str, str], mock_flow_id: str
 ):
-    class MockUpdateFrame(UpdateFrame):
+    class MockUpdateContext(UpdateContext):
         @classmethod
         async def store_email_flow_password_change(
-            cls, dsrc: Source, email: str
+            cls, ctx: Context, dsrc: Source, email: str
         ) -> Optional[str]:
             ud = mock_db.get(email)
             if ud is None:
@@ -96,7 +96,7 @@ def mock_update_frame(
 
             return mock_flow_id
 
-    return MockUpdateFrame
+    return MockUpdateContext
 
 
 def test_update_register_exists(
@@ -109,7 +109,7 @@ def test_update_register_exists(
     mock_db = {test_ud.email: test_ud}
     mock_kv = {}
 
-    make_cd.frame.update_frm = mock_update_frame(mock_db, mock_kv, test_flow_id)
+    make_cd.app_context.update_ctx = mock_update_ctx(mock_db, mock_kv, test_flow_id)
 
     req = {"email": test_ud.email}
 
@@ -128,7 +128,7 @@ def test_update_register_not_exists(
     mock_db = {}
     mock_kv = {}
 
-    make_cd.frame.update_frm = mock_update_frame(mock_db, mock_kv, test_flow_id)
+    make_cd.app_context.update_ctx = mock_update_ctx(mock_db, mock_kv, test_flow_id)
 
     req = {"email": test_ud.email}
 

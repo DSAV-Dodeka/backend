@@ -1,28 +1,27 @@
-from auth.data.context import ContextRegistry
-from store import Store
-from store.conn import get_conn, get_kv
-from store.kv import store_json, get_json, pop_json
-
 from auth.core.model import SavedState, FlowUser
 from auth.core.util import random_time_hash_hex
-from store.error import NoDataError
-from auth.data.schemad.user import UserOps
+from auth.data.context import RegisterContext, LoginContext, TokenContext
 from auth.data.schemad.opaque import get_setup
+from auth.data.schemad.user import UserOps
+from datacontext.context import ContextRegistry, Context
+from store import Store
+from store.conn import get_conn, get_kv
+from store.error import NoDataError
+from store.kv import store_json, get_json, pop_json
 
 ctx_reg = ContextRegistry()
 
 
-@ctx_reg.register_context
-@ctx_reg.login_context
-async def get_apake_setup(store: Store) -> str:
+@ctx_reg.register_multiple([RegisterContext, LoginContext])
+async def get_apake_setup(ctx: Context, store: Store) -> str:
     """We get server setup required for using OPAQUE protocol (which is an aPAKE)."""
     async with get_conn(store) as conn:
         return await get_setup(conn)
 
 
-@ctx_reg.login_context
+@ctx_reg.register(LoginContext)
 async def get_user_auth_data(
-    store: Store, user_ops: UserOps, login_mail: str
+    ctx: Context, store: Store, user_ops: UserOps, login_mail: str
 ) -> tuple[str, str, str, str]:
     scope = "none"
     async with get_conn(store) as conn:
@@ -46,27 +45,33 @@ async def get_user_auth_data(
     return user_id, scope, password_file, auth_id
 
 
-@ctx_reg.login_context
-async def store_auth_state(store: Store, auth_id: str, state: SavedState) -> None:
+@ctx_reg.register(LoginContext)
+async def store_auth_state(
+    ctx: Context, store: Store, auth_id: str, state: SavedState
+) -> None:
     await store_json(get_kv(store), auth_id, state.model_dump(), expire=60)
 
 
-@ctx_reg.login_context
-async def get_state(store: Store, auth_id: str) -> SavedState:
+@ctx_reg.register(LoginContext)
+async def get_state(ctx: Context, store: Store, auth_id: str) -> SavedState:
     state_dict: dict = await get_json(get_kv(store), auth_id)
     if state_dict is None:
         raise NoDataError("State does not exist or expired.", "saved_state_empty")
     return SavedState.model_validate(state_dict)
 
 
-@ctx_reg.token_context
-async def pop_flow_user(store: Store, authorization_code: str) -> FlowUser:
+@ctx_reg.register(TokenContext)
+async def pop_flow_user(
+    ctx: Context, store: Store, authorization_code: str
+) -> FlowUser:
     flow_user_dict: dict = await pop_json(get_kv(store), authorization_code)
     if flow_user_dict is None:
         raise NoDataError("Flow user does not exist or expired.", "flow_user_empty")
     return FlowUser.model_validate(flow_user_dict)
 
 
-@ctx_reg.login_context
-async def store_flow_user(store: Store, session_key: str, flow_user: FlowUser) -> None:
+@ctx_reg.register(LoginContext)
+async def store_flow_user(
+    ctx: Context, store: Store, session_key: str, flow_user: FlowUser
+) -> None:
     await store_json(get_kv(store), session_key, flow_user.model_dump(), expire=60)

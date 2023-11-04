@@ -1,12 +1,18 @@
 from datetime import date
 
-from pydantic import BaseModel
 import opaquepy as opq
+from pydantic import BaseModel
 
 from apiserver.app.error import AppError, ErrorKeys
-from apiserver.data.frame import RegisterFrame
 from apiserver.data import Source
 from apiserver.data.api.ud.userdata import finished_userdata
+from apiserver.data.context import RegisterAppContext
+from apiserver.data.context.register import (
+    get_registration,
+    check_userdata_register,
+    get_register_state,
+    save_registration,
+)
 
 
 class RegisterRequest(BaseModel):
@@ -16,9 +22,9 @@ class RegisterRequest(BaseModel):
 
 
 async def check_register(
-    dsrc: Source, frame: RegisterFrame, register_start: RegisterRequest
+    dsrc: Source, context: RegisterAppContext, register_start: RegisterRequest
 ) -> str:
-    ud, u = await frame.get_registration(dsrc, register_start.register_id)
+    ud, u = await get_registration(context, dsrc, register_start.register_id)
 
     if ud.registered or len(u.password_file) > 0:
         # logger.debug("Already registered.")
@@ -53,9 +59,9 @@ class FinishRequest(BaseModel):
 
 
 async def finalize_save_register(
-    dsrc: Source, frame: RegisterFrame, register_finish: FinishRequest
+    dsrc: Source, context: RegisterAppContext, register_finish: FinishRequest
 ):
-    saved_state = await frame.get_register_state(dsrc, register_finish.auth_id)
+    saved_state = await get_register_state(context, dsrc, register_finish.auth_id)
 
     # Generate password file
     # Note that this is equal to the client request, it simply is a check for correct format
@@ -69,8 +75,12 @@ async def finalize_save_register(
             debug_key="bad_opaque_registration",
         )
 
-    ud = await frame.check_userdata_register(
-        dsrc, register_finish.register_id, register_finish.email, saved_state.user_id
+    ud = await check_userdata_register(
+        context,
+        dsrc,
+        register_finish.register_id,
+        register_finish.email,
+        saved_state.user_id,
     )
 
     new_userdata = finished_userdata(
@@ -81,4 +91,4 @@ async def finalize_save_register(
         register_finish.age_privacy,
     )
 
-    await frame.save_registration(dsrc, password_file, new_userdata)
+    await save_registration(context, dsrc, password_file, new_userdata)

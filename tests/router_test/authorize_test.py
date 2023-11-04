@@ -12,10 +12,11 @@ from yarl import URL
 from apiserver.app_def import create_app
 from apiserver.app_lifespan import State, safe_startup, register_and_define_code
 from apiserver.data import Source
-from apiserver.data.frame import Code
+from apiserver.data.context import Code
 from apiserver.env import load_config
 from auth.core.model import AuthRequest
 from auth.data.context import AuthorizeContext
+from datacontext.context import Context
 from router_test.test_util import make_test_user, mock_auth_request
 from store import Store
 from test_resources import res_path
@@ -77,7 +78,9 @@ def test_client(app):
 def mock_oauth_start_context(test_flow_id: str, req_store: dict):
     class MockAuthorizeContext(AuthorizeContext):
         @classmethod
-        async def store_auth_request(cls, store: Store, auth_request: AuthRequest):
+        async def store_auth_request(
+            cls, ctx: Context, store: Store, auth_request: AuthRequest
+        ):
             req_store[test_flow_id] = auth_request
 
             return test_flow_id
@@ -89,7 +92,7 @@ def test_oauth_authorize(test_client: TestClient, make_cd: Code):
     req_store = {}
     flow_id = "af60854e11352c9fb02f738a888710c8"
 
-    make_cd.context.authorize_ctx = mock_oauth_start_context(flow_id, req_store)
+    make_cd.auth_context.authorize_ctx = mock_oauth_start_context(flow_id, req_store)
 
     req = {
         "response_type": "code",
@@ -112,7 +115,9 @@ def test_oauth_authorize(test_client: TestClient, make_cd: Code):
 def mock_oauth_callback_context(test_flow_id: str, test_auth_request: AuthRequest):
     class MockAuthorizeContext(AuthorizeContext):
         @classmethod
-        async def get_auth_request(cls, store: Store, flow_id: str) -> AuthRequest:
+        async def get_auth_request(
+            cls, ctx: Context, store: Store, flow_id: str
+        ) -> AuthRequest:
             if flow_id == test_flow_id:
                 return test_auth_request
 
@@ -128,7 +133,7 @@ def test_oauth_callback(test_client: TestClient, make_cd: Code):
         "code": test_code,
     }
 
-    make_cd.context.authorize_ctx = mock_oauth_callback_context(
+    make_cd.auth_context.authorize_ctx = mock_oauth_callback_context(
         test_flow_id, mock_auth_request
     )
 

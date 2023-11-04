@@ -4,7 +4,7 @@ from fastapi import APIRouter, Response, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
-from apiserver.data.frame import Code
+from apiserver.data.context import Code
 from auth.core.error import RedirectError, AuthError
 from auth.core.model import PasswordRequest, FinishLogin, TokenResponse, TokenRequest
 from auth.core.response import PasswordResponse
@@ -37,7 +37,7 @@ async def start_login(login_start: PasswordRequest, request: Request):
     cd: Code = request.state.cd
 
     return await auth_start_login(
-        dsrc.store, schema.UserOps, cd.context.login_ctx, login_start
+        dsrc.store, schema.UserOps, cd.auth_context.login_ctx, login_start
     )
 
 
@@ -47,7 +47,7 @@ async def finish_login(login_finish: FinishLogin, request: Request):
     cd: Code = request.state.cd
 
     try:
-        await auth_finish_login(dsrc.store, cd.context.login_ctx, login_finish)
+        await auth_finish_login(dsrc.store, cd.auth_context.login_ctx, login_finish)
     except AuthError as e:
         raise ErrorResponse(
             status_code=400,
@@ -78,7 +78,7 @@ async def oauth_endpoint(
         redirect = await oauth_start(
             DEFINE,
             dsrc.store,
-            cd.context.authorize_ctx,
+            cd.auth_context.authorize_ctx,
             response_type,
             client_id,
             redirect_uri,
@@ -111,7 +111,7 @@ async def oauth_finish(flow_id: str, code: str, response: Response, request: Req
 
     try:
         redirect = await oauth_callback(
-            dsrc.store, cd.context.authorize_ctx, flow_id, code
+            dsrc.store, cd.auth_context.authorize_ctx, flow_id, code
         )
     except AuthError as e:
         logger.debug(e.err_desc)
@@ -134,7 +134,7 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
             dsrc.store,
             DEFINE,
             schema.OPS,
-            cd.context.token_ctx,
+            cd.auth_context.token_ctx,
             dsrc.key_state,
             token_request,
         )
@@ -165,7 +165,7 @@ async def delete_token(logout: LogoutRequest, request: Request):
     await delete_refresh(
         dsrc.store,
         schema.OPS,
-        cd.context.token_ctx,
+        cd.auth_context.token_ctx,
         dsrc.key_state,
         logout.refresh_token,
     )

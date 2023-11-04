@@ -11,6 +11,7 @@ KV_HOST="localhost"
 KV_PORT=6379
 KV_PASS="abcpasskv"
 
+MAIL_ENABLED=false
 MAIL_PASS="abcpass"
 KEY_PASS="abcpass"
 

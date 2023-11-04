@@ -17,6 +17,7 @@ from apiserver.app.ops.startup import startup
 from apiserver.data import Source
 from apiserver.data.frame import Code, SourceFrame
 from apiserver.data.frame.register import frm_reg as register_frm_reg
+from apiserver.data.frame.update import frm_upd as update_frm_reg
 from apiserver.define import LOGGER_NAME, DEFINE
 from apiserver.env import load_config, Config
 from apiserver.resources import res_path
@@ -90,6 +91,7 @@ def register_and_define_code():
 
     source_frame = SourceFrame()
     source_frame.include_registry(register_frm_reg)
+    source_frame.include_registry(update_frm_reg)
 
     return Code(context=data_context, frame=source_frame)
 

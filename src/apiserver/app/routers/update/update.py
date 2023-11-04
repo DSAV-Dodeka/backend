@@ -39,29 +39,33 @@ async def request_password_change(
     request: Request,
     background_tasks: BackgroundTasks,
 ):
-    """Initiated from authpage. Sends out e-mail with reset link."""
+    """Initiated from authpage. Sends out e-mail with reset link. Does nothing if user does not exist or is not yet
+    properly registered."""
     dsrc: Source = request.state.dsrc
-    try:
-        async with data.get_conn(dsrc) as conn:
-            ud = await data.ud.get_userdata_by_email(conn, change_pass.email)
-    except NoDataError:
-        logger.debug(f"Reset requested - email {change_pass.email} does not exist.")
+    cd: Code = request.state.cd
+
+    # Check if registered user exists and if they have finished registration
+    # If yes, then we generate a random flow ID that can later be used to confirm the password change
+    flow_id = await cd.frame.update_frm.store_email_flow_password_change(
+        dsrc, change_pass.email
+    )
+
+    if flow_id is None:
+        logger.debug(
+            f"Reset requested - email {change_pass.email} does not exist or not"
+            " registered."
+        )
         return
 
-    logger.debug(f"Reset requested - is_registered={ud.registered}")
-    flow_id = auth.core.util.random_time_hash_hex()
     params = {"reset_id": flow_id, "email": change_pass.email}
     reset_url = f"{DEFINE.credentials_url}reset/?{urlencode(params)}"
 
-    await data.trs.store_string(dsrc, flow_id, change_pass.email, 1000)
-
-    if ud.registered:
-        send_reset_email(
-            background_tasks,
-            change_pass.email,
-            mail_from_config(dsrc.config),
-            reset_url,
-        )
+    send_reset_email(
+        background_tasks,
+        change_pass.email,
+        mail_from_config(dsrc.config),
+        reset_url,
+    )
 
 
 class UpdatePasswordRequest(BaseModel):

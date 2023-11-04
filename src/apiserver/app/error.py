@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 class ErrorKeys(StrEnum):
     REGISTER = "invalid_register"
     RANKING_UPDATE = "invalid_ranking_update"
+    DATA = "invalid_data_load"
 
 
 class AppError(Exception):

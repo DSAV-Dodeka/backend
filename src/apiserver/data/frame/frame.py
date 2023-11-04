@@ -1,6 +1,6 @@
 import inspect
 from dataclasses import dataclass, field
-from typing import Callable, Protocol
+from typing import Callable, Protocol, Optional
 
 from apiserver.data import Source
 from apiserver.lib.model.entities import UserData, User
@@ -61,6 +61,16 @@ class RegisterFrame(Protocol):
         ...
 
 
+class UpdateFrame(Protocol):
+    @classmethod
+    async def store_email_flow_password_change(
+        cls, dsrc: Source, email: str
+    ) -> Optional[str]:
+        """If registered user exists for email, then store email with random flow ID and return it. Else, return
+        None."""
+        ...
+
+
 class FrameImpl:
     """By making an empty class, we ensure that it breaks if called without it being registered, instead of silently
     returning None."""
@@ -80,9 +90,15 @@ def include_frames(funcs: list[Callable], frame_inst, frame_protocol):
 @dataclass
 class FrameRegistry:
     register_funcs: list[Callable] = field(default_factory=list)
+    update_funcs: list[Callable] = field(default_factory=list)
 
     def register_frame(self, func):
         self.register_funcs.append(func)
+
+        return func
+
+    def update_frame(self, func):
+        self.update_funcs.append(func)
 
         return func
 
@@ -91,9 +107,11 @@ class FrameRegistry:
 class SourceFrame:
     # Using this default factory makes sure that different instances of Frame don't share FrameImpl's
     register_frm: RegisterFrame = field(default_factory=create_frame_impl)
+    update_frm: UpdateFrame = field(default_factory=create_frame_impl)
 
     def include_registry(self, registry: FrameRegistry):
         include_frames(registry.register_funcs, self.register_frm, RegisterFrame)
+        include_frames(registry.update_funcs, self.update_frm, UpdateFrame)
 
 
 @dataclass

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 
 from apiserver.env import Config
 from auth.core.model import KeyState as AuthKeyState
-from store.conn import get_kv as st_get_kv, get_conn as st_get_conn
+from store.conn import get_kv as st_get_kv, get_conn as st_get_conn, store_session
 from store import Store
 
 
@@ -33,3 +33,9 @@ def get_kv(dsrc: Source) -> Redis:
 
 def get_conn(dsrc: Source) -> AsyncIterator[AsyncConnection]:
     return st_get_conn(dsrc.store)
+
+
+def source_session(dsrc: Source) -> AsyncIterator[Source]:
+    """Use this if you want to re-use a connection across multiple calls to a frame/context. Note: this does not create
+    a single transaction. Those must be committed by consumers."""
+    return store_session(dsrc.store)

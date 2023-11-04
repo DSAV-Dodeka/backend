@@ -3,7 +3,7 @@ from starlette.requests import Request
 
 from apiserver import data
 from apiserver.app.error import ErrorResponse, AppError
-from apiserver.app.modules.ranking import add_new_event, NewEvent
+from apiserver.app.modules.ranking import add_new_event, NewEvent, sync_publish_ranking
 from apiserver.app.ops.header import Authorization
 from apiserver.app.response import RawJSONResponse
 from apiserver.app.routers.helper import require_admin, require_member
@@ -63,3 +63,14 @@ async def member_classification_admin(
     await require_admin(authorization, dsrc)
 
     return await get_classification(dsrc, rank_type, True)
+
+
+@router.get("/admin/classification/sync/{publish}/")
+async def sync_publish_classification(
+    publish: str, request: Request, authorization: Authorization
+):
+    dsrc: Source = request.state.dsrc
+    await require_admin(authorization, dsrc)
+
+    do_publish = publish == "publish"
+    return await sync_publish_ranking(dsrc, do_publish)

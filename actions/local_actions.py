@@ -178,13 +178,13 @@ async def test_update_points(local_dsrc):
         points_class = await data.classifications.most_recent_class_of_type(
             conn, "points"
         )
-        await update_class_points(conn, training_class.classification_id, True)
-        await update_class_points(conn, points_class.classification_id, True)
+        await update_class_points(conn, training_class.classification_id)
+        await update_class_points(conn, points_class.classification_id)
 
 
 @pytest.mark.asyncio
 async def test_add_event(local_dsrc, faker: Faker):
-    faker.seed_instance(424)
+    faker.seed_instance(242424)
     async with get_conn(local_dsrc) as conn:
         users = await data.ud.get_all_usernames(conn)
 
@@ -200,12 +200,13 @@ async def test_add_event(local_dsrc, faker: Faker):
     user_points = [
         UserPoints(user_id=u.user_id, points=point_amount) for u in chosen_users
     ]
+    fake_words = "_".join(faker.words(3))
 
     new_event = NewEvent(
         users=user_points,
         class_type="points",
         date=faker.date_this_month(),
-        event_id="hithisisdifferent",
+        event_id=fake_words,
         category="cool catego242ry",
         description="desc",
     )

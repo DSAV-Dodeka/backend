@@ -20,6 +20,8 @@ class NewEvent(BaseModel):
 
 
 async def add_new_event(dsrc: Source, new_event: NewEvent):
+    """Add a new event and recompute points. Display points will be updated to not include any events after the hidden
+    date. Use the 'publish' function to force them to be equal."""
     async with data.get_conn(dsrc) as conn:
         try:
             classification = await data.classifications.most_recent_class_of_type(
@@ -55,9 +57,23 @@ async def add_new_event(dsrc: Source, new_event: NewEvent):
                 "add_event_users_violates_integrity",
             )
 
-        today = date.today()
-        show_points = today < classification.hidden_date
-
         await data.special.update_class_points(
-            conn, classification.classification_id, show_points
+            conn,
+            classification.classification_id,
+        )
+
+
+async def sync_publish_ranking(dsrc: Source, publish: bool):
+    async with data.get_conn(dsrc) as conn:
+        training_class = await data.classifications.most_recent_class_of_type(
+            conn, "training"
+        )
+        points_class = await data.classifications.most_recent_class_of_type(
+            conn, "points"
+        )
+        await data.special.update_class_points(
+            conn, training_class.classification_id, publish
+        )
+        await data.special.update_class_points(
+            conn, points_class.classification_id, publish
         )

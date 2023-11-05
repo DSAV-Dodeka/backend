@@ -1,6 +1,11 @@
-from sqlalchemy import text
+from typing import List
+from datetime import date as date_type
+
+from pydantic import BaseModel, TypeAdapter
+from sqlalchemy import text, RowMapping
 from sqlalchemy.ext.asyncio import AsyncConnection
 
+from apiserver.lib.model.entities import UserEventsList, UserEvent
 from schema.model import (
     CLASSIFICATION_TABLE,
     C_EVENTS_DATE,
@@ -15,13 +20,14 @@ from schema.model import (
     C_EVENTS_ID,
     C_EVENTS_POINTS,
     USERDATA_TABLE,
-    CLASS_EVENTS_POINTS_TABLE,
+    CLASS_EVENTS_POINTS_TABLE, C_EVENTS_CATEGORY, C_EVENTS_DESCRIPTION,
 )
-from store.db import execute_catch_conn, row_cnt
+from store.db import execute_catch_conn, row_cnt, all_rows
+from store.error import NoDataError
 
 
 async def update_class_points(
-    conn: AsyncConnection, class_id: int, publish: bool = False
+        conn: AsyncConnection, class_id: int, publish: bool = False
 ) -> int:
     """
     This is a complex query. What it does, in essence, is collect all the events related to a specific classification_id
@@ -124,11 +130,11 @@ async def update_class_points(
                             SELECT
                                 {C_EVENTS_ID},
                                 (ev_all.{C_EVENTS_DATE} < clss.{CLASS_HIDDEN_DATE})::int as visible,
-                                (ev_all.{C_EVENTS_DATE} >= clss.{CLASS_HIDDEN_DATE})::int as hidden,
+                                (ev_all.{C_EVENTS_DATE} >= clss.{CLASS_HIDDEN_DATE})::int as hidden
                             FROM {CLASS_EVENTS_TABLE} as ev_all
                             JOIN {CLASSIFICATION_TABLE} as clss
                             ON ev_all.{CLASS_ID} = clss.{CLASS_ID}
-                            WHERE {CLASS_ID} = :id
+                            WHERE ev_all.{CLASS_ID} = :id
                         ) as ev
                     ON uev.{C_EVENTS_ID} = ev.{C_EVENTS_ID}
                 ) as ce
@@ -145,3 +151,24 @@ async def update_class_points(
 
     res = await execute_catch_conn(conn, query, params={"id": class_id})
     return row_cnt(res)
+
+
+def parse_user_events(user_events: list[RowMapping]) -> list[UserEvent]:
+    if len(user_events) == 0:
+        return []
+    return UserEventsList.validate_python(user_events)
+
+
+async def user_events_in_class(
+        conn: AsyncConnection, user_id: str, class_id: int
+) -> list[UserEvent]:
+    query = text(
+        f"""
+        SELECT {C_EVENTS_ID}, {C_EVENTS_CATEGORY}, {C_EVENTS_DESCRIPTION}, {C_EVENTS_DATE}, {C_EVENTS_POINTS}
+        FROM {CLASS_POINTS_TABLE} as cp 
+        JOIN {CLASS_EVENTS_TABLE} as ce on cp.{C_EVENTS_ID} = ce.{C_EVENTS_ID} 
+        WHERE cp.{C_EVENTS_ID} = :class AND cp.{USER_ID} = :user;"""
+    )
+    res = await conn.execute(query, parameters={"class": class_id, "user": user_id})
+    return parse_user_events(all_rows(res))
+

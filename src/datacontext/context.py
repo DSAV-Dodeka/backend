@@ -23,7 +23,11 @@ class ContextError(Exception):
 
 
 class Context:
-    pass
+    dont_replace: bool = False
+
+
+class DontReplaceContext(Context):
+    dont_replace: bool = True
 
 
 def make_data_context(
@@ -70,6 +74,9 @@ def replace_context(func):
     doesn't alter any behavior, as it simply calls the implementing function."""
 
     def replace(ctx: Context, *args, **kwargs):
+        if ctx.dont_replace:
+            return func(ctx, *args, **kwargs)
+
         replace_func = getattr(ctx, func.__name__)
         return replace_func(ctx, *args, **kwargs)
 

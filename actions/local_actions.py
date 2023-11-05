@@ -24,6 +24,7 @@ from auth.data.keys import get_keys
 from auth.data.schemad.opaque import get_setup
 from auth.define import refresh_exp, access_exp, id_exp
 from auth.token.build import create_tokens, finish_tokens
+from datacontext.context import DontReplaceContext
 from store import Store
 
 
@@ -71,7 +72,7 @@ async def admin_access(local_dsrc):
     )
     refresh_id = 5252626
     key_state = await get_keystate(local_dsrc)
-    keys = await get_keys(local_dsrc.store, key_state)
+    keys = await get_keys(DontReplaceContext(), local_dsrc.store, key_state)
     refresh_token, access_token, id_token = finish_tokens(
         refresh_id,
         refresh_save,

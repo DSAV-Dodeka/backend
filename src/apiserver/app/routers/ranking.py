@@ -5,12 +5,17 @@ from starlette.requests import Request
 
 from apiserver import data
 from apiserver.app.error import ErrorResponse, AppError
-from apiserver.app.modules.ranking import add_new_event, NewEvent, sync_publish_ranking, class_id_or_recent
+from apiserver.app.modules.ranking import (
+    add_new_event,
+    NewEvent,
+    sync_publish_ranking,
+    class_id_or_recent,
+)
 from apiserver.app.ops.header import Authorization
 from apiserver.app.response import RawJSONResponse
 from apiserver.app.routers.helper import require_admin, require_member
 from apiserver.data import Source, get_conn
-from apiserver.data.api.classifications import events_in_class
+from apiserver.data.api.classifications import events_in_class, get_event_user_points
 from apiserver.data.special import user_events_in_class
 from apiserver.lib.model.entities import UserPointsNamesList, UserEventsList, EventsList
 
@@ -19,7 +24,7 @@ router = APIRouter()
 
 @router.post("/admin/ranking/update/")
 async def admin_update_ranking(
-        new_event: NewEvent, request: Request, authorization: Authorization
+    new_event: NewEvent, request: Request, authorization: Authorization
 ):
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
@@ -51,7 +56,7 @@ async def get_classification(dsrc: Source, rank_type, admin: bool = False):
 
 @router.get("/members/classification/{rank_type}/")
 async def member_classification(
-        rank_type, request: Request, authorization: Authorization
+    rank_type, request: Request, authorization: Authorization
 ):
     dsrc: Source = request.state.dsrc
     await require_member(authorization, dsrc)
@@ -61,7 +66,7 @@ async def member_classification(
 
 @router.get("/admin/classification/{rank_type}/")
 async def member_classification_admin(
-        rank_type, request: Request, authorization: Authorization
+    rank_type, request: Request, authorization: Authorization
 ):
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
@@ -69,20 +74,24 @@ async def member_classification_admin(
     return await get_classification(dsrc, rank_type, True)
 
 
-@router.get("/admin/classification/sync/{publish}/")
+@router.post("/admin/class/sync/")
 async def sync_publish_classification(
-        publish: str, request: Request, authorization: Authorization
+    request: Request, authorization: Authorization, publish: Optional[str] = None
 ):
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
 
     do_publish = publish == "publish"
-    return await sync_publish_ranking(dsrc, do_publish)
+    await sync_publish_ranking(dsrc, do_publish)
 
 
-@router.get("/admin/classification/{user_id}/events/")
+@router.get("/admin/class/events/user/{user_id}/")
 async def get_user_events_in_class(
-        user_id: str, class_id: Optional[int], rank_type: Optional[str], request: Request, authorization: Authorization
+    user_id: str,
+    request: Request,
+    authorization: Authorization,
+    class_id: Optional[int] = None,
+    rank_type: Optional[str] = None,
 ):
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
@@ -98,9 +107,12 @@ async def get_user_events_in_class(
     return RawJSONResponse(UserEventsList.dump_json(user_events))
 
 
-@router.get("/admin/classification/events/")
+@router.get("/admin/class/events/")
 async def get_events_in_class(
-        class_id: Optional[int], rank_type: Optional[str], request: Request, authorization: Authorization
+    request: Request,
+    authorization: Authorization,
+    class_id: Optional[int] = None,
+    rank_type: Optional[str] = None,
 ):
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
@@ -116,15 +128,14 @@ async def get_events_in_class(
     return RawJSONResponse(EventsList.dump_json(events))
 
 
-@router.get("/admin/classification/events/{event_id}/")
+@router.get("/admin/class/events/{event_id}/")
 async def get_event_users(
-        event_id: str, request: Request, authorization: Authorization
+    event_id: str, request: Request, authorization: Authorization
 ):
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
 
     async with get_conn(dsrc) as conn:
-        event_users = await get_event_users(conn, event_id)
+        event_users = await get_event_user_points(conn, event_id)
 
     return RawJSONResponse(UserPointsNamesList.dump_json(event_users))
-

@@ -208,7 +208,9 @@ class UserPointsNames(BaseModel):
     lastname: str
     # In the database it is 'display_points'/'true_points', but we want to export as points
     # It might also just be points in the event_points table
-    points: int = Field(validation_alias=AliasChoices("display_points", "true_points", "points"))
+    points: int = Field(
+        validation_alias=AliasChoices("display_points", "true_points", "points")
+    )
 
 
 UserPointsNamesList = TypeAdapter(List[UserPointsNames])
@@ -219,7 +221,6 @@ class ClassEvent(BaseModel):
     category: str
     description: str
     date: date
-    points: int
 
 
 EventsList = TypeAdapter(List[ClassEvent])

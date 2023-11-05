@@ -9,7 +9,8 @@ from apiserver.lib.model.entities import (
     Classification,
     ClassView,
     UserPointsNames,
-    UserPointsNamesList, EventsList,
+    UserPointsNamesList,
+    EventsList,
 )
 from apiserver.lib.utilities import usp_hex
 from schema.model import (
@@ -39,7 +40,8 @@ from store.db import (
     get_largest_where,
     insert,
     insert_many,
-    select_some_join_where, select_some_two_where, select_some_where,
+    select_some_join_where,
+    select_some_where,
 )
 from store.error import DataError, NoDataError, DbError, DbErrors
 
@@ -53,7 +55,7 @@ def parse_user_points(user_points: list[RowMapping]) -> list[UserPointsNames]:
 
 
 async def insert_classification(
-        conn: AsyncConnection, class_type: str, start_date: date | None = None
+    conn: AsyncConnection, class_type: str, start_date: date | None = None
 ):
     if start_date is None:
         start_date = date.today()
@@ -68,7 +70,7 @@ async def insert_classification(
 
 
 async def most_recent_class_of_type(
-        conn: AsyncConnection, class_type: Literal["training", "points"]
+    conn: AsyncConnection, class_type: Literal["training", "points"]
 ) -> ClassView:
     if class_type == "training":
         query_class_type = "training"
@@ -99,7 +101,7 @@ async def most_recent_class_of_type(
 
 
 async def all_points_in_class(
-        conn: AsyncConnection, class_id: int, show_true_points: bool = False
+    conn: AsyncConnection, class_id: int, show_true_points: bool = False
 ) -> list[UserPointsNames]:
     points_col = DISPLAY_POINTS
     if show_true_points:
@@ -122,12 +124,12 @@ async def all_points_in_class(
 
 
 async def add_class_event(
-        conn: AsyncConnection,
-        event_id: str,
-        classification_id: int,
-        category: str,
-        event_date: datetime.date,
-        description: str = "",
+    conn: AsyncConnection,
+    event_id: str,
+    classification_id: int,
+    category: str,
+    event_date: datetime.date,
+    description: str = "",
 ) -> str:
     """It's important they use a descriptive, unique id for the event like 'nsk_weg_2023'. We only accept simple ascii
     strings. The name is also usp_hex'd to ensure it is readable inside the database. It returns the id, which is also
@@ -153,7 +155,7 @@ async def add_class_event(
 
 
 async def upsert_user_event_points(
-        conn: AsyncConnection, event_id: str, user_id: str, points: int
+    conn: AsyncConnection, event_id: str, user_id: str, points: int
 ):
     row_to_insert = {
         USER_ID: user_id,
@@ -170,7 +172,7 @@ class UserPoints(BaseModel):
 
 
 async def add_users_to_event(
-        conn: AsyncConnection, event_id: str, points: list[UserPoints]
+    conn: AsyncConnection, event_id: str, points: list[UserPoints]
 ) -> int:
     points_with_events = [
         {"event_id": event_id, "user_id": up.user_id, "points": up.points}
@@ -188,24 +190,20 @@ async def add_users_to_event(
             )
 
 
-async def events_in_class(
-        conn: AsyncConnection,
-        class_id: int
-) -> bool:
+async def events_in_class(conn: AsyncConnection, class_id: int) -> bool:
     events = await select_some_where(
         conn,
-        CLASS_POINTS_TABLE,
+        CLASS_EVENTS_TABLE,
         {C_EVENTS_ID, C_EVENTS_CATEGORY, C_EVENTS_DESCRIPTION, C_EVENTS_DATE},
         CLASS_ID,
-        class_id
+        class_id,
     )
 
     return EventsList.validate_python(events)
 
 
-async def get_event_users(
-        conn: AsyncConnection,
-        event_id: str
+async def get_event_user_points(
+    conn: AsyncConnection, event_id: str
 ) -> list[UserPointsNames]:
     user_id_select = f"{USERDATA_TABLE}.{USER_ID}"
     user_points = await select_some_join_where(

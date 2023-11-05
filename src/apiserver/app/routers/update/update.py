@@ -17,7 +17,8 @@ from apiserver.app.ops.mail import (
 from apiserver.app.routers.helper import authentication
 from apiserver.app.routers.helper import require_user
 from apiserver.data import Source, ops
-from apiserver.data.frame import Code
+from apiserver.data.context import Code
+from apiserver.data.context.update import store_email_flow_password_change
 from apiserver.define import LOGGER_NAME, DEFINE
 from apiserver.lib.model.entities import UpdateEmailState
 from auth.modules.register import send_register_start
@@ -46,8 +47,8 @@ async def request_password_change(
 
     # Check if registered user exists and if they have finished registration
     # If yes, then we generate a random flow ID that can later be used to confirm the password change
-    flow_id = await cd.frame.update_frm.store_email_flow_password_change(
-        dsrc, change_pass.email
+    flow_id = await store_email_flow_password_change(
+        cd.app_context.update_ctx, dsrc, change_pass.email
     )
 
     if flow_id is None:
@@ -102,7 +103,7 @@ async def update_password_start(update_pass: UpdatePasswordRequest, request: Req
         u = await ops.user.get_user_by_email(conn, update_pass.email)
 
     return await send_register_start(
-        dsrc.store, cd.context.register_ctx, u.user_id, update_pass.client_request
+        dsrc.store, cd.auth_context.register_ctx, u.user_id, update_pass.client_request
     )
 
 

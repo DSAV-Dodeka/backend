@@ -12,11 +12,12 @@ from starlette.testclient import TestClient
 from apiserver.app_def import create_app
 from apiserver.app_lifespan import State, safe_startup, register_and_define_code
 from apiserver.data import Source
-from apiserver.data.frame import Code
+from apiserver.data.context import Code
 from apiserver.env import load_config
 from auth.core.model import SavedState, FlowUser
 from auth.data.context import LoginContext
 from auth.data.schemad.user import UserOps
+from datacontext.context import Context
 from router_test.test_util import GenUser, OpaqueValues, make_test_user
 from store import Store
 from test_resources import res_path
@@ -104,19 +105,19 @@ def mock_login_start_context(
 ):
     class MockLoginContext(LoginContext):
         @classmethod
-        async def get_apake_setup(cls, store: Store) -> str:
+        async def get_apake_setup(cls, ctx: Context, store: Store) -> str:
             return server_setup
 
         @classmethod
         async def get_user_auth_data(
-            cls, store: Store, user_ops: UserOps, login_mail: str
+            cls, ctx: Context, store: Store, user_ops: UserOps, login_mail: str
         ) -> tuple[str, str, str, str]:
             if test_user.user_email == login_mail:
                 return test_user.user_id, test_scope, pw_file, test_auth_id
 
         @classmethod
         async def store_auth_state(
-            cls, store: Store, auth_id: str, state: SavedState
+            cls, ctx: Context, store: Store, auth_id: str, state: SavedState
         ) -> None:
             state_store[auth_id] = state
 
@@ -128,7 +129,7 @@ def test_login(test_client, make_cd, gen_user: GenUser, opq_val: OpaqueValues):
     test_auth_id = "12345"
     test_scope = "some_scope another"
 
-    make_cd.context.login_ctx = mock_login_start_context(
+    make_cd.auth_context.login_ctx = mock_login_start_context(
         gen_user,
         opq_val.correct_password_file,
         opq_val.server_setup,
@@ -154,7 +155,9 @@ def mock_login_finish_context(
 ):
     class MockLoginContext(LoginContext):
         @classmethod
-        async def get_state(cls, store: Store, auth_id: str) -> SavedState:
+        async def get_state(
+            cls, ctx: Context, store: Store, auth_id: str
+        ) -> SavedState:
             return SavedState(
                 user_id=test_user.user_id,
                 state=test_state,
@@ -164,7 +167,7 @@ def mock_login_finish_context(
 
         @classmethod
         async def store_flow_user(
-            cls, store: Store, session_key: str, flow_user: FlowUser
+            cls, ctx: Context, store: Store, session_key: str, flow_user: FlowUser
         ) -> None:
             flow_store[session_key] = flow_user
 
@@ -179,7 +182,7 @@ def test_finish_login(test_client, make_cd, gen_user: GenUser, opq_val: OpaqueVa
     # password 'clientele' with mock_opq_key
     test_state = opq_val.login_start_state
 
-    make_cd.context.login_ctx = mock_login_finish_context(
+    make_cd.auth_context.login_ctx = mock_login_finish_context(
         gen_user, test_state, test_scope, flow_store
     )
 

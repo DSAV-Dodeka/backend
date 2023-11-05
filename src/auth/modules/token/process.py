@@ -6,6 +6,8 @@ from auth.core.model import (
     KeyState,
     TokenRequest,
 )
+from auth.data.authentication import pop_flow_user
+from auth.data.authorize import get_auth_request
 from auth.data.context import TokenContext
 from store.error import NoDataError
 from auth.data.schemad.ops import SchemaOps
@@ -80,7 +82,7 @@ async def auth_code_grant(
 ) -> Tokens:
     # Get flow_user and auth_request
     try:
-        flow_user = await context.pop_flow_user(store, code_grant_request.code)
+        flow_user = await pop_flow_user(context, store, code_grant_request.code)
     except NoDataError:
         reason = "Expired or missing auth code"
         raise AuthError(
@@ -88,7 +90,7 @@ async def auth_code_grant(
         )
 
     try:
-        auth_request = await context.get_auth_request(store, flow_user.flow_id)
+        auth_request = await get_auth_request(context, store, flow_user.flow_id)
     except NoDataError:
         # TODO maybe check auth time just in case
         reason = "Expired or missing auth request"

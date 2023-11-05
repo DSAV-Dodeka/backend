@@ -10,7 +10,7 @@ from starlette.testclient import TestClient
 from apiserver.app_def import create_app
 from apiserver.app_lifespan import safe_startup, State, register_and_define_code
 from apiserver.data import Source
-from apiserver.data.frame import Code
+from apiserver.data.context import Code
 from apiserver.define import DEFINE
 from apiserver.env import load_config
 from test_resources import res_path

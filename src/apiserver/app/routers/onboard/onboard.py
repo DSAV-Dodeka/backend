@@ -23,7 +23,7 @@ from apiserver.app.ops.mail import (
 )
 from apiserver.app.routers.helper import require_admin
 from apiserver.data import Source
-from apiserver.data.frame import Code
+from apiserver.data.context import Code
 from apiserver.define import (
     LOGGER_NAME,
     DEFINE,
@@ -217,14 +217,16 @@ async def start_register(register_start: RegisterRequest, request: Request):
     cd: Code = request.state.cd
 
     try:
-        user_id = await check_register(dsrc, cd.frame.register_frm, register_start)
+        user_id = await check_register(
+            dsrc, cd.app_context.register_ctx, register_start
+        )
     except AppError as e:
         raise ErrorResponse(
             400, err_type=e.err_type, err_desc=e.err_desc, debug_key=e.debug_key
         )
 
     return await send_register_start(
-        dsrc.store, cd.context.register_ctx, user_id, register_start.client_request
+        dsrc.store, cd.auth_context.register_ctx, user_id, register_start.client_request
     )
 
 
@@ -236,7 +238,7 @@ async def finish_register(register_finish: FinishRequest, request: Request):
     cd: Code = request.state.cd
 
     try:
-        await finalize_save_register(dsrc, cd.frame.register_frm, register_finish)
+        await finalize_save_register(dsrc, cd.app_context.register_ctx, register_finish)
     except AppError as e:
         # logger.debug(e.message)
         raise ErrorResponse(

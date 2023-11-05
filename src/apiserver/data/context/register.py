@@ -1,17 +1,20 @@
 from apiserver import data
 from apiserver.app.error import AppError, ErrorKeys
-from apiserver.data.frame import FrameRegistry
 from apiserver.data import Source, ops
+from apiserver.data.context import RegisterAppContext
 from apiserver.lib.model.entities import UserData, User
 from auth.core.model import SavedRegisterState
 from auth.data.schemad.user import UserErrors
+from datacontext.context import ContextRegistry, Context
 from store.error import NoDataError
 
-frm_reg = FrameRegistry()
+ctx_reg = ContextRegistry()
 
 
-@frm_reg.register_frame
-async def get_registration(dsrc: Source, register_id: str) -> tuple[UserData, User]:
+@ctx_reg.register(RegisterAppContext)
+async def get_registration(
+    ctx: Context, dsrc: Source, register_id: str
+) -> tuple[UserData, User]:
     try:
         async with data.get_conn(dsrc) as conn:
             ud = await data.ud.get_userdata_by_register_id(conn, register_id)
@@ -34,8 +37,10 @@ async def get_registration(dsrc: Source, register_id: str) -> tuple[UserData, Us
     return ud, u
 
 
-@frm_reg.register_frame
-async def get_register_state(dsrc: Source, auth_id: str) -> SavedRegisterState:
+@ctx_reg.register(RegisterAppContext)
+async def get_register_state(
+    ctx: Context, dsrc: Source, auth_id: str
+) -> SavedRegisterState:
     try:
         saved_state = await data.trs.reg.get_register_state(dsrc, auth_id)
     except NoDataError:
@@ -50,10 +55,11 @@ async def get_register_state(dsrc: Source, auth_id: str) -> SavedRegisterState:
     return saved_state
 
 
-@frm_reg.register_frame
+@ctx_reg.register(RegisterAppContext)
 async def check_userdata_register(
-    dsrc: Source, register_id: str, request_email: str, saved_user_id: str
+    ctx: Context, dsrc: Source, register_id: str, request_email: str, saved_user_id: str
 ) -> UserData:
+    """Must also ensure request_email and saved_user_id match the userdata."""
     try:
         async with data.get_conn(dsrc) as conn:
             ud = await data.ud.get_userdata_by_register_id(conn, register_id)
@@ -96,8 +102,11 @@ async def check_userdata_register(
     return ud
 
 
-@frm_reg.register_frame
-async def save_registration(dsrc: Source, pw_file: str, new_userdata: UserData) -> None:
+@ctx_reg.register(RegisterAppContext)
+async def save_registration(
+    ctx: Context, dsrc: Source, pw_file: str, new_userdata: UserData
+) -> None:
+    """Assumes the new_userdata has the same user_id and email as the registration starter."""
     async with data.get_conn(dsrc) as conn:
         await ops.user.update_password_file(conn, new_userdata.user_id, pw_file)
         await data.ud.upsert_userdata(conn, new_userdata)

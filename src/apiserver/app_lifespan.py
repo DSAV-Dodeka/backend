@@ -4,7 +4,7 @@ from typing import TypedDict
 
 from fastapi import FastAPI
 
-from auth.data.context import Context
+from auth.data.context import Contexts
 from auth.data.authentication import ctx_reg as auth_reg
 from auth.data.authorize import ctx_reg as athrz_reg
 from auth.data.keys import ctx_reg as key_reg
@@ -15,13 +15,12 @@ from auth.data.token import ctx_reg as token_reg
 import apiserver.lib.utilities as util
 from apiserver.app.ops.startup import startup
 from apiserver.data import Source
-from apiserver.data.frame import Code, SourceFrame
-from apiserver.data.frame.register import frm_reg as register_frm_reg
-from apiserver.data.frame.update import frm_upd as update_frm_reg
+from apiserver.data.context import Code, SourceContexts
+from apiserver.data.context.register import ctx_reg as register_app_reg
+from apiserver.data.context.update import ctx_reg as update_reg
 from apiserver.define import LOGGER_NAME, DEFINE
 from apiserver.env import load_config, Config
 from apiserver.resources import res_path
-
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -82,18 +81,18 @@ async def app_shutdown(dsrc_inst: Source):
 
 
 def register_and_define_code():
-    data_context = Context()
+    data_context = Contexts()
     data_context.include_registry(auth_reg)
     data_context.include_registry(athrz_reg)
     data_context.include_registry(key_reg)
     data_context.include_registry(register_reg)
     data_context.include_registry(token_reg)
 
-    source_frame = SourceFrame()
-    source_frame.include_registry(register_frm_reg)
-    source_frame.include_registry(update_frm_reg)
+    source_data_context = SourceContexts()
+    source_data_context.include_registry(register_app_reg)
+    source_data_context.include_registry(update_reg)
 
-    return Code(context=data_context, frame=source_frame)
+    return Code(auth_context=data_context, app_context=source_data_context)
 
 
 @asynccontextmanager

@@ -12,7 +12,7 @@ from starlette.testclient import TestClient
 from apiserver.app_def import create_app
 from apiserver.app_lifespan import State, safe_startup, register_and_define_code
 from apiserver.data import Source
-from apiserver.data.frame import Code
+from apiserver.data.context import Code
 from apiserver.define import DEFINE
 from apiserver.env import load_config
 from apiserver.lib.model.entities import IdInfo
@@ -31,6 +31,7 @@ from auth.data.schemad.ops import SchemaOps
 from auth.define import refresh_exp, id_exp, access_exp
 from auth.hazmat.key_decode import aes_from_symmetric
 from auth.hazmat.structs import PEMPrivateKey
+from datacontext.context import Context
 from router_test.test_util import (
     make_test_user,
     mock_auth_request,
@@ -152,28 +153,38 @@ def mock_token_code_context(
 ):
     class MockTokenContext(TokenContext):
         @classmethod
-        async def pop_flow_user(cls, store: Store, authorization_code: str) -> FlowUser:
+        async def pop_flow_user(
+            cls, ctx: Context, store: Store, authorization_code: str
+        ) -> FlowUser:
             if authorization_code == test_code:
                 return test_flow_user
 
         @classmethod
-        async def get_auth_request(cls, store: Store, flow_id: str) -> AuthRequest:
+        async def get_auth_request(
+            cls, ctx: Context, store: Store, flow_id: str
+        ) -> AuthRequest:
             if flow_id == test_flow_id:
                 return test_auth_request
 
         @classmethod
-        async def get_keys(cls, store: Store, key_state: KeyState) -> AuthKeys:
+        async def get_keys(
+            cls, ctx: Context, store: Store, key_state: KeyState
+        ) -> AuthKeys:
             return test_keys
 
         @classmethod
         async def get_id_info(
-            cls, store: Store, ops: SchemaOps, user_id: str
+            cls, ctx: Context, store: Store, ops: SchemaOps, user_id: str
         ) -> AuthIdInfo:
             return AuthIdInfo()
 
         @classmethod
         async def add_refresh_token(
-            cls, store: Store, ops: SchemaOps, refresh_save: SavedRefreshToken
+            cls,
+            ctx: Context,
+            store: Store,
+            ops: SchemaOps,
+            refresh_save: SavedRefreshToken,
         ) -> int:
             refresh_save.id = test_refresh_id
             mock_db[test_refresh_id] = refresh_save
@@ -192,7 +203,7 @@ def test_auth_code(
     test_refresh_id = 88
     mock_db = {}
 
-    make_cd.context.token_ctx = mock_token_code_context(
+    make_cd.auth_context.token_ctx = mock_token_code_context(
         mock_flow_user,
         code_session_key,
         mock_auth_request,
@@ -268,18 +279,21 @@ def mock_token_refresh_context(
 ):
     class MockTokenContext(TokenContext):
         @classmethod
-        async def get_keys(cls, store: Store, key_state: KeyState) -> AuthKeys:
+        async def get_keys(
+            cls, ctx: Context, store: Store, key_state: KeyState
+        ) -> AuthKeys:
             return test_keys
 
         @classmethod
         async def get_saved_refresh(
-            cls, store: Store, ops: SchemaOps, old_refresh: RefreshToken
+            cls, ctx: Context, store: Store, ops: SchemaOps, old_refresh: RefreshToken
         ) -> SavedRefreshToken:
             return mock_db[old_refresh.id]
 
         @classmethod
         async def replace_refresh(
             cls,
+            ctx: Context,
             store: Store,
             ops: SchemaOps,
             old_refresh_id: int,
@@ -304,7 +318,7 @@ def test_refresh(test_client, make_cd: Code, gen_ext_user, auth_keys: AuthKeys):
     new_refresh_id = 50
     mock_db = {test_refresh_id: refresh_save}
 
-    make_cd.context.token_ctx = mock_token_refresh_context(
+    make_cd.auth_context.token_ctx = mock_token_refresh_context(
         auth_keys, refresh_save, new_refresh_id, mock_db
     )
 

@@ -1,9 +1,10 @@
 import json
+from typing import Any
 
 from apiserver.resources import res_path
 
 
-async def load_json(filename: str) -> dict:
+async def load_json(filename: str) -> dict[str, Any]:
     pth = res_path.joinpath(filename + ".json")
     if not pth.exists():
         fakedata = {

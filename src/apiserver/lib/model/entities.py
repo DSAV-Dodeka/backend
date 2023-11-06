@@ -68,7 +68,7 @@ class UserData(AuthUserData):
 
     # Coerces null in database to false
     @field_validator("showage")
-    def coerce_showage(cls, value):
+    def coerce_showage(cls, value: Optional[bool]) -> bool:
         if value is None:
             return False
         else:
@@ -101,11 +101,6 @@ class UserScopeData(BaseModel):
 class JWKSRow(BaseModel):
     id: int
     encrypted_value: str
-
-
-class OpaqueSetup(BaseModel):
-    id: int
-    value: str
 
 
 class JWK(BaseModel):
@@ -214,3 +209,9 @@ UserPointsNamesList = TypeAdapter(List[UserPointsNames])
 
 # class PointsData(BaseModel):
 #     points: int
+
+
+class StoredKey(BaseModel):
+    kid: str
+    iat: int
+    use: str

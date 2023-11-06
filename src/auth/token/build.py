@@ -142,7 +142,13 @@ def finish_tokens(
 
 
 def id_access_tokens(
-    sub, iss, aud_access, aud_id, scope, auth_time, id_nonce
+    sub: str,
+    iss: str,
+    aud_access: list[str],
+    aud_id: list[str],
+    scope: str,
+    auth_time: int,
+    id_nonce: str,
 ) -> tuple[AccessTokenBase, IdTokenBase]:
     """Create ID and access token objects."""
     access_core = AccessTokenBase(sub=sub, iss=iss, aud=aud_access, scope=scope)

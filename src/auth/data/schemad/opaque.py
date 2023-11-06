@@ -1,16 +1,18 @@
-from typing import Optional
+from typing import Any, Optional
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from store.error import DataError
 from schema.model import OPAQUE_SETUP_TABLE
-from store.db import retrieve_by_id, insert
+from store.db import lit_model, retrieve_by_id, insert
 from auth.data.schemad.entities import OpaqueSetup
 
 __all__ = ["get_setup", "insert_opaque_row"]
 
 
-async def _get_opaque_row(conn: AsyncConnection, id_int: int) -> Optional[dict]:
+async def _get_opaque_row(
+    conn: AsyncConnection, id_int: int
+) -> Optional[dict[str, Any]]:
     opaque_row = await retrieve_by_id(conn, OPAQUE_SETUP_TABLE, id_int)
 
     return opaque_row
@@ -34,5 +36,5 @@ async def get_setup(conn: AsyncConnection) -> str:
     return (await _get_opaque_setup(conn)).value
 
 
-async def insert_opaque_row(conn: AsyncConnection, opaque_setup: OpaqueSetup):
-    return await insert(conn, OPAQUE_SETUP_TABLE, opaque_setup.model_dump())
+async def insert_opaque_row(conn: AsyncConnection, opaque_setup: OpaqueSetup) -> int:
+    return await insert(conn, OPAQUE_SETUP_TABLE, lit_model(opaque_setup))

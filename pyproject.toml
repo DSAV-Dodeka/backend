@@ -30,6 +30,7 @@ anyio = "^3.7.1"
 regex = "^2023.10.3"
 orjson = "^3.9.5"
 yarl = "^1.9.2"
+types-regex = "^2023.10.3.0"
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
@@ -38,7 +39,6 @@ asyncio_mode = "strict"
 s-api = "apiserver.dev:run"
 
 [tool.poetry.group.dev.dependencies]
-sqlalchemy = { extras = ["mypy", "asyncio"], version = "^2.0.20" }
 pytest = "^7.0.1"
 pytest-asyncio = "^0.20.3"
 pytest-mock = "^3.7.0"
@@ -62,9 +62,7 @@ python_version = "3.11"
 strict = true
 files = ["src"]
 plugins = [
-    "sqlmypy",
     "pydantic.mypy",
-    "sqlalchemy.ext.mypy.plugin"
 ]
 exclude = [
     "src/apiserver/db/migrations/"
@@ -72,15 +70,16 @@ exclude = [
 
 [[tool.mypy.overrides]]
 module = [
-    "apiserver.auth.*",
-    "apiserver.data.*",
-    "apiserver.db.*",
-    "apiserver.db.migrations.*",
-    "apiserver.kv.*",
-    "apiserver.routers.*",
-    "apiserver.app",
-    "apiserver.dev",
-    "apiserver.env",
+    # "apiserver.auth.*",
+    # "apiserver.data.*",
+    # "apiserver.db.*",
+    # "apiserver.db.migrations.*",
+    # "apiserver.kv.*",
+    # "apiserver.routers.*",
+    # "apiserver.app",
+    # "apiserver.dev",
+    # "apiserver.env",
+    "schema.model.env"
 
 ]
 ignore_errors = true

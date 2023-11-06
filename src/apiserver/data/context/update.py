@@ -11,9 +11,7 @@ ctx_reg = ContextRegistry()
 
 
 @ctx_reg.register(UpdateContext)
-async def store_email_flow_password_change(
-    ctx: Context, dsrc: Source, email: str
-) -> Optional[str]:
+async def store_email_flow_password_change(dsrc: Source, email: str) -> Optional[str]:
     """If registered user exists for email, then store email with random flow ID and return it. Else, return None."""
     try:
         async with data.get_conn(dsrc) as conn:

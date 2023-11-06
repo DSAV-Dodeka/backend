@@ -60,7 +60,7 @@ class FinishRequest(BaseModel):
 
 async def finalize_save_register(
     dsrc: Source, context: RegisterAppContext, register_finish: FinishRequest
-):
+) -> None:
     saved_state = await get_register_state(context, dsrc, register_finish.auth_id)
 
     # Generate password file

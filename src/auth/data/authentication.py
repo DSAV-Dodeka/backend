@@ -1,3 +1,4 @@
+from apiserver.data.context.app_context import UpdateContext
 from auth.core.model import SavedState, FlowUser
 from auth.core.util import random_time_hash_hex
 from auth.data.context import RegisterContext, LoginContext, TokenContext
@@ -13,7 +14,7 @@ ctx_reg = ContextRegistry()
 
 
 @ctx_reg.register_multiple([RegisterContext, LoginContext])
-async def get_apake_setup(ctx: Context, store: Store) -> str:
+async def get_apake_setup(store: Store) -> str:
     """We get server setup required for using OPAQUE protocol (which is an aPAKE)."""
     async with get_conn(store) as conn:
         return await get_setup(conn)
@@ -21,7 +22,7 @@ async def get_apake_setup(ctx: Context, store: Store) -> str:
 
 @ctx_reg.register(LoginContext)
 async def get_user_auth_data(
-    ctx: Context, store: Store, user_ops: UserOps, login_mail: str
+    store: Store, user_ops: UserOps, login_mail: str
 ) -> tuple[str, str, str, str]:
     scope = "none"
     async with get_conn(store) as conn:
@@ -46,32 +47,26 @@ async def get_user_auth_data(
 
 
 @ctx_reg.register(LoginContext)
-async def store_auth_state(
-    ctx: Context, store: Store, auth_id: str, state: SavedState
-) -> None:
+async def store_auth_state(store: Store, auth_id: str, state: SavedState) -> None:
     await store_json(get_kv(store), auth_id, state.model_dump(), expire=60)
 
 
 @ctx_reg.register(LoginContext)
-async def get_state(ctx: Context, store: Store, auth_id: str) -> SavedState:
-    state_dict: dict = await get_json(get_kv(store), auth_id)
+async def get_state(store: Store, auth_id: str) -> SavedState:
+    state_dict = await get_json(get_kv(store), auth_id)
     if state_dict is None:
         raise NoDataError("State does not exist or expired.", "saved_state_empty")
     return SavedState.model_validate(state_dict)
 
 
-@ctx_reg.register(TokenContext)
-async def pop_flow_user(
-    ctx: Context, store: Store, authorization_code: str
-) -> FlowUser:
-    flow_user_dict: dict = await pop_json(get_kv(store), authorization_code)
+@ctx_reg.register_multiple([TokenContext, LoginContext])
+async def pop_flow_user(store: Store, authorization_code: str) -> FlowUser:
+    flow_user_dict = await pop_json(get_kv(store), authorization_code)
     if flow_user_dict is None:
         raise NoDataError("Flow user does not exist or expired.", "flow_user_empty")
     return FlowUser.model_validate(flow_user_dict)
 
 
 @ctx_reg.register(LoginContext)
-async def store_flow_user(
-    ctx: Context, store: Store, session_key: str, flow_user: FlowUser
-) -> None:
+async def store_flow_user(store: Store, session_key: str, flow_user: FlowUser) -> None:
     await store_json(get_kv(store), session_key, flow_user.model_dump(), expire=60)

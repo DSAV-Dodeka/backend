@@ -10,7 +10,7 @@ from store import Store
 
 async def send_register_start(
     store: Store, context: RegisterContext, user_id: str, client_request: str
-):
+) -> PasswordResponse:
     """Generates auth_id"""
     apake_setup = await get_apake_setup(context, store)
 

@@ -15,7 +15,7 @@ ctx_reg = ContextRegistry()
 
 async def get_pem_private_key(store: Store, kid_key: str) -> PEMPrivateKey:
     """The kid_key should include any potential suffixes."""
-    pem_dict: dict = await get_json(get_kv(store), kid_key)
+    pem_dict = await get_json(get_kv(store), kid_key)
     if pem_dict is None:
         raise NoDataError("PEM key does not exist.", "pem_private_key_empty")
     return PEMPrivateKey.model_validate(pem_dict)
@@ -23,14 +23,14 @@ async def get_pem_private_key(store: Store, kid_key: str) -> PEMPrivateKey:
 
 async def get_symmetric_key(store: Store, kid: str) -> A256GCMKey:
     """Symmetric keys are always private!"""
-    symmetric_dict: dict = await get_json(get_kv(store), kid)
+    symmetric_dict = await get_json(get_kv(store), kid)
     if symmetric_dict is None:
         raise NoDataError("JWK does not exist or expired.", "jwk_empty")
     return A256GCMKey.model_validate(symmetric_dict)
 
 
 @ctx_reg.register(TokenContext)
-async def get_keys(ctx: Context, store: Store, key_state: KeyState) -> AuthKeys:
+async def get_keys(store: Store, key_state: KeyState) -> AuthKeys:
     symmetric_kid = key_state.current_symmetric
     old_symmetric_kid = key_state.old_symmetric
     signing_kid = key_state.current_signing

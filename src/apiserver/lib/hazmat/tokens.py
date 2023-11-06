@@ -27,10 +27,10 @@ class BadVerification(Exception):
         self.err_key = err_key
 
 
-def get_kid(access_token: str):
+def get_kid(access_token: str) -> str:
     try:
         unverified_header = jwt.get_unverified_header(access_token)
-        return unverified_header["kid"]
+        return str(unverified_header["kid"])
     except KeyError:
         raise BadVerification("no_kid")
     except DecodeError:
@@ -46,7 +46,7 @@ def verify_access_token(
     grace_period: int,
     issuer: str,
     backend_client_id: str,
-):
+) -> AccessToken:
     try:
         decoded_payload = jwt.decode(
             access_token,

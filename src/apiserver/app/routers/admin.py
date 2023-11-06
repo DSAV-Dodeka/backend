@@ -21,7 +21,7 @@ logger = logging.getLogger(LOGGER_NAME)
 
 
 @router.get("/admin/users/", response_model=list[UserData])
-async def get_users(request: Request, authorization: Authorization):
+async def get_users(request: Request, authorization: Authorization) -> ORJSONResponse:
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
     async with data.get_conn(dsrc) as conn:
@@ -30,7 +30,9 @@ async def get_users(request: Request, authorization: Authorization):
 
 
 @router.get("/admin/scopes/all/", response_model=list[UserScopeData])
-async def get_users_scopes(request: Request, authorization: Authorization):
+async def get_users_scopes(
+    request: Request, authorization: Authorization
+) -> ORJSONResponse:
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
     async with data.get_conn(dsrc) as conn:
@@ -48,7 +50,7 @@ async def add_scope(
     scope_request: ScopeAddRequest,
     request: Request,
     authorization: Authorization,
-):
+) -> None:
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
 
@@ -84,8 +86,6 @@ async def add_scope(
                 debug_key=debug_key,
             )
 
-    return {}
-
 
 class ScopeRemoveRequest(BaseModel):
     user_id: str
@@ -97,7 +97,7 @@ async def remove_scope(
     scope_request: ScopeRemoveRequest,
     request: Request,
     authorization: Authorization,
-):
+) -> None:
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
 
@@ -138,11 +138,11 @@ async def remove_scope(
                 debug_key=debug_key,
             )
 
-    return {}
-
 
 @router.get("/admin/users/ids/", response_model=list[UserID])
-async def get_user_ids(request: Request, authorization: Authorization):
+async def get_user_ids(
+    request: Request, authorization: Authorization
+) -> ORJSONResponse:
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
     async with data.get_conn(dsrc) as conn:
@@ -151,7 +151,9 @@ async def get_user_ids(request: Request, authorization: Authorization):
 
 
 @router.get("/admin/users/names/", response_model=list[UserID])
-async def get_user_names(request: Request, authorization: Authorization):
+async def get_user_names(
+    request: Request, authorization: Authorization
+) -> ORJSONResponse:
     dsrc: Source = request.state.dsrc
     await require_admin(authorization, dsrc)
     async with data.get_conn(dsrc) as conn:

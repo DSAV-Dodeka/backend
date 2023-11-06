@@ -110,7 +110,7 @@ def when_modified(p: Path) -> int:
     return max([int(f.stat().st_mtime) if f.is_file() else 0 for f in p.rglob("*")])
 
 
-def strip_edge(string: str):
+def strip_edge(string: str) -> str:
     string.rstrip()
     # \s is all whitespace
     # \p{Z} is all unicode whitespace
@@ -121,7 +121,7 @@ def strip_edge(string: str):
     return re.sub(f"^{match_string}|{match_string}$", "", string)
 
 
-def gen_id_name(first_name: str, last_name: str):
+def gen_id_name(first_name: str, last_name: str) -> str:
     id_name_str = f"{first_name}_{last_name}".lower()
     id_name_str = re.sub(whitespace_pattern, "_", id_name_str)
     return usp_hex(id_name_str)

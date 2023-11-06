@@ -4,6 +4,7 @@ deployment environment SPECIFICS and should be known far ahead of time. Changing
 breaking, while that should not happen for env/config settings.
 """
 
+from typing import Any
 from pydantic import BaseModel
 
 
@@ -14,8 +15,6 @@ class Define(BaseModel):
     api_root: str
     issuer: str
     backend_client_id: str
-    valid_redirects: set[str]
-
     credentials_url: str
     signup_url: str
     onboard_email: str
@@ -36,4 +35,4 @@ grace_period = 3 * 60  # 3 minutes in which it is still accepted
 email_expiration = 15 * 60
 
 
-default_define = {}
+default_define: dict[str, Any] = {}

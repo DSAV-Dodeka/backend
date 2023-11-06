@@ -8,6 +8,7 @@ from httpx import codes
 from pytest_mock import MockerFixture
 from sqlalchemy.ext.asyncio import AsyncConnection
 from starlette.testclient import TestClient
+from apiserver.app.error import AppError, ErrorKeys
 
 from apiserver.app_def import create_app
 from apiserver.app_lifespan import State, safe_startup, register_and_define_code
@@ -29,6 +30,7 @@ from router_test.test_util import (
     make_base_ud,
 )
 from store import Store
+from store.error import NoDataError
 from test_resources import res_path
 
 
@@ -71,7 +73,7 @@ def lifespan_fixture(api_config, make_dsrc: Source, make_cd: Code):
     safe_startup(make_dsrc, api_config)
 
     @asynccontextmanager
-    async def mock_lifespan(app: FastAPI) -> State:
+    async def mock_lifespan(app: FastAPI):
         yield {"dsrc": make_dsrc, "cd": make_cd}
 
     yield mock_lifespan
@@ -121,28 +123,33 @@ def mock_register_start_ctx(test_ud: UserData, test_user: User, test_register_id
     class MockRegisterContext(RegisterAppContext):
         @classmethod
         async def get_registration(
-            cls, ctx: Context, dsrc: Source, register_id: str
+            cls, dsrc: Source, register_id: str
         ) -> tuple[UserData, User]:
             if test_register_id == register_id:
                 return test_ud, test_user
+            raise AppError(
+                err_type=ErrorKeys.REGISTER,
+                err_desc="Test error",
+                debug_key="test_error",
+            )
 
-    return MockRegisterContext
+    return MockRegisterContext()
 
 
 def mock_register_context(server_setup: str, mock_auth_id: str, mock_req_store: dict):
     class MockRegisterContext(RegisterContext):
         @classmethod
-        async def get_apake_setup(cls, ctx: Context, store: Store) -> str:
+        async def get_apake_setup(cls, store: Store) -> str:
             return server_setup
 
         @classmethod
         async def store_auth_register_state(
-            cls, ctx: Context, store: Store, user_id: str, state: SavedRegisterState
+            cls, store: Store, user_id: str, state: SavedRegisterState
         ) -> str:
             mock_req_store[mock_auth_id] = state
             return mock_auth_id
 
-    return MockRegisterContext
+    return MockRegisterContext()
 
 
 def test_start_register(
@@ -191,15 +198,15 @@ def mock_register_finish_ctx(
     class MockRegisterContext(RegisterAppContext):
         @classmethod
         async def get_register_state(
-            cls, ctx: Context, dsrc: Source, auth_id: str
+            cls, dsrc: Source, auth_id: str
         ) -> SavedRegisterState:
             if auth_id == test_auth_id:
                 return SavedRegisterState(user_id=test_user_id)
+            raise NoDataError("No data", "test_no_date")
 
         @classmethod
         async def check_userdata_register(
             cls,
-            ctx: Context,
             dsrc: Source,
             register_id: str,
             request_email: str,
@@ -207,14 +214,19 @@ def mock_register_finish_ctx(
         ) -> UserData:
             if register_id == test_register_id:
                 return test_ud
+            raise AppError(
+                err_type=ErrorKeys.REGISTER,
+                err_desc="Test error",
+                debug_key="test_error",
+            )
 
         @classmethod
         async def save_registration(
-            cls, ctx: Context, dsrc: Source, pw_file: str, new_userdata: UserData
+            cls, dsrc: Source, pw_file: str, new_userdata: UserData
         ) -> None:
             mock_db[new_userdata.user_id] = new_userdata
 
-    return MockRegisterContext
+    return MockRegisterContext()
 
 
 def test_finish_register(

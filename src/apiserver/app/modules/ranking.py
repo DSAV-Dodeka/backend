@@ -19,7 +19,7 @@ class NewEvent(BaseModel):
     description: str = ""
 
 
-async def add_new_event(dsrc: Source, new_event: NewEvent):
+async def add_new_event(dsrc: Source, new_event: NewEvent) -> None:
     """Add a new event and recompute points. Display points will be updated to not include any events after the hidden
     date. Use the 'publish' function to force them to be equal."""
     async with data.get_conn(dsrc) as conn:
@@ -63,7 +63,7 @@ async def add_new_event(dsrc: Source, new_event: NewEvent):
         )
 
 
-async def sync_publish_ranking(dsrc: Source, publish: bool):
+async def sync_publish_ranking(dsrc: Source, publish: bool) -> None:
     async with data.get_conn(dsrc) as conn:
         training_class = await data.classifications.most_recent_class_of_type(
             conn, "training"

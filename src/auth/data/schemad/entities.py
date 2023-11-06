@@ -1,4 +1,7 @@
+from typing import Generic, TypeVar
 from pydantic import BaseModel
+
+from auth.core.model import IdInfo
 
 
 class OpaqueSetup(BaseModel):
@@ -15,6 +18,14 @@ class User(BaseModel):
 
 class UserData(BaseModel):
     pass
+
+
+UserDataT = TypeVar("UserDataT", bound=UserData)
+IdInfoT = TypeVar("IdInfoT", bound=IdInfo, covariant=True)
+
+# class InfoContainer(BaseModel, Generic[UserDataT, IdInfoT]):
+#     ud: UserDataT
+#     id_info: IdInfoT
 
 
 class SavedRefreshToken(BaseModel):

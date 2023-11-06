@@ -10,8 +10,8 @@ from apiserver import data
 router = APIRouter()
 
 
-@router.get("/res/profile/", response_model=UserData)
-async def get_profile(request: Request, authorization: Authorization):
+@router.get("/res/profile/")
+async def get_profile(request: Request, authorization: Authorization) -> UserData:
     dsrc: Source = request.state.dsrc
     acc = await handle_auth(authorization, dsrc)
     async with data.get_conn(dsrc) as conn:

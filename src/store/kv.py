@@ -3,6 +3,9 @@ from typing import Any, Optional, Union
 from redis.asyncio import Redis
 from redis.exceptions import ResponseError
 
+from store.conn import RedisClient
+from store.store import StoreError
+
 __all__ = [
     "store_json",
     "get_json",
@@ -21,37 +24,49 @@ __all__ = [
 JsonType = Union[str, int, float, bool, None, dict[str, "JsonType"], list["JsonType"]]
 
 
-async def store_json(kv: Redis, key: str, json, expire: int, path: str = "."):
+def ensure_dict(j: JsonType) -> dict[str, JsonType]:
+    if isinstance(j, dict):
+        return j
+
+    raise StoreError("Expected dict!")
+
+
+async def store_json(
+    kv: RedisClient, key: str, json: JsonType, expire: int, path: str = "."
+) -> None:
     async with kv.pipeline() as pipe:
         pipe.json().set(key, path, json)
         pipe.expire(key, expire)
         await pipe.execute()
 
 
-async def get_json(kv: Redis, key: str, path: str = ".") -> JsonType:
+async def get_json(kv: RedisClient, key: str, path: str = ".") -> JsonType:
     """'.' is the root path. Getting nested objects is as simple as passing '.first.deep' to set the JSON object at the
     key 'deep' within the top-level 'first' JSON object."""
     try:
-        return await kv.json().get(key, path)
+        res: JsonType = await kv.json().get(key, path)
+        return res
     except ResponseError:
         # This means the path does not exist
         return None
 
 
-async def store_json_perm(kv: Redis, key: str, json, path: str = "."):
+async def store_json_perm(
+    kv: RedisClient, key: str, json: dict[str, Any], path: str = "."
+) -> None:
     """'.' is the root path. Getting nested objects is as simple as passing '.first.deep' to set the JSON object at the
     key 'deep' within the top-level 'first' JSON object."""
     await kv.json().set(key, path, json)
 
 
-async def store_json_multi(kv: Redis, jsons_to_store: dict[str, dict]):
+async def store_json_multi(kv: RedisClient, jsons_to_store: dict[str, Any]) -> None:
     async with kv.pipeline() as pipe:
         for k, v in jsons_to_store.items():
             pipe.json().set(k, ".", v)
         await pipe.execute()
 
 
-async def pop_json(kv: Redis, key: str) -> Optional[dict]:
+async def pop_json(kv: RedisClient, key: str) -> Optional[JsonType]:
     async with kv.pipeline() as pipe:
         pipe.json().get(key)
         pipe.json().delete(key)
@@ -64,19 +79,19 @@ async def pop_json(kv: Redis, key: str) -> Optional[dict]:
         return None
 
 
-async def store_kv(kv: Redis, key: str, value, expire: int):
-    return await kv.set(key, value, ex=expire)
+async def store_kv(kv: RedisClient, key: str, value: Any, expire: int) -> None:
+    await kv.set(key, value, ex=expire)
 
 
-async def store_kv_perm(kv: Redis, key: str, value):
-    return await kv.set(key, value)
+async def store_kv_perm(kv: RedisClient, key: str, value: Any) -> None:
+    await kv.set(key, value)
 
 
-async def get_val_kv(kv: Redis, key: str) -> Optional[bytes]:
+async def get_val_kv(kv: RedisClient, key: str) -> Optional[bytes]:
     return await kv.get(key)
 
 
-async def pop_kv(kv: Redis, key: str) -> Optional[bytes]:
+async def pop_kv(kv: RedisClient, key: str) -> Optional[bytes]:
     async with kv.pipeline() as pipe:
         pipe.get(key)
         pipe.delete(key)
@@ -89,7 +104,9 @@ async def pop_kv(kv: Redis, key: str) -> Optional[bytes]:
         return None
 
 
-async def store_string(kv: Redis, key: str, value: str, expire: int = 1000):
+async def store_string(
+    kv: RedisClient, key: str, value: str, expire: int = 1000
+) -> None:
     if expire == -1:
         await store_kv_perm(kv, key, value)
     else:
@@ -105,12 +122,12 @@ def string_return(value: Optional[bytes]) -> Optional[str]:
         raise KvError("Data is not of unicode string type.", "", "bad_str_encode")
 
 
-async def pop_string(kv: Redis, key: str) -> str:
+async def pop_string(kv: RedisClient, key: str) -> Optional[str]:
     value = await pop_kv(kv, key)
     return string_return(value)
 
 
-async def get_string(kv: Redis, key: str) -> Optional[str]:
+async def get_string(kv: RedisClient, key: str) -> Optional[str]:
     value = await get_val_kv(kv, key)
     return string_return(value)
 

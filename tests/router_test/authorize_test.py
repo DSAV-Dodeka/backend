@@ -19,6 +19,7 @@ from auth.data.context import AuthorizeContext
 from datacontext.context import Context
 from router_test.test_util import make_test_user, mock_auth_request
 from store import Store
+from store.error import NoDataError
 from test_resources import res_path
 
 
@@ -56,7 +57,7 @@ def lifespan_fixture(api_config, make_dsrc: Source, make_cd: Code):
     safe_startup(make_dsrc, api_config)
 
     @asynccontextmanager
-    async def mock_lifespan(app: FastAPI) -> State:
+    async def mock_lifespan(app: FastAPI):
         yield {"dsrc": make_dsrc, "cd": make_cd}
 
     yield mock_lifespan
@@ -78,14 +79,12 @@ def test_client(app):
 def mock_oauth_start_context(test_flow_id: str, req_store: dict):
     class MockAuthorizeContext(AuthorizeContext):
         @classmethod
-        async def store_auth_request(
-            cls, ctx: Context, store: Store, auth_request: AuthRequest
-        ):
+        async def store_auth_request(cls, store: Store, auth_request: AuthRequest):
             req_store[test_flow_id] = auth_request
 
             return test_flow_id
 
-    return MockAuthorizeContext
+    return MockAuthorizeContext()
 
 
 def test_oauth_authorize(test_client: TestClient, make_cd: Code):
@@ -109,19 +108,20 @@ def test_oauth_authorize(test_client: TestClient, make_cd: Code):
     assert response.status_code == codes.SEE_OTHER
     assert isinstance(req_store[flow_id], AuthRequest)
     # TODO test validate function in unit test
-    assert response.next_request.url.query == f"flow_id={flow_id}".encode("utf-8")
+    next_req = response.next_request
+    assert next_req is not None
+    assert next_req.url.query == f"flow_id={flow_id}".encode("utf-8")
 
 
 def mock_oauth_callback_context(test_flow_id: str, test_auth_request: AuthRequest):
     class MockAuthorizeContext(AuthorizeContext):
         @classmethod
-        async def get_auth_request(
-            cls, ctx: Context, store: Store, flow_id: str
-        ) -> AuthRequest:
+        async def get_auth_request(cls, store: Store, flow_id: str) -> AuthRequest:
             if flow_id == test_flow_id:
                 return test_auth_request
+            raise NoDataError("Test no exist", "test_empty")
 
-    return MockAuthorizeContext
+    return MockAuthorizeContext()
 
 
 def test_oauth_callback(test_client: TestClient, make_cd: Code):
@@ -140,6 +140,8 @@ def test_oauth_callback(test_client: TestClient, make_cd: Code):
     response = test_client.get("/oauth/callback/", params=req, follow_redirects=False)
 
     assert response.status_code == codes.SEE_OTHER
-    parsed = URL(str(response.next_request.url))
+    next_req = response.next_request
+    assert next_req is not None
+    parsed = URL(str(next_req.url))
     assert parsed.query.get("code") == test_code
     assert parsed.query.get("state") == mock_auth_request.state

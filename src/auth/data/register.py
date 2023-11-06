@@ -12,7 +12,7 @@ ctx_reg = ContextRegistry()
 
 @ctx_reg.register(RegisterContext)
 async def store_auth_register_state(
-    ctx: Context, store: Store, user_id: str, state: SavedRegisterState
+    store: Store, user_id: str, state: SavedRegisterState
 ) -> str:
     auth_id = random_time_hash_hex(user_id)
 

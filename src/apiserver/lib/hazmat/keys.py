@@ -8,8 +8,9 @@ from cryptography.hazmat.primitives.serialization import (
     NoEncryption,
 )
 
-from apiserver.lib.model.entities import OpaqueSetup, PEMKey, JWK
+from apiserver.lib.model.entities import PEMKey, JWK
 from auth.core.util import enc_b64url
+from auth.data.schemad.entities import OpaqueSetup
 from auth.hazmat.structs import PEMPrivateKey
 
 

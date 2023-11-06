@@ -10,7 +10,7 @@ def encrypt_refresh(symmetric_key: SymmetricKey, refresh: RefreshToken) -> str:
     return encrypt_dict(symmetric_key.private, refresh.model_dump())
 
 
-def decrypt_refresh(symmetric_key: SymmetricKey, refresh_token) -> RefreshToken:
+def decrypt_refresh(symmetric_key: SymmetricKey, refresh_token: str) -> RefreshToken:
     refresh_dict = decrypt_dict(symmetric_key.private, refresh_token)
     return RefreshToken.model_validate(refresh_dict)
 
@@ -19,8 +19,8 @@ def decrypt_old_refresh(
     symmetric_key: SymmetricKey,
     old_symmetric_key: SymmetricKey,
     old_refresh_token: str,
-    tried_old=False,
-):
+    tried_old: bool = False,
+) -> RefreshToken:
     # expects base64url-encoded binary
     try:
         # If it has been tampered with, this will also give an error

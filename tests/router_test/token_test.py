@@ -41,6 +41,7 @@ from router_test.test_util import (
     make_extended_test_user,
 )
 from store import Store
+from store.error import NoDataError
 from test_resources import res_path
 
 
@@ -88,7 +89,7 @@ def lifespan_fixture(api_config, make_dsrc: Source, make_cd: Code):
     safe_startup(make_dsrc, api_config)
 
     @asynccontextmanager
-    async def mock_lifespan(app: FastAPI) -> State:
+    async def mock_lifespan(app: FastAPI):
         yield {"dsrc": make_dsrc, "cd": make_cd}
 
     yield mock_lifespan
@@ -153,35 +154,30 @@ def mock_token_code_context(
 ):
     class MockTokenContext(TokenContext):
         @classmethod
-        async def pop_flow_user(
-            cls, ctx: Context, store: Store, authorization_code: str
-        ) -> FlowUser:
+        async def pop_flow_user(cls, store: Store, authorization_code: str) -> FlowUser:
             if authorization_code == test_code:
                 return test_flow_user
+            raise NoDataError("No data", "test_no_date")
 
         @classmethod
-        async def get_auth_request(
-            cls, ctx: Context, store: Store, flow_id: str
-        ) -> AuthRequest:
+        async def get_auth_request(cls, store: Store, flow_id: str) -> AuthRequest:
             if flow_id == test_flow_id:
                 return test_auth_request
+            raise NoDataError("No data", "test_no_date")
 
         @classmethod
-        async def get_keys(
-            cls, ctx: Context, store: Store, key_state: KeyState
-        ) -> AuthKeys:
+        async def get_keys(cls, store: Store, key_state: KeyState) -> AuthKeys:
             return test_keys
 
         @classmethod
         async def get_id_info(
-            cls, ctx: Context, store: Store, ops: SchemaOps, user_id: str
+            cls, store: Store, ops: SchemaOps, user_id: str
         ) -> AuthIdInfo:
             return AuthIdInfo()
 
         @classmethod
         async def add_refresh_token(
             cls,
-            ctx: Context,
             store: Store,
             ops: SchemaOps,
             refresh_save: SavedRefreshToken,
@@ -191,7 +187,7 @@ def mock_token_code_context(
 
             return test_refresh_id
 
-    return MockTokenContext
+    return MockTokenContext()
 
 
 def test_auth_code(
@@ -279,21 +275,18 @@ def mock_token_refresh_context(
 ):
     class MockTokenContext(TokenContext):
         @classmethod
-        async def get_keys(
-            cls, ctx: Context, store: Store, key_state: KeyState
-        ) -> AuthKeys:
+        async def get_keys(cls, store: Store, key_state: KeyState) -> AuthKeys:
             return test_keys
 
         @classmethod
         async def get_saved_refresh(
-            cls, ctx: Context, store: Store, ops: SchemaOps, old_refresh: RefreshToken
+            cls, store: Store, ops: SchemaOps, old_refresh: RefreshToken
         ) -> SavedRefreshToken:
             return mock_db[old_refresh.id]
 
         @classmethod
         async def replace_refresh(
             cls,
-            ctx: Context,
             store: Store,
             ops: SchemaOps,
             old_refresh_id: int,
@@ -303,8 +296,9 @@ def mock_token_refresh_context(
                 new_refresh_save.id = new_refresh_id
                 mock_db[new_refresh_id] = new_refresh_save
                 return new_refresh_id
+            return 0
 
-    return MockTokenContext
+    return MockTokenContext()
 
 
 def test_refresh(test_client, make_cd: Code, gen_ext_user, auth_keys: AuthKeys):

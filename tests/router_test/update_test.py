@@ -62,7 +62,7 @@ def lifespan_fixture(api_config, make_dsrc: Source, make_cd: Code):
     safe_startup(make_dsrc, api_config)
 
     @asynccontextmanager
-    async def mock_lifespan(app: FastAPI) -> State:
+    async def mock_lifespan(app: FastAPI):
         yield {"dsrc": make_dsrc, "cd": make_cd}
 
     yield mock_lifespan
@@ -87,7 +87,7 @@ def mock_update_ctx(
     class MockUpdateContext(UpdateContext):
         @classmethod
         async def store_email_flow_password_change(
-            cls, ctx: Context, dsrc: Source, email: str
+            cls, dsrc: Source, email: str
         ) -> Optional[str]:
             ud = mock_db.get(email)
             if ud is None:
@@ -96,7 +96,7 @@ def mock_update_ctx(
 
             return mock_flow_id
 
-    return MockUpdateContext
+    return MockUpdateContext()
 
 
 def test_update_register_exists(

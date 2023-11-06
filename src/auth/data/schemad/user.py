@@ -1,10 +1,10 @@
 from enum import StrEnum
-from typing import Protocol, Type
+from typing import Generic, Protocol, Type
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from auth.core.model import IdInfo
-from auth.data.schemad.entities import User, UserData
+from auth.data.schemad.entities import IdInfoT, User, UserDataT
 
 
 class UserErrors(StrEnum):
@@ -27,14 +27,14 @@ class UserOps(Protocol):
     ) -> int: ...
 
 
-class UserDataOps(Protocol):
+class UserDataOps(Protocol, Generic[UserDataT, IdInfoT]):
     @classmethod
-    async def get_userdata_by_id(cls, conn: AsyncConnection, user_id: str) -> UserData:
+    async def get_userdata_by_id(cls, conn: AsyncConnection, user_id: str) -> UserDataT:
         """Throws NoDataError if user does not exist."""
         ...
 
     @classmethod
-    def id_info_from_ud(cls, ud: UserData) -> IdInfo: ...
+    def id_info_from_ud(cls, ud: UserDataT) -> IdInfoT: ...
 
     @classmethod
-    def id_info_type(cls) -> Type[IdInfo]: ...
+    def id_info_type(cls) -> Type[IdInfoT]: ...

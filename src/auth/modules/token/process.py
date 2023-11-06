@@ -28,7 +28,7 @@ async def process_token_request(
     context: TokenContext,
     key_state: KeyState,
     token_request: TokenRequest,
-):
+) -> TokenResponse:
     # We only allow requests meant to be sent from our front end
     # This does not heighten security, only so other clients do not accidentally make requests here
     if token_request.client_id != define.frontend_client_id:

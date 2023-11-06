@@ -3,7 +3,8 @@ import logging
 from apiserver.define import LOGGER_NAME
 from apiserver.app.error import ErrorResponse
 from apiserver.lib.model.entities import AccessToken
-from apiserver.app.ops.header import handle_header, BadAuth
+from apiserver.app.ops.errors import BadAuth
+from apiserver.app.ops.header import handle_header
 from apiserver.data import Source
 
 logger = logging.getLogger(LOGGER_NAME)

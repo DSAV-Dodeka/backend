@@ -4,7 +4,7 @@ from apiserver.data import Source, get_kv
 from store.kv import store_string, get_string
 
 
-async def set_startup_lock(dsrc: Source, value="locked"):
+async def set_startup_lock(dsrc: Source, value: str = "locked") -> None:
     await store_string(get_kv(dsrc), "startup_lock", value, 25)
 
 

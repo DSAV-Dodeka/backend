@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from typing import Literal
 
 from pydantic import BaseModel
@@ -36,9 +36,11 @@ from schema.model import (
     TRUE_POINTS,
 )
 from store.db import (
+    LiteralDict,
     get_largest_where,
     insert,
     insert_many,
+    lit_model,
     select_some_join_where,
 )
 from store.error import DataError, NoDataError, DbError, DbErrors
@@ -54,7 +56,7 @@ def parse_user_points(user_points: list[RowMapping]) -> list[UserPointsNames]:
 
 async def insert_classification(
     conn: AsyncConnection, class_type: str, start_date: date | None = None
-):
+) -> None:
     if start_date is None:
         start_date = date.today()
     new_classification = Classification(
@@ -64,7 +66,7 @@ async def insert_classification(
         end_date=start_date + timedelta(days=30 * 5),
         hidden_date=start_date + timedelta(days=30 * 4),
     )
-    return await insert(conn, CLASSIFICATION_TABLE, new_classification.model_dump())
+    await insert(conn, CLASSIFICATION_TABLE, lit_model(new_classification))
 
 
 async def most_recent_class_of_type(
@@ -126,7 +128,7 @@ async def add_class_event(
     event_id: str,
     classification_id: int,
     category: str,
-    event_date: datetime.date,
+    event_date: date,
     description: str = "",
 ) -> str:
     """It's important they use a descriptive, unique id for the event like 'nsk_weg_2023'. We only accept simple ascii
@@ -140,7 +142,7 @@ async def add_class_event(
         )
     usph_id = usp_hex(event_id)
 
-    event_row = {
+    event_row: LiteralDict = {
         C_EVENTS_ID: usph_id,
         CLASS_ID: classification_id,
         C_EVENTS_CATEGORY: category,
@@ -154,8 +156,8 @@ async def add_class_event(
 
 async def upsert_user_event_points(
     conn: AsyncConnection, event_id: str, user_id: str, points: int
-):
-    row_to_insert = {
+) -> None:
+    row_to_insert: LiteralDict = {
         USER_ID: user_id,
         C_EVENTS_ID: event_id,
         C_EVENTS_POINTS: points,
@@ -172,7 +174,7 @@ class UserPoints(BaseModel):
 async def add_users_to_event(
     conn: AsyncConnection, event_id: str, points: list[UserPoints]
 ) -> int:
-    points_with_events = [
+    points_with_events: list[LiteralDict] = [
         {"event_id": event_id, "user_id": up.user_id, "points": up.points}
         for up in points
     ]
@@ -186,6 +188,7 @@ async def add_users_to_event(
                 " duplicate value!",
                 "database_integrity",
             )
+        raise e
 
 
 # async def check_user_in_class(

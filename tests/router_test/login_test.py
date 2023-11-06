@@ -62,7 +62,7 @@ def lifespan_fixture(api_config, make_dsrc: Source, make_cd: Code):
     safe_startup(make_dsrc, api_config)
 
     @asynccontextmanager
-    async def mock_lifespan(app: FastAPI) -> State:
+    async def mock_lifespan(app: FastAPI):
         yield {"dsrc": make_dsrc, "cd": make_cd}
 
     yield mock_lifespan
@@ -105,19 +105,20 @@ def mock_login_start_context(
 ):
     class MockLoginContext(LoginContext):
         @classmethod
-        async def get_apake_setup(cls, ctx: Context, store: Store) -> str:
+        async def get_apake_setup(cls, store: Store) -> str:
             return server_setup
 
         @classmethod
         async def get_user_auth_data(
-            cls, ctx: Context, store: Store, user_ops: UserOps, login_mail: str
+            cls, store: Store, user_ops: UserOps, login_mail: str
         ) -> tuple[str, str, str, str]:
             if test_user.user_email == login_mail:
                 return test_user.user_id, test_scope, pw_file, test_auth_id
+            return "1_fakerecord", "", "", "abc"
 
         @classmethod
         async def store_auth_state(
-            cls, ctx: Context, store: Store, auth_id: str, state: SavedState
+            cls, store: Store, auth_id: str, state: SavedState
         ) -> None:
             state_store[auth_id] = state
 
@@ -155,9 +156,7 @@ def mock_login_finish_context(
 ):
     class MockLoginContext(LoginContext):
         @classmethod
-        async def get_state(
-            cls, ctx: Context, store: Store, auth_id: str
-        ) -> SavedState:
+        async def get_state(cls, store: Store, auth_id: str) -> SavedState:
             return SavedState(
                 user_id=test_user.user_id,
                 state=test_state,
@@ -167,7 +166,7 @@ def mock_login_finish_context(
 
         @classmethod
         async def store_flow_user(
-            cls, ctx: Context, store: Store, session_key: str, flow_user: FlowUser
+            cls, store: Store, session_key: str, flow_user: FlowUser
         ) -> None:
             flow_store[session_key] = flow_user
 

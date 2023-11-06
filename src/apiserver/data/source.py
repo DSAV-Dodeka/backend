@@ -1,16 +1,13 @@
 __all__ = ["Source", "get_kv", "get_conn"]
 
-from contextlib import _AsyncGeneratorContextManager, asynccontextmanager
-from typing import AsyncIterator, Self
+from contextlib import asynccontextmanager
+from typing import AsyncIterator
 
-from redis import Redis
-from sqlalchemy.ext.asyncio import AsyncConnection
-
+from redis.asyncio import Redis
 from apiserver.env import Config
 from auth.core.model import KeyState as AuthKeyState
 from store.conn import (
     AsyncConenctionContext,
-    RedisClient,
     get_kv as st_get_kv,
     get_conn as st_get_conn,
     store_session,
@@ -34,7 +31,7 @@ class Source:
         self.key_state = KeyState()
 
 
-def get_kv(dsrc: Source) -> RedisClient:
+def get_kv(dsrc: Source) -> Redis:
     return st_get_kv(dsrc.store)
 
 
@@ -48,6 +45,7 @@ async def source_session(dsrc: Source) -> AsyncIterator[Source]:
     Ensure that all consumers commit their own transactions."""
     # It opens a connection
     manager = store_session(dsrc.store)
+    # We have to call the enter and exit manually, because we cannot mix the with with the try/finally
     get_store = manager.__aenter__
     store = await get_store()
     try:
@@ -56,4 +54,5 @@ async def source_session(dsrc: Source) -> AsyncIterator[Source]:
         yield dsrc
     finally:
         close = manager.__aexit__
+        # Our try code cannot fail
         await close(None, None, None)

@@ -3,7 +3,7 @@ from auth.core.model import KeyState, AuthKeys
 from auth.data.context import TokenContext
 from auth.hazmat.key_decode import aes_from_symmetric
 from auth.hazmat.structs import PEMPrivateKey, A256GCMKey
-from datacontext.context import ContextRegistry, Context
+from datacontext.context import ContextRegistry
 from store import Store
 from store.conn import get_kv
 from store.error import NoDataError

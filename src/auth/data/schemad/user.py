@@ -3,7 +3,6 @@ from typing import Generic, Protocol, Type
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from auth.core.model import IdInfo
 from auth.data.schemad.entities import IdInfoT, User, UserDataT
 
 

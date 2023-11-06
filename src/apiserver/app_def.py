@@ -3,7 +3,6 @@ from logging import Logger
 from typing import Any, AsyncContextManager, Callable, Coroutine, Type, TypeAlias
 
 from fastapi import FastAPI, Request, Response
-from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware import Middleware
 from fastapi.middleware.cors import CORSMiddleware

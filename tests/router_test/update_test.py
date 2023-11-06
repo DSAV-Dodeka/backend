@@ -10,12 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 from starlette.testclient import TestClient
 
 from apiserver.app_def import create_app
-from apiserver.app_lifespan import State, safe_startup, register_and_define_code
+from apiserver.app_lifespan import safe_startup, register_and_define_code
 from apiserver.data import Source
 from apiserver.data.context import Code, UpdateContext
 from apiserver.env import load_config
 from apiserver.lib.model.entities import UserData, User
-from datacontext.context import Context
 from router_test.test_util import (
     make_test_user,
     make_base_ud,

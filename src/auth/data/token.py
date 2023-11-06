@@ -3,7 +3,7 @@ from auth.core.model import IdInfo, RefreshToken
 from auth.data.context import TokenContext
 from auth.data.schemad.entities import SavedRefreshToken
 from auth.data.schemad.ops import SchemaOps
-from datacontext.context import ContextRegistry, Context
+from datacontext.context import ContextRegistry
 from store import Store
 from store.conn import get_conn
 from store.error import NoDataError

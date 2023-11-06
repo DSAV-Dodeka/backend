@@ -211,10 +211,10 @@ async def load_keys(dsrc: Source, config: Config) -> None:
             # The public keys we will store in raw format, we want to exclude the private key as we want to be able to
             # publish these keys
             # The 'x' are the public key bytes (as set by the JWK standard)
-            public_key = JWKPublicEdDSA.model_validate(key)
+            public_key = JWKPublicEdDSA.model_validate(key.model_dump())
             public_keys.append(public_key)
         elif key.alg == "A256GCM":
-            symmetric_key = A256GCMKey.model_validate(key)
+            symmetric_key = A256GCMKey.model_validate(key.model_dump())
             symmetric_keys.append(symmetric_key)
 
     # In the future we can publish these keys

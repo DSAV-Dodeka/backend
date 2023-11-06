@@ -1,4 +1,4 @@
-from typing import Literal, LiteralString, TypeGuard
+from typing import Literal, TypeGuard
 from fastapi import APIRouter
 from starlette.requests import Request
 

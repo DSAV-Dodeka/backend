@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 from starlette.testclient import TestClient
 
 from apiserver.app_def import create_app
-from apiserver.app_lifespan import State, safe_startup, register_and_define_code
+from apiserver.app_lifespan import safe_startup, register_and_define_code
 from apiserver.data import Source
 from apiserver.data.context import Code
 from apiserver.define import DEFINE
@@ -31,7 +31,6 @@ from auth.data.schemad.ops import SchemaOps
 from auth.define import refresh_exp, id_exp, access_exp
 from auth.hazmat.key_decode import aes_from_symmetric
 from auth.hazmat.structs import PEMPrivateKey
-from datacontext.context import Context
 from router_test.test_util import (
     make_test_user,
     mock_auth_request,
@@ -218,7 +217,7 @@ def test_auth_code(
     }
 
     response = test_client.post("/oauth/token/", json=req)
-
+    print(response.json())
     assert response.status_code == codes.OK
     saved_refresh = mock_db[test_refresh_id]
     assert isinstance(saved_refresh, SavedRefreshToken)

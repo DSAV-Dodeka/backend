@@ -1,10 +1,9 @@
-from apiserver.data.context.app_context import UpdateContext
 from auth.core.model import SavedState, FlowUser
 from auth.core.util import random_time_hash_hex
 from auth.data.context import RegisterContext, LoginContext, TokenContext
 from auth.data.schemad.opaque import get_setup
 from auth.data.schemad.user import UserOps
-from datacontext.context import ContextRegistry, Context
+from datacontext.context import ContextRegistry
 from store import Store
 from store.conn import get_conn, get_kv
 from store.error import NoDataError

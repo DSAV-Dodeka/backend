@@ -4,7 +4,6 @@ from typing import Any, Optional, Type
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from apiserver.lib.model.entities import UserData, SignedUp, IdInfo, UserNames
-from auth.core.model import IdInfo as AuthIdInfo
 from auth.data.schemad.user import UserDataOps as AuthUserDataOps, UserErrors
 from schema.model import (
     USERDATA_TABLE,

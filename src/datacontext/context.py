@@ -10,8 +10,6 @@ from typing import (
     Type,
     TypeVar,
     ParamSpec,
-    Concatenate,
-    TypeAlias,
 )
 
 """
@@ -32,6 +30,13 @@ class ContextError(Exception):
     pass
 
 
+class ContextNotImpl(ContextError):
+    def __init__(self) -> None:
+        super().__init__(
+            "No implementation was registered for this context stub method!"
+        )
+
+
 class Context:
     dont_replace: bool = False
 
@@ -41,27 +46,27 @@ class DontReplaceContext(Context):
 
 
 def make_data_context(
-    context_inst: Context, context_protocol: Type[Context], func: Callable[..., Any]
+    context_inst: Context, context_type: Type[Context], func: Callable[..., Any]
 ) -> None:
     """This function is called for each registration (which happens through decorators) and it sets the dependency
     container function (which only has a stub implementation) to the actual implementation. It performs a few checks
     to ensure the stub matches the target function to avoid mistakes."""
     # We check if the target protocol has a name of that function
-    if not hasattr(context_protocol, func.__name__):
+    if not hasattr(context_type, func.__name__):
         raise ContextError(
-            f"Have you forgotten to write a protocol for function {func!s}?"
+            f"Have you forgotten to write a context stub for function {func!s}?"
         )
-    # We get the protocol's function definition
-    old_func = getattr(context_protocol, func.__name__)
+    # We get the context's function definition
+    type_func = getattr(context_type, func.__name__)
 
     # We compare the type annotations
-    old_anno = inspect.get_annotations(old_func)
-    new_anno = inspect.get_annotations(func)
+    type_anno = inspect.get_annotations(type_func)
+    impl_anno = inspect.get_annotations(func)
 
-    if old_anno != new_anno:
+    if type_anno != impl_anno:
         raise ContextError(
-            f"Protocol annotation for func {func.__name__}:\n {old_anno!s}\n does not"
-            f" equal function annotation:\n {new_anno!s}!"
+            f"Context stub annotation for func {func.__name__}:\n {type_anno!s}\n does"
+            f" not equal function implmentation annotation:\n {impl_anno!s}!"
         )
 
     # We add the function to the context instance
@@ -98,8 +103,8 @@ def replace_context(func: Callable[P, T]) -> ContextCallable[P, T]:
         if ctx.dont_replace:
             return func(*args, **kwargs)
 
-        replace_func: ContextCallable[P, T] = getattr(ctx, func.__name__)
-        return replace_func(ctx, *args, **kwargs)
+        replace_func: Callable[P, T] = getattr(ctx, func.__name__)
+        return replace_func(*args, **kwargs)
 
     return replace
 

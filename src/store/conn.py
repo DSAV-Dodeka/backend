@@ -7,9 +7,6 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncConnection
 from store import Store, StoreError
 
 AsyncConenctionContext: TypeAlias = AsyncContextManager[AsyncConnection]
-StoreContext: TypeAlias = AsyncContextManager[Store]
-
-RedisClient: TypeAlias = Redis[bytes]
 
 
 def _eng_is_init(store: Store) -> AsyncEngine:
@@ -23,14 +20,14 @@ def _begin_conn(engine: AsyncEngine) -> AsyncConenctionContext:
     return engine.begin()
 
 
-def _kv_is_init(store: Store) -> RedisClient:
+def _kv_is_init(store: Store) -> Redis:
     if store.kv is None:
         raise StoreError("Database not initialized!", "no_db_init")
     else:
         return store.kv
 
 
-def get_kv(store: Store) -> RedisClient:
+def get_kv(store: Store) -> Redis:
     return _kv_is_init(store)
 
 

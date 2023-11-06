@@ -1,4 +1,4 @@
-from typing import Optional, Any, LiteralString, TypeAlias, TypeGuard
+from typing import Optional, Any, LiteralString, TypeAlias
 from pydantic import BaseModel
 
 from sqlalchemy import CursorResult, TextClause, text, RowMapping
@@ -9,13 +9,24 @@ from store.error import DbError, DbErrors
 
 LiteralDict: TypeAlias = dict[LiteralString, Any]
 
+# The below type errors do not occur in mypy, but due occur in the pylance type checker
+# So we only ignore them for pyright (on which pylance is built)
+
 
 def lit_model(m: BaseModel) -> LiteralDict:
-    return m.model_dump()  # type: ignore
+    return m.model_dump()  # pyright: ignore
 
 
 def lit_dict(m: dict[str, Any]) -> LiteralDict:
-    return m  # type: ignore
+    return m  # pyright: ignore
+
+
+def params(d: LiteralDict) -> dict[str, Any]:
+    return d  # pyright: ignore
+
+
+def params_list(d_list: list[LiteralDict]) -> list[dict[str, Any]]:
+    return d_list  # pyright: ignore
 
 
 def _row_keys_vars_set(
@@ -34,17 +45,21 @@ def _row_keys_vars_set(
     return row_keys_str, row_keys_vars_str, row_keys_set_str
 
 
-def select_set(columns: set[str]) -> str:
+def select_set(columns: set[LiteralString]) -> str:
     return ", ".join(columns)
 
 
 async def execute_catch_conn(
     conn: AsyncConnection,
     query: TextClause,
-    params: dict[str, Any] | list[dict[str, Any]],
+    parameters: LiteralDict | list[LiteralDict],
 ) -> CursorResult[Any]:
     try:
-        result = await conn.execute(query, parameters=params)
+        if isinstance(parameters, list):
+            result = await conn.execute(query, parameters=params_list(parameters))
+        else:
+            result = await conn.execute(query, parameters=params(parameters))
+
     except IntegrityError as e:
         raise DbError(
             "Database relational integrity violation", str(e), DbErrors.INTEGRITY
@@ -206,7 +221,7 @@ async def upsert_by_unique(
         f" ({unique_column}) DO UPDATE SET {row_keys_set};"
     )
 
-    res = await execute_catch_conn(conn, query, params=row)
+    res = await execute_catch_conn(conn, query, parameters=row)
     return row_cnt(res)
 
 
@@ -224,7 +239,9 @@ async def update_column_by_unique(
         f"UPDATE {table} SET {set_column} = :set WHERE {unique_column} = :val;"
     )
 
-    res = await execute_catch_conn(conn, query, params={"set": set_value, "val": value})
+    res = await execute_catch_conn(
+        conn, query, parameters={"set": set_value, "val": value}
+    )
     return row_cnt(res)
 
 
@@ -246,7 +263,7 @@ async def concat_column_by_unique_returning(
     )
 
     res = await execute_catch_conn(
-        conn, query, params={"add": concat_value, "val": value}
+        conn, query, parameters={"add": concat_value, "val": value}
     )
     return res.scalar()
 
@@ -258,7 +275,7 @@ async def insert(conn: AsyncConnection, table: LiteralString, row: LiteralDict) 
     row_keys, row_keys_vars, _ = _row_keys_vars_set(row)
     query = text(f"INSERT INTO {table} ({row_keys}) VALUES ({row_keys_vars});")
 
-    res: CursorResult[Any] = await execute_catch_conn(conn, query, params=row)
+    res: CursorResult[Any] = await execute_catch_conn(conn, query, parameters=row)
     return row_cnt(res)
 
 
@@ -274,7 +291,7 @@ async def insert_return_col(
         f" ({return_col});"
     )
 
-    return await conn.scalar(query, parameters=row)
+    return await conn.scalar(query, parameters=params(row))
 
 
 async def delete_by_id(conn: AsyncConnection, table: LiteralString, id_int: int) -> int:
@@ -303,5 +320,5 @@ async def insert_many(
     row_keys, row_keys_vars, _ = _row_keys_vars_set(row_list[0])
     query = text(f"INSERT INTO {table} ({row_keys}) VALUES ({row_keys_vars});")
 
-    res: CursorResult[Any] = await execute_catch_conn(conn, query, params=row_list)
+    res: CursorResult[Any] = await execute_catch_conn(conn, query, parameters=row_list)
     return row_cnt(res)

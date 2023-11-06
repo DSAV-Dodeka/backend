@@ -10,7 +10,7 @@ from auth.core.util import enc_b64url
 def authorization_validate(req: TokenRequest) -> CodeGrantRequest:
     # This grant type requires other body parameters than the refresh token grant type
     try:
-        return CodeGrantRequest.model_validate(req)
+        return CodeGrantRequest.model_validate(req.model_dump())
     except ValidationError as e:
         raise AuthError(
             "invalid_request",

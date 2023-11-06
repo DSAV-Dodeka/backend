@@ -1,12 +1,10 @@
-from typing import Optional, TypeAlias
+from typing import AsyncContextManager, Optional, TypeAlias
 
 from redis import ConnectionError as RedisConnectionError
 from pydantic import BaseModel
 from redis.asyncio import Redis
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine, AsyncConnection
-
-from store.conn import RedisClient
 
 
 class StoreError(ConnectionError):
@@ -28,7 +26,7 @@ class StoreConfig(BaseModel):
 
 class Store:
     db: Optional[AsyncEngine] = None
-    kv: Optional[RedisClient] = None
+    kv: Optional[Redis] = None
     # Session is for reusing a single connection across multiple functions
     session: Optional[AsyncConnection] = None
 
@@ -74,6 +72,9 @@ class Store:
 
     async def shutdown(self) -> None:
         await self.disconnect()
+
+
+StoreContext: TypeAlias = AsyncContextManager[Store]
 
 
 class FakeStore(Store):

@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar
+from typing import TypeVar
 from pydantic import BaseModel
 
 from auth.core.model import IdInfo

@@ -143,5 +143,5 @@ async def update_class_points(
         {DISPLAY_POINTS} = excluded.{DISPLAY_POINTS};
     """)
 
-    res = await execute_catch_conn(conn, query, params={"id": class_id})
+    res = await execute_catch_conn(conn, query, parameters={"id": class_id})
     return row_cnt(res)

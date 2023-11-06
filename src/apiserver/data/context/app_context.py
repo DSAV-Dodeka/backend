@@ -1,5 +1,4 @@
-from abc import abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional, Type
 
 from apiserver.data import Source
@@ -10,44 +9,44 @@ from datacontext.context import (
     Context,
     AbstractContexts,
     ContextError,
+    ContextNotImpl,
 )
 
 
 class RegisterAppContext(Context):
     @classmethod
-    @abstractmethod
     async def get_registration(
         cls, dsrc: Source, register_id: str
-    ) -> tuple[UserData, User]: ...
+    ) -> tuple[UserData, User]:
+        raise ContextNotImpl()
 
     @classmethod
-    @abstractmethod
-    async def get_register_state(
-        cls, dsrc: Source, auth_id: str
-    ) -> SavedRegisterState: ...
+    async def get_register_state(cls, dsrc: Source, auth_id: str) -> SavedRegisterState:
+        raise ContextNotImpl()
 
     @classmethod
-    @abstractmethod
     async def check_userdata_register(
         cls,
         dsrc: Source,
         register_id: str,
         request_email: str,
         saved_user_id: str,
-    ) -> UserData: ...
+    ) -> UserData:
+        raise ContextNotImpl()
 
     @classmethod
     async def save_registration(
         cls, dsrc: Source, pw_file: str, new_userdata: UserData
-    ) -> None: ...
+    ) -> None:
+        raise ContextNotImpl()
 
 
 class UpdateContext(Context):
     @classmethod
-    @abstractmethod
     async def store_email_flow_password_change(
         cls, dsrc: Source, email: str
-    ) -> Optional[str]: ...
+    ) -> Optional[str]:
+        raise ContextNotImpl()
 
 
 class SourceContexts(AbstractContexts):

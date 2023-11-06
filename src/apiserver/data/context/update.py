@@ -4,7 +4,7 @@ from apiserver import data
 from apiserver.data import Source
 from apiserver.data.context import UpdateContext
 from auth.core.util import random_time_hash_hex
-from datacontext.context import ContextRegistry, Context
+from datacontext.context import ContextRegistry
 from store.error import NoDataError
 
 ctx_reg = ContextRegistry()

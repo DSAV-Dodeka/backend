@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from typing import Type
 
 from auth.core.model import (
@@ -18,108 +17,109 @@ from datacontext.context import (
     Context,
     AbstractContexts,
     ContextError,
+    ContextNotImpl,
 )
 from store import Store
 
 
 class LoginContext(Context):
     @classmethod
-    @abstractmethod
-    async def get_apake_setup(cls, store: Store) -> str: ...
+    async def get_apake_setup(cls, store: Store) -> str:
+        raise ContextNotImpl()
 
     @classmethod
-    @abstractmethod
     async def get_user_auth_data(
         cls, store: Store, user_ops: UserOps, login_mail: str
-    ) -> tuple[str, str, str, str]: ...
+    ) -> tuple[str, str, str, str]:
+        raise ContextNotImpl()
 
     @classmethod
-    @abstractmethod
     async def store_auth_state(
         cls, store: Store, auth_id: str, state: SavedState
-    ) -> None: ...
+    ) -> None:
+        raise ContextNotImpl()
 
     @classmethod
-    @abstractmethod
-    async def get_state(cls, store: Store, auth_id: str) -> SavedState: ...
+    async def get_state(cls, store: Store, auth_id: str) -> SavedState:
+        raise ContextNotImpl()
 
     @classmethod
-    @abstractmethod
     async def store_flow_user(
         cls, store: Store, session_key: str, flow_user: FlowUser
-    ) -> None: ...
+    ) -> None:
+        raise ContextNotImpl()
+
+    @classmethod
+    async def pop_flow_user(cls, store: Store, authorization_code: str) -> FlowUser:
+        raise ContextNotImpl()
 
 
 class AuthorizeContext(Context):
     @classmethod
-    @abstractmethod
-    async def store_auth_request(
-        cls, store: Store, auth_request: AuthRequest
-    ) -> None: ...
+    async def store_auth_request(cls, store: Store, auth_request: AuthRequest) -> str:
+        raise ContextNotImpl()
 
     @classmethod
-    @abstractmethod
-    async def get_auth_request(cls, store: Store, flow_id: str) -> AuthRequest: ...
+    async def get_auth_request(cls, store: Store, flow_id: str) -> AuthRequest:
+        raise ContextNotImpl()
 
 
 class TokenContext(Context):
     @classmethod
-    @abstractmethod
-    async def pop_flow_user(cls, store: Store, authorization_code: str) -> FlowUser: ...
+    async def pop_flow_user(cls, store: Store, authorization_code: str) -> FlowUser:
+        raise ContextNotImpl()
 
     @classmethod
-    @abstractmethod
-    async def get_auth_request(cls, store: Store, flow_id: str) -> AuthRequest: ...
+    async def get_auth_request(cls, store: Store, flow_id: str) -> AuthRequest:
+        raise ContextNotImpl()
 
     @classmethod
-    @abstractmethod
-    async def get_keys(cls, store: Store, key_state: KeyState) -> AuthKeys: ...
+    async def get_keys(cls, store: Store, key_state: KeyState) -> AuthKeys:
+        raise ContextNotImpl()
 
     @classmethod
-    @abstractmethod
-    async def get_id_info(
-        cls, store: Store, ops: SchemaOps, user_id: str
-    ) -> IdInfo: ...
+    async def get_id_info(cls, store: Store, ops: SchemaOps, user_id: str) -> IdInfo:
+        raise ContextNotImpl()
 
     @classmethod
-    @abstractmethod
     async def add_refresh_token(
         cls, store: Store, ops: SchemaOps, refresh_save: SavedRefreshToken
-    ) -> int: ...
+    ) -> int:
+        raise ContextNotImpl()
 
     @classmethod
-    @abstractmethod
     async def get_saved_refresh(
         cls, store: Store, ops: SchemaOps, old_refresh: RefreshToken
-    ) -> SavedRefreshToken: ...
+    ) -> SavedRefreshToken:
+        raise ContextNotImpl()
 
     @classmethod
-    @abstractmethod
     async def replace_refresh(
         cls,
         store: Store,
         ops: SchemaOps,
         old_refresh_id: int,
         new_refresh_save: SavedRefreshToken,
-    ) -> int: ...
+    ) -> int:
+        raise ContextNotImpl()
 
     @classmethod
-    @abstractmethod
     async def delete_refresh_token(
         cls, store: Store, ops: SchemaOps, family_id: str
-    ) -> int: ...
+    ) -> int:
+        raise ContextNotImpl()
 
 
 class RegisterContext(Context):
     @classmethod
-    @abstractmethod
-    async def get_apake_setup(cls, store: Store) -> str: ...
+    async def get_apake_setup(cls, store: Store) -> str:
+        raise ContextNotImpl()
 
     @classmethod
-    @abstractmethod
     async def store_auth_register_state(
         cls, store: Store, user_id: str, state: SavedRegisterState
-    ) -> str: ...
+    ) -> str:
+        raise ContextNotImpl()
 
 
 class Contexts(AbstractContexts):

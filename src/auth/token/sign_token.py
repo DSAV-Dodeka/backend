@@ -1,6 +1,7 @@
 from typing import Any
 
-from auth.core.model import AccessTokenBase, IdInfo, IdTokenBase
+from auth.core.model import AccessTokenBase, IdTokenBase
+from auth.data.relational.user import IdUserData
 from auth.hazmat.sign_dict import sign_dict
 from auth.hazmat.structs import PEMPrivateKey
 from auth.token.build_util import finish_payload, add_info_to_id
@@ -28,9 +29,9 @@ def sign_access_token(
 def sign_id_token(
     private_key: PEMPrivateKey,
     id_token_data: IdTokenBase,
-    id_info: IdInfo,
+    id_userdata: IdUserData,
     utc_now: int,
     exp: int,
 ) -> str:
-    unfinished_token = add_info_to_id(id_token_data, id_info)
+    unfinished_token = add_info_to_id(id_token_data, id_userdata)
     return _finish_sign(private_key, unfinished_token, utc_now, exp)

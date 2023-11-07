@@ -1,8 +1,9 @@
 from auth.core.error import RefreshOperationError, AuthError
-from auth.core.model import IdInfo, RefreshToken
+from auth.core.model import RefreshToken
 from auth.data.context import TokenContext
-from auth.data.schemad.entities import SavedRefreshToken
-from auth.data.schemad.ops import SchemaOps
+from auth.data.relational.entities import SavedRefreshToken
+from auth.data.relational.ops import RelationOps
+from auth.data.relational.user import IdUserData
 from datacontext.context import ContextRegistry
 from store import Store
 from store.conn import get_conn
@@ -12,19 +13,17 @@ ctx_reg = ContextRegistry()
 
 
 @ctx_reg.register(TokenContext)
-async def get_id_info(store: Store, ops: SchemaOps, user_id: str) -> IdInfo:
+async def get_id_userdata(store: Store, ops: RelationOps, user_id: str) -> IdUserData:
     async with get_conn(store) as conn:
         try:
-            ud = await ops.userdata.get_userdata_by_id(conn, user_id)
+            return await ops.id_userdata.get_id_userdata_by_id(conn, user_id)
         except NoDataError:
             raise AuthError("invalid_grant", "User for grant no longer exists.")
-
-    return ops.userdata.id_info_from_ud(ud)
 
 
 @ctx_reg.register(TokenContext)
 async def add_refresh_token(
-    store: Store, ops: SchemaOps, refresh_save: SavedRefreshToken
+    store: Store, ops: RelationOps, refresh_save: SavedRefreshToken
 ) -> int:
     async with get_conn(store) as conn:
         refresh_id = await ops.refresh.insert_refresh_row(conn, refresh_save)
@@ -33,13 +32,13 @@ async def add_refresh_token(
 
 
 @ctx_reg.register(TokenContext)
-async def delete_refresh_token(store: Store, ops: SchemaOps, family_id: str) -> int:
+async def delete_refresh_token(store: Store, ops: RelationOps, family_id: str) -> int:
     async with get_conn(store) as conn:
         return await ops.refresh.delete_family(conn, family_id)
 
 
 async def delete_refresh_token_by_user(
-    store: Store, ops: SchemaOps, user_id: str
+    store: Store, ops: RelationOps, user_id: str
 ) -> None:
     async with get_conn(store) as conn:
         await ops.refresh.delete_by_user_id(conn, user_id)
@@ -47,7 +46,7 @@ async def delete_refresh_token_by_user(
 
 @ctx_reg.register(TokenContext)
 async def get_saved_refresh(
-    store: Store, ops: SchemaOps, old_refresh: RefreshToken
+    store: Store, ops: RelationOps, old_refresh: RefreshToken
 ) -> SavedRefreshToken:
     async with get_conn(store) as conn:
         try:
@@ -70,7 +69,7 @@ async def get_saved_refresh(
 @ctx_reg.register(TokenContext)
 async def replace_refresh(
     store: Store,
-    ops: SchemaOps,
+    ops: RelationOps,
     old_refresh_id: int,
     new_refresh_save: SavedRefreshToken,
 ) -> int:

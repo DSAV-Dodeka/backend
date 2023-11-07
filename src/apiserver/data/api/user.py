@@ -21,7 +21,7 @@ from schema.model import (
     USER_EMAIL,
     UD_ACTIVE,
 )
-from auth.data.schemad.user import (
+from auth.data.relational.user import (
     UserOps as AuthUserOps,
     UserErrors,
 )

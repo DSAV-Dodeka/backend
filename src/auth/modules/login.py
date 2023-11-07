@@ -13,7 +13,7 @@ from auth.data.authentication import (
 )
 from auth.data.context import LoginContext
 from store.error import NoDataError
-from auth.data.schemad.user import UserOps
+from auth.data.relational.user import UserOps
 from store import Store
 from store.conn import store_session
 

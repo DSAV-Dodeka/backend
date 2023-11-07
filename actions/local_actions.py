@@ -21,7 +21,7 @@ from apiserver.lib.model.entities import SignedUp, UserNames
 from auth.core.model import IdInfo
 from auth.data.authentication import get_apake_setup
 from auth.data.keys import get_keys
-from auth.data.schemad.opaque import get_setup
+from auth.data.relational.opaque import get_setup
 from auth.define import refresh_exp, access_exp, id_exp
 from auth.token.build import create_tokens, finish_tokens
 from datacontext.context import DontReplaceContext

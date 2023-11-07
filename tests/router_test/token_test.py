@@ -12,6 +12,7 @@ from starlette.testclient import TestClient
 from apiserver.app_def import create_app
 from apiserver.app_lifespan import safe_startup, register_and_define_code
 from apiserver.data import Source
+from apiserver.data.api.ud.userdata import IdUserData
 from apiserver.data.context import Code
 from apiserver.define import DEFINE
 from apiserver.env import load_config
@@ -21,13 +22,12 @@ from auth.core.model import (
     AuthRequest,
     KeyState,
     AuthKeys,
-    IdInfo as AuthIdInfo,
     RefreshToken,
 )
 from auth.core.util import utc_timestamp
 from auth.data.context import TokenContext
-from auth.data.schemad.entities import SavedRefreshToken
-from auth.data.schemad.ops import SchemaOps
+from auth.data.relational.entities import SavedRefreshToken
+from auth.data.relational.ops import RelationOps
 from auth.define import refresh_exp, id_exp, access_exp
 from auth.hazmat.key_decode import aes_from_symmetric
 from auth.hazmat.structs import PEMPrivateKey
@@ -169,16 +169,15 @@ def mock_token_code_context(
             return test_keys
 
         @classmethod
-        async def get_id_info(
-            cls, store: Store, ops: SchemaOps, user_id: str
-        ) -> AuthIdInfo:
-            return AuthIdInfo()
+        async def get_id_userdata(
+            cls, store: Store, ops: RelationOps, user_id: str
+        ) -> IdUserData: ...
 
         @classmethod
         async def add_refresh_token(
             cls,
             store: Store,
-            ops: SchemaOps,
+            ops: RelationOps,
             refresh_save: SavedRefreshToken,
         ) -> int:
             refresh_save.id = test_refresh_id

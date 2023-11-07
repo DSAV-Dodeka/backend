@@ -1,8 +1,6 @@
 from typing import TypeVar
 from pydantic import BaseModel
 
-from auth.core.model import IdInfo
-
 
 class OpaqueSetup(BaseModel):
     id: int
@@ -15,13 +13,6 @@ class User(BaseModel):
     password_file: str
     scope: str
 
-
-class UserData(BaseModel):
-    pass
-
-
-UserDataT = TypeVar("UserDataT", bound=UserData)
-IdInfoT = TypeVar("IdInfoT", bound=IdInfo, covariant=True)
 
 # class InfoContainer(BaseModel, Generic[UserDataT, IdInfoT]):
 #     ud: UserDataT

@@ -4,6 +4,7 @@ from urllib.parse import urlencode
 import opaquepy as opq
 from fastapi import APIRouter, Request, BackgroundTasks
 from pydantic import BaseModel
+from apiserver.data.api.ud.userdata import get_userdata_by_id
 from auth.core.response import PasswordResponse
 
 import auth.core.util
@@ -279,7 +280,7 @@ async def delete_account(
 
     try:
         async with data.get_conn(dsrc) as conn:
-            ud = await ops.userdata.get_userdata_by_id(conn, user_id)
+            ud = await get_userdata_by_id(conn, user_id)
     except NoDataError:
         raise ErrorResponse(
             400, "bad_update", "User no longer exists.", "update_user_empty"

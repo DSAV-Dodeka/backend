@@ -2,18 +2,18 @@ from dataclasses import dataclass
 from typing import Type
 from apiserver.data.api.refreshtoken import RefreshOps
 from apiserver.data.api.user import UserOps
-from apiserver.data.api.ud.userdata import UserDataOps
-from auth.data.schemad.ops import SchemaOps as AuthSchemaOps
+from apiserver.data.api.ud.userdata import IdUserDataOps
+from auth.data.relational.ops import RelationOps as AuthRelationOps
 
 
 __all__ = ["OPS", "UserOps"]
 
 
 @dataclass
-class SchemaOps(AuthSchemaOps):
+class SchemaOps(AuthRelationOps):
     user: Type[UserOps]
-    userdata: Type[UserDataOps]
+    id_userdata: Type[IdUserDataOps]
     refresh: Type[RefreshOps]
 
 
-OPS = SchemaOps(user=UserOps, userdata=UserDataOps, refresh=RefreshOps)
+OPS = SchemaOps(user=UserOps, id_userdata=IdUserDataOps, refresh=RefreshOps)

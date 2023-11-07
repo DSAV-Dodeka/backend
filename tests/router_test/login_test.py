@@ -16,7 +16,7 @@ from apiserver.data.context import Code
 from apiserver.env import load_config
 from auth.core.model import SavedState, FlowUser
 from auth.data.context import LoginContext
-from auth.data.schemad.user import UserOps
+from auth.data.relational.user import UserOps
 from router_test.test_util import GenUser, OpaqueValues, make_test_user
 from store import Store
 from test_resources import res_path

@@ -5,14 +5,13 @@ from auth.core.model import (
     FlowUser,
     AuthRequest,
     KeyState,
-    IdInfo,
     AuthKeys,
     RefreshToken,
     SavedRegisterState,
 )
-from auth.data.schemad.entities import SavedRefreshToken
-from auth.data.schemad.ops import SchemaOps
-from auth.data.schemad.user import UserOps
+from auth.data.relational.entities import SavedRefreshToken
+from auth.data.relational.ops import RelationOps
+from auth.data.relational.user import IdUserData, UserOps
 from datacontext.context import (
     Context,
     AbstractContexts,
@@ -78,18 +77,20 @@ class TokenContext(Context):
         raise ContextNotImpl()
 
     @classmethod
-    async def get_id_info(cls, store: Store, ops: SchemaOps, user_id: str) -> IdInfo:
+    async def get_id_userdata(
+        cls, store: Store, ops: RelationOps, user_id: str
+    ) -> IdUserData:
         raise ContextNotImpl()
 
     @classmethod
     async def add_refresh_token(
-        cls, store: Store, ops: SchemaOps, refresh_save: SavedRefreshToken
+        cls, store: Store, ops: RelationOps, refresh_save: SavedRefreshToken
     ) -> int:
         raise ContextNotImpl()
 
     @classmethod
     async def get_saved_refresh(
-        cls, store: Store, ops: SchemaOps, old_refresh: RefreshToken
+        cls, store: Store, ops: RelationOps, old_refresh: RefreshToken
     ) -> SavedRefreshToken:
         raise ContextNotImpl()
 
@@ -97,7 +98,7 @@ class TokenContext(Context):
     async def replace_refresh(
         cls,
         store: Store,
-        ops: SchemaOps,
+        ops: RelationOps,
         old_refresh_id: int,
         new_refresh_save: SavedRefreshToken,
     ) -> int:
@@ -105,7 +106,7 @@ class TokenContext(Context):
 
     @classmethod
     async def delete_refresh_token(
-        cls, store: Store, ops: SchemaOps, family_id: str
+        cls, store: Store, ops: RelationOps, family_id: str
     ) -> int:
         raise ContextNotImpl()
 

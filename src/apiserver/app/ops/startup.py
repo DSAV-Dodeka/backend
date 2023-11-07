@@ -9,7 +9,7 @@ from apiserver.data.api.classifications import insert_classification
 from apiserver.data.source import KeyState
 from apiserver.env import Config
 from apiserver.lib.model.entities import JWKSet, User, UserData, JWKPublicEdDSA
-from auth.data.schemad.opaque import insert_opaque_row
+from auth.data.relational.opaque import insert_opaque_row
 from auth.hazmat.structs import A256GCMKey
 from apiserver.lib.hazmat import keys
 from apiserver.lib.hazmat.keys import ed448_private_to_pem

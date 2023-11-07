@@ -1,21 +1,26 @@
 import secrets
 from secrets import token_urlsafe
 from typing import Type
+from auth.data.relational.user import IdUserData
 
 from auth.token.build_util import encode_token_dict, decode_refresh, add_info_to_id
-from auth.core.model import RefreshToken, IdInfo, IdTokenBase, AccessTokenBase
+from auth.core.model import RefreshToken, IdTokenBase, AccessTokenBase
 from auth.hazmat.structs import PEMPrivateKey, SymmetricKey
-from auth.data.schemad.entities import SavedRefreshToken
+from auth.data.relational.entities import SavedRefreshToken
 from auth.token.crypt_token import encrypt_refresh
 from auth.token.sign_token import sign_id_token, sign_access_token
 
 
 def build_refresh_save(
-    saved_refresh: SavedRefreshToken, id_info_model: Type[IdInfo], utc_now: int
-) -> tuple[AccessTokenBase, IdTokenBase, IdInfo, str, str, str, SavedRefreshToken]:
+    saved_refresh: SavedRefreshToken, utc_now: int, id_userdata_type: Type[IdUserData]
+) -> tuple[AccessTokenBase, IdTokenBase, IdUserData, str, str, str, SavedRefreshToken]:
+    """Use old refresh token and create a new refresh token with a different nonce. id_info_model is generic, because the
+    application level decides what it looks like."""
     # Rebuild access and ID tokens from value in refresh token
     # We need the core static info to rebuild with new iat, etc.
-    saved_access, saved_id_token, id_info = decode_refresh(saved_refresh, id_info_model)
+    saved_access, saved_id_token, id_userdata = decode_refresh(
+        saved_refresh, id_userdata_type
+    )
     user_id = saved_id_token.sub
 
     # Scope to be returned in response
@@ -40,7 +45,7 @@ def build_refresh_save(
     return (
         saved_access,
         saved_id_token,
-        id_info,
+        id_userdata,
         user_id,
         access_scope,
         new_nonce,
@@ -69,7 +74,7 @@ def create_tokens(
     auth_time: int,
     id_nonce: str,
     utc_now: int,
-    id_info: IdInfo,
+    id_userdata: IdUserData,
     issuer: str,
     frontend_client_id: str,
     backend_client_id: str,
@@ -92,7 +97,7 @@ def create_tokens(
 
     # Encoded tokens to store for refresh token
     access_val_encoded = encode_token_dict(access_token_data.model_dump())
-    id_token_dict = add_info_to_id(id_token_core_data, id_info)
+    id_token_dict = add_info_to_id(id_token_core_data, id_userdata)
     id_token_val_encoded = encode_token_dict(id_token_dict)
     # Each authentication creates a refresh token of a particular family, which
     # has a static lifetime
@@ -115,7 +120,7 @@ def finish_tokens(
     refresh_key: SymmetricKey,
     access_token_data: AccessTokenBase,
     id_token_data: IdTokenBase,
-    id_info: IdInfo,
+    id_userdata: IdUserData,
     utc_now: int,
     signing_key: PEMPrivateKey,
     access_exp: int,
@@ -136,7 +141,7 @@ def finish_tokens(
     )
     # This function adds exp and signing time info as well as id_info and signs the id token using the signing key
     # ! Calls the PyJWT library
-    id_token = sign_id_token(signing_key, id_token_data, id_info, utc_now, id_exp)
+    id_token = sign_id_token(signing_key, id_token_data, id_userdata, utc_now, id_exp)
 
     return refresh_token, access_token, id_token
 

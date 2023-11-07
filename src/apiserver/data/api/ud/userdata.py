@@ -1,10 +1,14 @@
 from datetime import date
-from typing import Any, Optional, Type
+from typing import Any, Optional, Self, Type
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from apiserver.lib.model.entities import UserData, SignedUp, IdInfo, UserNames
-from auth.data.schemad.user import UserDataOps as AuthUserDataOps, UserErrors
+from auth.data.relational.user import (
+    IdUserDataOps as AuthIdUserDataOps,
+    IdUserData as AuthIdUserData,
+    UserErrors,
+)
 from schema.model import (
     USERDATA_TABLE,
     USER_ID,
@@ -71,27 +75,48 @@ def finished_userdata(
     )
 
 
-class UserDataOps(AuthUserDataOps[UserData, IdInfo]):
-    @classmethod
-    async def get_userdata_by_id(cls, conn: AsyncConnection, user_id: str) -> UserData:
-        userdata_row = await retrieve_by_unique(conn, USERDATA_TABLE, USER_ID, user_id)
-        return parse_userdata(userdata_row)
+class IdUserData(AuthIdUserData):
+    attr_id_info: IdInfo
+
+    def __init__(self, id_info: IdInfo):
+        self.attr_id_info = id_info
 
     @classmethod
-    def id_info_from_ud(cls, ud: UserData) -> IdInfo:
-        return IdInfo(
-            email=ud.email,
-            name=f"{ud.firstname} {ud.lastname}",
-            given_name=ud.firstname,
-            family_name=ud.lastname,
-            nickname=ud.callname,
-            preferred_username=ud.callname,
-            birthdate=ud.birthdate.isoformat(),
+    def from_id_token(cls, id_token: dict[str, Any]) -> "IdUserData":
+        id_info = IdInfo.model_validate(id_token)
+        return IdUserData(id_info)
+
+    def id_info(self) -> dict[str, Any]:
+        return self.attr_id_info.model_dump()
+
+
+async def get_userdata_by_id(conn: AsyncConnection, user_id: str) -> UserData:
+    userdata_row = await retrieve_by_unique(conn, USERDATA_TABLE, USER_ID, user_id)
+    return parse_userdata(userdata_row)
+
+
+class IdUserDataOps(AuthIdUserDataOps):
+    @classmethod
+    async def get_id_userdata_by_id(
+        cls, conn: AsyncConnection, user_id: str
+    ) -> IdUserData:
+        ud = await get_userdata_by_id(conn, user_id)
+
+        return IdUserData(
+            IdInfo(
+                email=ud.email,
+                name=f"{ud.firstname} {ud.lastname}",
+                given_name=ud.firstname,
+                family_name=ud.lastname,
+                nickname=ud.callname,
+                preferred_username=ud.callname,
+                birthdate=ud.birthdate.isoformat(),
+            )
         )
 
     @classmethod
-    def id_info_type(cls) -> Type[IdInfo]:
-        return IdInfo
+    def get_type(cls) -> Type[IdUserData]:
+        return IdUserData
 
 
 async def get_userdata_by_email(conn: AsyncConnection, email: str) -> UserData:

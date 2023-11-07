@@ -4,7 +4,7 @@ from apiserver.data import Source, ops
 from apiserver.data.context import RegisterAppContext
 from apiserver.lib.model.entities import UserData, User
 from auth.core.model import SavedRegisterState
-from auth.data.schemad.user import UserErrors
+from auth.data.relational.user import UserErrors
 from datacontext.context import ContextRegistry
 from store.error import NoDataError
 

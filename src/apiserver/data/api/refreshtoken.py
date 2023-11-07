@@ -11,8 +11,8 @@ from store.db import (
 )
 from schema.model import REFRESH_TOKEN_TABLE, FAMILY_ID, USER_ID
 from store.error import NoDataError
-from auth.data.schemad.refresh import RefreshOps as AuthRefreshOps
-from auth.data.schemad.entities import SavedRefreshToken
+from auth.data.relational.refresh import RefreshOps as AuthRefreshOps
+from auth.data.relational.entities import SavedRefreshToken
 
 
 def parse_refresh(refresh_dict: Optional[dict[str, Any]]) -> SavedRefreshToken:

@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 from store.error import DataError
 from schema.model import OPAQUE_SETUP_TABLE
 from store.db import lit_model, retrieve_by_id, insert
-from auth.data.schemad.entities import OpaqueSetup
+from auth.data.relational.entities import OpaqueSetup
 
 __all__ = ["get_setup", "insert_opaque_row"]
 
@@ -23,9 +23,6 @@ async def _get_opaque_setup(conn: AsyncConnection) -> OpaqueSetup:
     id_int = 0
     opaque_row = await _get_opaque_row(conn, id_int)
     if opaque_row is None:
-        # new_setup = new_opaque_setup(0)
-        # await upsert_opaque_row(dsrc, new_setup.model_dump())
-        # opaque_row = await _get_opaque_row(dsrc, id_int)
         raise DataError(
             message=f"Opaque setup missing for id {id_int}", key="missing_opaque_setup"
         )

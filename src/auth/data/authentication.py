@@ -1,8 +1,8 @@
 from auth.core.model import SavedState, FlowUser
 from auth.core.util import random_time_hash_hex
 from auth.data.context import RegisterContext, LoginContext, TokenContext
-from auth.data.schemad.opaque import get_setup
-from auth.data.schemad.user import UserOps
+from auth.data.relational.opaque import get_setup
+from auth.data.relational.user import UserOps
 from datacontext.context import ContextRegistry
 from store import Store
 from store.conn import get_conn, get_kv

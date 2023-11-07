@@ -3,8 +3,8 @@ from typing import Optional, Literal, List
 
 from pydantic import field_validator, BaseModel, TypeAdapter, Field, AliasChoices
 
-from auth.core.model import IdInfo as AuthIdInfo, AccessTokenBase as AuthAccessToken
-from auth.data.schemad.entities import User as AuthUser, UserData as AuthUserData
+from auth.core.model import AccessTokenBase as AuthAccessToken
+from auth.data.relational.entities import User as AuthUser
 
 
 class User(AuthUser):
@@ -32,7 +32,7 @@ class AccessToken(AuthAccessToken):
     exp: int
 
 
-class IdInfo(AuthIdInfo):
+class IdInfo(BaseModel):
     email: str
     name: str
     given_name: str
@@ -50,7 +50,7 @@ class SignedUp(BaseModel):
     confirmed: bool = False
 
 
-class UserData(AuthUserData):
+class UserData(BaseModel):
     user_id: str
     active: bool
     firstname: str

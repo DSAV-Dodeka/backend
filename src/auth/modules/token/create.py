@@ -2,8 +2,8 @@ from auth.core.error import InvalidRefresh
 from auth.data.context import TokenContext
 from auth.data.keys import get_keys
 from auth.data.token import (
+    get_id_userdata,
     get_saved_refresh,
-    get_id_info,
     add_refresh_token,
     replace_refresh,
     delete_refresh_token,
@@ -13,7 +13,7 @@ from auth.token.crypt_token import decrypt_old_refresh
 from auth.hazmat.verify_token import verify_refresh
 from auth.core.model import Tokens, KeyState
 from auth.core.util import utc_timestamp
-from auth.data.schemad.ops import SchemaOps
+from auth.data.relational.ops import RelationOps
 from auth.define import grace_period, access_exp, id_exp, refresh_exp, Define
 from store import Store
 from store.conn import store_session
@@ -21,7 +21,7 @@ from store.conn import store_session
 
 async def do_refresh(
     store: Store,
-    ops: SchemaOps,
+    ops: RelationOps,
     context: TokenContext,
     key_state: KeyState,
     old_refresh_token: str,
@@ -40,12 +40,12 @@ async def do_refresh(
     (
         access_token_data,
         id_token_data,
-        id_info,
+        id_userdata,
         user_id,
         access_scope,
         new_nonce,
         new_refresh_save,
-    ) = build_refresh_save(saved_refresh, ops.userdata.id_info_type(), utc_now)
+    ) = build_refresh_save(saved_refresh, utc_now, ops.id_userdata.get_type())
 
     # Deletes previous token, saves new one, only succeeds if all components of the
     # transaction succeed
@@ -59,7 +59,7 @@ async def do_refresh(
         keys.symmetric,
         access_token_data,
         id_token_data,
-        id_info,
+        id_userdata,
         utc_now,
         keys.signing,
         access_exp,
@@ -80,7 +80,7 @@ async def do_refresh(
 async def new_token(
     store: Store,
     define: Define,
-    ops: SchemaOps,
+    ops: RelationOps,
     context: TokenContext,
     key_state: KeyState,
     user_id: str,
@@ -95,7 +95,7 @@ async def new_token(
 
     async with store_session(store) as session:
         # THROWS AuthError if user does not exist
-        id_info = await get_id_info(context, session, ops, user_id)
+        id_userdata = await get_id_userdata(context, session, ops, user_id)
 
         access_token_data, id_token_data, access_scope, refresh_save = create_tokens(
             user_id,
@@ -103,7 +103,7 @@ async def new_token(
             auth_time,
             id_nonce,
             utc_now,
-            id_info,
+            id_userdata,
             define.issuer,
             define.frontend_client_id,
             define.backend_client_id,
@@ -119,7 +119,7 @@ async def new_token(
         keys.symmetric,
         access_token_data,
         id_token_data,
-        id_info,
+        id_userdata,
         utc_now,
         keys.signing,
         access_exp,
@@ -139,7 +139,7 @@ async def new_token(
 
 async def delete_refresh(
     store: Store,
-    ops: SchemaOps,
+    ops: RelationOps,
     context: TokenContext,
     key_state: KeyState,
     refresh_token: str,

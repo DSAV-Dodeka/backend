@@ -1,0 +1,19 @@
+APISERVER_ENV="localdev"
+
+DB_USER="dodeka"
+DB_PASS="postpost"
+DB_HOST="localhost"
+DB_PORT=3141
+DB_NAME="dodeka"
+DB_NAME_ADMIN="postgres"
+
+KV_HOST="localhost"
+KV_PORT=6379
+KV_PASS="redisredis"
+
+MAIL_ENABLED=false
+MAIL_PASS="abcpass"
+KEY_PASS="abcpass"
+
+SMTP_SERVER = "abcmail"
+SMTP_PORT = 587

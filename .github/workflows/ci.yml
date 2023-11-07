@@ -49,6 +49,8 @@ jobs:
       run: poetry run mypy
     - name: Pytest
       run: poetry run pytest
+      env:
+        QUERY_TEST: true
     services:
       postgres:
         image: ghcr.io/dsav-dodeka/postgres:localdev

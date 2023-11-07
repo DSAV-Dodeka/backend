@@ -16,7 +16,7 @@ from apiserver.data.context import Code
 from apiserver.env import load_config
 from auth.core.model import AuthRequest
 from auth.data.context import AuthorizeContext
-from router_test.test_util import make_test_user, mock_auth_request
+from test_util import make_test_user, mock_auth_request
 from store import Store
 from store.error import NoDataError
 from test_resources import res_path

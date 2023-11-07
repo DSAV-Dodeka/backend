@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Generator, TypeVar
+from typing import AsyncGenerator, Generator, TypeVar
 
 from faker import Faker
 from pydantic import BaseModel
@@ -10,6 +10,7 @@ from auth.core.model import AuthRequest
 
 T = TypeVar("T")
 Fixture = Generator[T, None, None]
+AsyncFixture = AsyncGenerator[T, None]
 
 
 def cr_user_id(id_int: int, g_id_name: str):

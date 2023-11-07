@@ -1,5 +1,8 @@
 name: CI
 
+permissions:
+  packages: read
+
 on:
   pull_request:
   push:
@@ -49,6 +52,9 @@ jobs:
     services:
       postgres:
         image: ghcr.io/dsav-dodeka/postgres:localdev
+        credentials:
+          username: ${{ secrets.GH_DODEKACOMCOM_USER }}
+          password: ${{ secrets.GH_DODEKACOMCOM_TOKEN }}
         # These values must align with the config used by the tests in the repo
         # The port is set in the image
         env:
@@ -63,6 +69,9 @@ jobs:
           - 3141:3141
       redis:
         image: pull ghcr.io/dsav-dodeka/redis:localdev
+        credentials:
+          username: ${{ secrets.GH_DODEKACOMCOM_USER }}
+          password: ${{ secrets.GH_DODEKACOMCOM_TOKEN }}
         # These values must align with the config used by the tests in the repo
         # The port is set in the image
         options: >-

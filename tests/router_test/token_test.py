@@ -37,7 +37,7 @@ from auth.data.relational.ops import RelationOps
 from auth.define import refresh_exp, id_exp, access_exp
 from auth.hazmat.key_decode import aes_from_symmetric
 from auth.hazmat.structs import PEMPrivateKey
-from router_test.test_util import (
+from test_util import (
     Fixture,
     make_test_user,
     mock_auth_request,

@@ -22,7 +22,7 @@ from auth.core.model import (
 )
 from auth.core.util import utc_timestamp
 from auth.data.context import RegisterContext
-from router_test.test_util import (
+from test_util import (
     make_test_user,
     GenUser,
     OpaqueValues,

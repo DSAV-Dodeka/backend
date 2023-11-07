@@ -15,7 +15,7 @@ from apiserver.data import Source
 from apiserver.data.context import Code, UpdateContext
 from apiserver.env import load_config
 from apiserver.lib.model.entities import UserData, User
-from router_test.test_util import (
+from test_util import (
     make_test_user,
     make_base_ud,
 )

@@ -1,5 +1,8 @@
 name: CI
 
+permissions:
+  packages: read
+
 on:
   pull_request:
   push:
@@ -28,7 +31,7 @@ jobs:
         cache-dependency-path: ${{ github.workspace }}/authpage/package-lock.json
     - name: Cache authpage
       id: cached-authpage
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         key: authpage-${{ hashFiles('${{ github.workspace }}/authpage') }}
         path: ${{ github.workspace }}/src/apiserver/resources/static/credentials
@@ -46,3 +49,37 @@ jobs:
       run: poetry run mypy
     - name: Pytest
       run: poetry run pytest
+      env:
+        QUERY_TEST: true
+    services:
+      postgres:
+        image: ghcr.io/dsav-dodeka/postgres:localdev
+        credentials:
+          username: ${{ secrets.GH_DODEKACOMCOM_USER }}
+          password: ${{ secrets.GH_DODEKACOMCOM_TOKEN }}
+        # These values must align with the config used by the tests in the repo
+        # The port is set in the image
+        env:
+          POSTGRES_PASSWORD: postpost
+          POSTGRES_USER: dodeka
+        options: >-
+          --health-cmd "pg_isready -p 3141"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 3141:3141
+      redis:
+        image: ghcr.io/dsav-dodeka/redis:localdev
+        credentials:
+          username: ${{ secrets.GH_DODEKACOMCOM_USER }}
+          password: ${{ secrets.GH_DODEKACOMCOM_TOKEN }}
+        # These values must align with the config used by the tests in the repo
+        # The port is set in the image
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379

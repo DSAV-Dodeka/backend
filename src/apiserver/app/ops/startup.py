@@ -81,7 +81,6 @@ async def waiting_lock(dsrc: Source) -> bool:
 
 
 def drop_create_database(config: Config) -> None:
-    # runtime_key = aes_from_symmetric(config.KEY_PASS)
     db_cluster = f"{config.DB_USER}:{config.DB_PASS}@{config.DB_HOST}:{config.DB_PORT}"
     db_url = f"{db_cluster}/{config.DB_NAME}"
     admin_db_url = f"{db_cluster}/{config.DB_NAME_ADMIN}"

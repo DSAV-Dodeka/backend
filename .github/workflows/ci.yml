@@ -63,7 +63,7 @@ jobs:
           POSTGRES_PASSWORD: postpost
           POSTGRES_USER: dodeka
         options: >-
-          --health-cmd pg_isready
+          --health-cmd pg_isready -p 3141
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5

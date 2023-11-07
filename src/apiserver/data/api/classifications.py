@@ -6,6 +6,7 @@ from sqlalchemy import RowMapping
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from apiserver.lib.model.entities import (
+    ClassEvent,
     Classification,
     ClassView,
     UserPointsNames,
@@ -193,7 +194,7 @@ async def add_users_to_event(
         raise e
 
 
-async def events_in_class(conn: AsyncConnection, class_id: int) -> bool:
+async def events_in_class(conn: AsyncConnection, class_id: int) -> list[ClassEvent]:
     events = await select_some_where(
         conn,
         CLASS_EVENTS_TABLE,

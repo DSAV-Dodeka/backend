@@ -220,6 +220,7 @@ class StoredKey(BaseModel):
     iat: int
     use: str
 
+
 class ClassEvent(BaseModel):
     event_id: str
     category: str

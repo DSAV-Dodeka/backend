@@ -1,16 +1,19 @@
 import asyncio
 import os
 from random import randint
+from typing import LiteralString
 
 import pytest
 import pytest_asyncio
 from sqlalchemy import text
+from apiserver.app.ops.startup import drop_create_database
 
 
 from apiserver.env import Config, load_config
 from test_util import Fixture, AsyncFixture
 from store.conn import get_conn
 from store.store import Store
+from store.db import LiteralDict, insert
 from test_resources import res_path
 
 
@@ -35,7 +38,10 @@ def api_config() -> Fixture[Config]:
 
 
 @pytest_asyncio.fixture(scope="module")
-async def local_store(api_config):
+async def local_store(api_config: Config):
+    # each module makes its own database
+    api_config.DB_NAME = f"testdb_{randint(0, 100000)}"
+    drop_create_database(api_config)
     store = Store()
     store.init_objects(api_config)
     await store.startup()
@@ -67,6 +73,7 @@ async def setup_table(local_store: Store) -> AsyncFixture[str]:
 
 
 @pytest.mark.asyncio
-async def test_insert(local_store: Store, setup_table: str):
-    async with get_conn(local_store):
-        pass
+async def test_insert(local_store: Store, setup_table: LiteralString):
+    row: LiteralDict = {"first": 3, "second": "some", "third": "other"}
+    async with get_conn(local_store) as conn:
+        await insert(conn, setup_table, row)

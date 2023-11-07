@@ -46,3 +46,29 @@ jobs:
       run: poetry run mypy
     - name: Pytest
       run: poetry run pytest
+    services:
+      postgres:
+        image: ghcr.io/dsav-dodeka/postgres:localdev
+        # These values must align with the config used by the tests in the repo
+        # The port is set in the image
+        env:
+          POSTGRES_PASSWORD: postpost
+          POSTGRES_USER: dodeka
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 3141:3141
+      redis:
+        image: pull ghcr.io/dsav-dodeka/redis:localdev
+        # These values must align with the config used by the tests in the repo
+        # The port is set in the image
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379

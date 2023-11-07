@@ -1,6 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
-from typing import AsyncIterator, TypedDict
+from typing import AsyncContextManager, AsyncIterator, Callable, TypedDict
 
 from fastapi import FastAPI
 
@@ -93,6 +93,9 @@ def register_and_define_code() -> Code:
     source_data_context.include_registry(update_reg)
 
     return Code(auth_context=data_context, app_context=source_data_context)
+
+
+AppLifespan = Callable[[FastAPI], AsyncContextManager[State]]
 
 
 @asynccontextmanager

@@ -14,8 +14,8 @@ from auth.token.sign_token import sign_id_token, sign_access_token
 def build_refresh_save(
     saved_refresh: SavedRefreshToken, utc_now: int, id_userdata_type: Type[IdUserData]
 ) -> tuple[AccessTokenBase, IdTokenBase, IdUserData, str, str, str, SavedRefreshToken]:
-    """Use old refresh token and create a new refresh token with a different nonce. id_info_model is generic, because the
-    application level decides what it looks like."""
+    """Use old refresh token and create a new refresh token with a different nonce. id_info_model is generic, because
+    the application level decides what it looks like."""
     # Rebuild access and ID tokens from value in refresh token
     # We need the core static info to rebuild with new iat, etc.
     saved_access, saved_id_token, id_userdata = decode_refresh(

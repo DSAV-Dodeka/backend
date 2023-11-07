@@ -87,23 +87,23 @@ def create_context_impl(context: Type[C]) -> C:
     return ContextImpl()  # type: ignore
 
 
-T = TypeVar("T", covariant=True)
+T_co = TypeVar("T_co", covariant=True)
 P = ParamSpec("P")
 
 
-class ContextCallable(Protocol, Generic[P, T]):
-    def __call__(self, ctx: Context, *args: P.args, **kwargs: P.kwargs) -> T: ...
+class ContextCallable(Protocol, Generic[P, T_co]):
+    def __call__(self, ctx: Context, *args: P.args, **kwargs: P.kwargs) -> T_co: ...
 
 
-def replace_context(func: Callable[P, T]) -> ContextCallable[P, T]:
+def replace_context(func: Callable[P, T_co]) -> ContextCallable[P, T_co]:
     """This function creates the replacement function by looking up the function name in the dependency container. It
     doesn't alter any behavior, as it simply calls the implementing function."""
 
-    def replace(ctx: Context, *args: P.args, **kwargs: P.kwargs) -> T:
+    def replace(ctx: Context, *args: P.args, **kwargs: P.kwargs) -> T_co:
         if ctx.dont_replace:
             return func(*args, **kwargs)
 
-        replace_func: Callable[P, T] = getattr(ctx, func.__name__)
+        replace_func: Callable[P, T_co] = getattr(ctx, func.__name__)
         return replace_func(*args, **kwargs)
 
     return replace
@@ -118,13 +118,13 @@ class ContextRegistry:
 
     def register(
         self, registry_type: Type[Context]
-    ) -> Callable[[Callable[P, T]], ContextCallable[P, T]]:
+    ) -> Callable[[Callable[P, T_co]], ContextCallable[P, T_co]]:
         """This is the decorator that can be used to register implementations. It adds the function to the local
         registry object, which then needs to registered to the correct context instance by some global registry.
         The registry type should be a class that exists in the application's global contexts.
         """
 
-        def decorator(func: Callable[P, T]) -> ContextCallable[P, T]:
+        def decorator(func: Callable[P, T_co]) -> ContextCallable[P, T_co]:
             # TODO think if do a check so this is not always called
             self.funcs.append((func, registry_type))
 
@@ -134,11 +134,11 @@ class ContextRegistry:
 
     def register_multiple(
         self, registry_types: list[Type[Context]]
-    ) -> Callable[[Callable[P, T]], ContextCallable[P, T]]:
+    ) -> Callable[[Callable[P, T_co]], ContextCallable[P, T_co]]:
         # We need register_multiple because otherwise we will apply a decorator to the changed function
         # In that case the name and annotations are no longer correct
 
-        def decorator(func: Callable[P, T]) -> ContextCallable[P, T]:
+        def decorator(func: Callable[P, T_co]) -> ContextCallable[P, T_co]:
             for r in registry_types:
                 self.funcs.append((func, r))
 

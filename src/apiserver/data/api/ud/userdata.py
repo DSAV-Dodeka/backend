@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Any, Optional, Self, Type
+from typing import Any, Optional, Type
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 

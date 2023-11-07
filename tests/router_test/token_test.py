@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from typing import Any, AsyncIterator
 
 import pytest
 import tomllib
@@ -10,12 +11,17 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 from starlette.testclient import TestClient
 
 from apiserver.app_def import create_app
-from apiserver.app_lifespan import safe_startup, register_and_define_code
+from apiserver.app_lifespan import (
+    AppLifespan,
+    State,
+    safe_startup,
+    register_and_define_code,
+)
 from apiserver.data import Source
 from apiserver.data.api.ud.userdata import IdUserData
 from apiserver.data.context import Code
 from apiserver.define import DEFINE
-from apiserver.env import load_config
+from apiserver.env import Config, load_config
 from apiserver.lib.model.entities import IdInfo
 from auth.core.model import (
     FlowUser,
@@ -32,6 +38,7 @@ from auth.define import refresh_exp, id_exp, access_exp
 from auth.hazmat.key_decode import aes_from_symmetric
 from auth.hazmat.structs import PEMPrivateKey
 from router_test.test_util import (
+    Fixture,
     make_test_user,
     mock_auth_request,
     GenUser,
@@ -50,23 +57,23 @@ from test_resources import res_path
 
 
 @pytest.fixture
-def gen_user(faker: Faker):
+def gen_user(faker: Faker) -> Fixture[GenUser]:
     yield make_test_user(faker)
 
 
 @pytest.fixture
-def gen_ext_user(faker: Faker):
+def gen_ext_user(faker: Faker) -> Fixture[tuple[GenUser, IdInfo]]:
     yield make_extended_test_user(faker)
 
 
 @pytest.fixture(scope="module")
-def api_config():
+def api_config() -> Fixture[Config]:
     test_config_path = res_path.joinpath("testenv.toml")
     yield load_config(test_config_path)
 
 
 @pytest.fixture(scope="module")
-def make_dsrc(module_mocker: MockerFixture):
+def make_dsrc(module_mocker: MockerFixture) -> Fixture[Source]:
     dsrc_inst = Source()
     store_mock = module_mocker.MagicMock(spec=dsrc_inst.store)
     store_mock.db.connect = module_mocker.MagicMock(
@@ -78,50 +85,55 @@ def make_dsrc(module_mocker: MockerFixture):
 
 
 @pytest.fixture(scope="module")
-def make_cd():
+def make_cd() -> Fixture[Code]:
     cd = register_and_define_code()
     yield cd
 
 
 @pytest.fixture(scope="module")
-def lifespan_fixture(api_config, make_dsrc: Source, make_cd: Code):
+def lifespan_fixture(
+    api_config: Config, make_dsrc: Source, make_cd: Code
+) -> Fixture[AppLifespan]:
     safe_startup(make_dsrc, api_config)
 
     @asynccontextmanager
-    async def mock_lifespan(app: FastAPI):
+    async def mock_lifespan(app: FastAPI) -> AsyncIterator[State]:
         yield {"dsrc": make_dsrc, "cd": make_cd}
 
     yield mock_lifespan
 
 
 @pytest.fixture(scope="module")
-def app(lifespan_fixture):
+def app(lifespan_fixture: AppLifespan) -> Fixture[FastAPI]:
     # startup, shutdown is not run
     apiserver_app = create_app(lifespan_fixture)
     yield apiserver_app
 
 
 @pytest.fixture(scope="module")
-def test_client(app):
+def test_client(app: FastAPI) -> Fixture[TestClient]:
     with TestClient(app=app) as test_client:
         yield test_client
 
 
 @pytest.fixture
-def user_mock_flow_user(gen_user: GenUser):
+def user_mock_flow_user(
+    gen_ext_user: tuple[GenUser, IdInfo]
+) -> Fixture[tuple[FlowUser, str, str, GenUser, IdInfo]]:
     mock_flow_id = "abcdmock"
     test_token_scope = "doone"
+    gen_user, id_info = gen_ext_user
 
     yield FlowUser(
         auth_time=utc_timestamp() - 20,
         flow_id=mock_flow_id,
         scope=test_token_scope,
         user_id=gen_user.user_id,
-    ), test_token_scope, mock_flow_id, gen_user
+    ), test_token_scope, mock_flow_id, gen_user, id_info
 
 
 @pytest.fixture(scope="module")
-def test_values():
+def test_values() -> Fixture[dict[str, Any]]:
     test_values_pth = res_path.joinpath("test_values.toml")
     with open(test_values_pth, "rb") as f:
         test_values_dict = tomllib.load(f)
@@ -130,7 +142,7 @@ def test_values():
 
 
 @pytest.fixture(scope="module")
-def auth_keys(test_values: dict):
+def auth_keys(test_values: dict[str, Any]) -> Fixture[AuthKeys]:
     keys = KeyValues.model_validate(test_values["keys"])
     symmetric_key = aes_from_symmetric(keys.symmetric)
     signing_key = PEMPrivateKey(
@@ -144,25 +156,26 @@ def auth_keys(test_values: dict):
 
 def mock_token_code_context(
     test_flow_user: FlowUser,
+    test_id_userdata: IdUserData,
     test_code: str,
     test_auth_request: AuthRequest,
     test_flow_id: str,
     test_keys: AuthKeys,
     test_refresh_id: int,
-    mock_db: dict,
-):
+    mock_db: dict[Any, Any],
+) -> TokenContext:
     class MockTokenContext(TokenContext):
         @classmethod
         async def pop_flow_user(cls, store: Store, authorization_code: str) -> FlowUser:
             if authorization_code == test_code:
                 return test_flow_user
-            raise NoDataError("No data", "test_no_date")
+            raise NoDataError("No data", "test_no_data")
 
         @classmethod
         async def get_auth_request(cls, store: Store, flow_id: str) -> AuthRequest:
             if flow_id == test_flow_id:
                 return test_auth_request
-            raise NoDataError("No data", "test_no_date")
+            raise NoDataError("No data", "test_no_data")
 
         @classmethod
         async def get_keys(cls, store: Store, key_state: KeyState) -> AuthKeys:
@@ -171,7 +184,10 @@ def mock_token_code_context(
         @classmethod
         async def get_id_userdata(
             cls, store: Store, ops: RelationOps, user_id: str
-        ) -> IdUserData: ...
+        ) -> IdUserData:
+            if user_id == test_flow_user.user_id:
+                return test_id_userdata
+            raise NoDataError("No data", "test_no_data")
 
         @classmethod
         async def add_refresh_token(
@@ -189,16 +205,23 @@ def mock_token_code_context(
 
 
 def test_auth_code(
-    test_client, make_cd: Code, user_mock_flow_user, auth_keys: AuthKeys
-):
-    mock_flow_user, test_token_scope, mock_flow_id, test_user = user_mock_flow_user
+    test_client: TestClient,
+    make_cd: Code,
+    user_mock_flow_user: tuple[FlowUser, str, str, GenUser, IdInfo],
+    auth_keys: AuthKeys,
+) -> None:
+    mock_flow_user, test_token_scope, mock_flow_id, test_user, test_id_info = (
+        user_mock_flow_user
+    )
+    test_id_userdata = IdUserData(test_id_info)
     code_session_key = "somecomplexsessionkey"
     code_verifier = "NiiCPTK4e73kAVCfWZyZX6AvIXyPg396Q4063oGOI3w"
     test_refresh_id = 88
-    mock_db = {}
+    mock_db: dict[Any, Any] = {}
 
     make_cd.auth_context.token_ctx = mock_token_code_context(
         mock_flow_user,
+        test_id_userdata,
         code_session_key,
         mock_auth_request,
         mock_flow_id,
@@ -225,11 +248,11 @@ def test_auth_code(
 
 def fake_tokens(
     test_user: GenUser,
-    test_id_info: IdInfo,
+    test_id_userdata: IdUserData,
     test_scope: str,
     test_token_id: int,
     keys: AuthKeys,
-):
+) -> tuple[str, SavedRefreshToken]:
     from auth.token.build import finish_tokens
     from auth.token.build import create_tokens
 
@@ -241,7 +264,7 @@ def fake_tokens(
         auth_time,
         mock_auth_request.nonce,
         utc_now,
-        test_id_info,
+        test_id_userdata,
         DEFINE.issuer,
         DEFINE.frontend_client_id,
         DEFINE.backend_client_id,
@@ -254,7 +277,7 @@ def fake_tokens(
         keys.symmetric,
         access_token_data,
         id_token_data,
-        test_id_info,
+        test_id_userdata,
         utc_now,
         keys.signing,
         access_exp,
@@ -269,8 +292,8 @@ def mock_token_refresh_context(
     test_keys: AuthKeys,
     test_refresh_token: SavedRefreshToken,
     new_refresh_id: int,
-    mock_db: dict,
-):
+    mock_db: dict[int, SavedRefreshToken],
+) -> TokenContext:
     class MockTokenContext(TokenContext):
         @classmethod
         async def get_keys(cls, store: Store, key_state: KeyState) -> AuthKeys:
@@ -278,7 +301,7 @@ def mock_token_refresh_context(
 
         @classmethod
         async def get_saved_refresh(
-            cls, store: Store, ops: SchemaOps, old_refresh: RefreshToken
+            cls, store: Store, ops: RelationOps, old_refresh: RefreshToken
         ) -> SavedRefreshToken:
             return mock_db[old_refresh.id]
 
@@ -286,7 +309,7 @@ def mock_token_refresh_context(
         async def replace_refresh(
             cls,
             store: Store,
-            ops: SchemaOps,
+            ops: RelationOps,
             old_refresh_id: int,
             new_refresh_save: SavedRefreshToken,
         ) -> int:
@@ -299,12 +322,18 @@ def mock_token_refresh_context(
     return MockTokenContext()
 
 
-def test_refresh(test_client, make_cd: Code, gen_ext_user, auth_keys: AuthKeys):
+def test_refresh(
+    test_client,
+    make_cd: Code,
+    gen_ext_user: tuple[GenUser, IdInfo],
+    auth_keys: AuthKeys,
+) -> None:
     test_user, test_id_info = gen_ext_user
+    test_id_userdata = IdUserData(test_id_info)
     test_scope = "itest refresh"
     test_refresh_id = 48
     refresh_val, refresh_save = fake_tokens(
-        test_user, test_id_info, test_scope, test_refresh_id, auth_keys
+        test_user, test_id_userdata, test_scope, test_refresh_id, auth_keys
     )
     refresh_save.id = test_refresh_id
     new_refresh_id = 50

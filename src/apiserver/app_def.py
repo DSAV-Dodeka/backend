@@ -1,6 +1,6 @@
 import logging
 from logging import Logger
-from typing import Any, AsyncContextManager, Callable, Coroutine, Type, TypeAlias
+from typing import Any, Callable, Coroutine, Type, TypeAlias
 
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.types import ASGIApp
 from uvicorn.logging import DefaultFormatter
-from apiserver.app_lifespan import State
+from apiserver.app_lifespan import AppLifespan
 
 # Import types separately to make it clear in what line the module is first loaded and
 # its top-level run
@@ -127,9 +127,7 @@ def add_routers(new_app: FastAPI) -> FastAPI:
     return new_app
 
 
-def create_app(
-    app_lifespan: Callable[[FastAPI], AsyncContextManager[State]]
-) -> FastAPI:
+def create_app(app_lifespan: AppLifespan) -> FastAPI:
     """App entrypoint."""
 
     routes = define_static_routes()

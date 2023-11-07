@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import Any, Protocol, Self, Type, TypeAlias
+from typing import Any, Protocol, Self, Type
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 

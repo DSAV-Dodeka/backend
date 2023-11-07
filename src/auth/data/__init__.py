@@ -20,10 +20,10 @@ The `auth` module assumes the following are available:
 - A database with unknown schema
 - A key-value store for persisting data temporarily, with support for JSON
 
-It relies on the `store` module for interacting with them. The `store` module assumes that you use PostgreSQL and 
+It relies on the `store` module for interacting with them. The `store` module assumes that you use PostgreSQL and
 Redis, but these dependencies are easily swapped out.
 
-As key-value store operations do not rely on a schema, we directly use the `store` functions to load and store JSON 
+As key-value store operations do not rely on a schema, we directly use the `store` functions to load and store JSON
 and plain strings. Providing an interface is an unnecessary abstraction in our case, but could still be done quite
 easily.
 
@@ -47,11 +47,12 @@ The user identity and allowed scope relation must include at least the following
 - password_file: str
 - scope: str
 
-Some application-specific decision on when e-mail is necessary have been made, but these should not be too hard to swap out.
+Some application-specific decision on when e-mail is necessary have been made, but these should not be too hard to swap
+out.
 
-User data can include any information that is necessary for building the additional info required by the consuming application
-in the ID token.
+User data can include any information that is necessary for building the additional info required by the consuming
+application in the ID token.
 
-Finally, refresh tokens make more strict assumptions about how they look like. As they are not as simple as the OPAQUE setup,
-no implementation is provided. This must be done by the consuming application.
+Finally, refresh tokens make more strict assumptions about how they look like. As they are not as simple as the OPAQUE
+setup, no implementation is provided. This must be done by the consuming application.
 """

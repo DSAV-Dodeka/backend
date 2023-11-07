@@ -1,4 +1,4 @@
-from typing import Any, Callable, Type
+from typing import Any, Type
 
 from auth.core.model import AccessTokenBase, IdTokenBase
 from auth.core.util import enc_b64url, enc_dict, dec_dict, dec_b64url

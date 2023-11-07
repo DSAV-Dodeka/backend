@@ -1,5 +1,4 @@
-from dataclasses import dataclass
-from typing import ClassVar, Generic, Type
+from typing import Type
 from auth.data.relational.refresh import RefreshOps
 
 from auth.data.relational.user import UserOps, IdUserDataOps

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request
 
-from apiserver.data import Source, ops
+from apiserver.data import Source
 from apiserver.data.api.ud.userdata import get_userdata_by_id
 from apiserver.lib.model.entities import UserData
 from apiserver.app.ops.header import Authorization

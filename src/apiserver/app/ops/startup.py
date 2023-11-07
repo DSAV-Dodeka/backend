@@ -8,7 +8,13 @@ from sqlalchemy import create_engine
 from apiserver.data.api.classifications import insert_classification
 from apiserver.data.source import KeyState
 from apiserver.env import Config
-from apiserver.lib.model.entities import JWKSet, User, UserData, JWKPublicEdDSA
+from apiserver.lib.model.entities import (
+    JWKSet,
+    User,
+    UserData,
+    JWKPublicEdDSA,
+    JWKSymmetricA256GCM,
+)
 from auth.data.relational.opaque import insert_opaque_row
 from auth.hazmat.structs import A256GCMKey
 from apiserver.lib.hazmat import keys
@@ -214,7 +220,10 @@ async def load_keys(dsrc: Source, config: Config) -> None:
             public_key = JWKPublicEdDSA.model_validate(key.model_dump())
             public_keys.append(public_key)
         elif key.alg == "A256GCM":
-            symmetric_key = A256GCMKey.model_validate(key.model_dump())
+            symmetric_key_jwk = JWKSymmetricA256GCM.model_validate(key.model_dump())
+            symmetric_key = A256GCMKey(
+                kid=symmetric_key_jwk.kid, symmetric=symmetric_key_jwk.k
+            )
             symmetric_keys.append(symmetric_key)
 
     # In the future we can publish these keys

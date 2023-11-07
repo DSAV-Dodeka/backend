@@ -67,17 +67,7 @@ plugins = [
 
 [[tool.mypy.overrides]]
 module = [
-    # "apiserver.auth.*",
-    # "apiserver.data.*",
-    # "apiserver.db.*",
-    # "apiserver.db.migrations.*",
-    # "apiserver.kv.*",
-    # "apiserver.routers.*",
-    # "apiserver.app",
-    # "apiserver.dev",
-    # "apiserver.env",
     "schema.model.env"
-
 ]
 ignore_errors = true
 

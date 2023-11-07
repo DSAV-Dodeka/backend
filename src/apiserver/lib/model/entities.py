@@ -125,6 +125,14 @@ class JWKPublicEdDSA(JWK):
     x: str  # public asymmetric key base64url bytes
 
 
+class JWKSymmetricA256GCM(JWK):
+    kty: Literal["oct"]
+    use: Literal["enc"]
+    alg: Literal["A256GCM"]
+    kid: str
+    k: str  # symmetric key base64url bytes
+
+
 class JWKSet(BaseModel):
     keys: list[JWK]
 
@@ -215,10 +223,8 @@ UserPointsNamesList = TypeAdapter(List[UserPointsNames])
 #     points: int
 
 
-class StoredKey(BaseModel):
+class StoredKeyKID(BaseModel):
     kid: str
-    iat: int
-    use: str
 
 
 class ClassEvent(BaseModel):

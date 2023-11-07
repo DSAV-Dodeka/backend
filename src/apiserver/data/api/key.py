@@ -15,7 +15,7 @@ from store.db import (
     update_column_by_unique,
     insert,
 )
-from apiserver.lib.model.entities import JWKSRow, StoredKey
+from apiserver.lib.model.entities import JWKSRow, StoredKeyKID
 from store.error import DataError, NoDataError
 
 MINIMUM_KEYS = 2
@@ -30,8 +30,8 @@ async def get_newest_symmetric(conn: AsyncConnection) -> tuple[str, str]:
             message="There should be at least two symmetric keys.",
             key="missing_symmetric_keys",
         )
-    first_key = StoredKey.model_validate(results[0])
-    second_key = StoredKey.model_validate(results[1])
+    first_key = StoredKeyKID.model_validate(results[0])
+    second_key = StoredKeyKID.model_validate(results[1])
 
     return first_key.kid, second_key.kid
 
@@ -46,7 +46,7 @@ async def get_newest_pem(conn: AsyncConnection) -> str:
             key="missing_symmetric_keys",
         )
 
-    signing_key = StoredKey.model_validate(largest[0])
+    signing_key = StoredKeyKID.model_validate(largest[0])
 
     return signing_key.kid
 

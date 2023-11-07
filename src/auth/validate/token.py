@@ -10,12 +10,7 @@ from auth.core.util import enc_b64url
 def authorization_validate(req: TokenRequest) -> CodeGrantRequest:
     # This grant type requires other body parameters than the refresh token grant type
     try:
-        return CodeGrantRequest(
-            redirect_uri=req.redirect_uri,
-            code_verifier=req.code_verifier,
-            code=req.code,
-            client_id=req.client_id,
-        )
+        return CodeGrantRequest.model_validate(req.model_dump())
     except ValidationError as e:
         raise AuthError(
             "invalid_request",
@@ -26,7 +21,7 @@ def authorization_validate(req: TokenRequest) -> CodeGrantRequest:
 
 def compare_auth_token_validate(
     token_request: CodeGrantRequest, auth_request: AuthRequest
-):
+) -> None:
     if token_request.client_id != auth_request.client_id:
         # logger.debug(
         #     f"Request redirect {token_request.client_id} does not match"
@@ -59,7 +54,7 @@ def compare_auth_token_validate(
         raise AuthError(err_type="invalid_grant", err_desc="Incorrect code_challenge")
 
 
-def refresh_validate(req: TokenRequest):
+def refresh_validate(req: TokenRequest) -> str:
     if req.refresh_token is None:
         # error_desc = "refresh_token must be defined"
         # logger.debug(f"{str(e)}: {error_desc}")

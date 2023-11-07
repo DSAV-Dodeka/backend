@@ -10,5 +10,5 @@ logger = logging.getLogger(LOGGER_NAME)
 
 
 @router.get("/")
-async def read_root():
+async def read_root() -> dict[str, str]:
     return {"Hallo": "Atleten"}

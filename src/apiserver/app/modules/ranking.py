@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Literal, Optional, TypeGuard
 
 from pydantic import BaseModel
 from datetime import date
@@ -19,7 +19,7 @@ class NewEvent(BaseModel):
     description: str = ""
 
 
-async def add_new_event(dsrc: Source, new_event: NewEvent):
+async def add_new_event(dsrc: Source, new_event: NewEvent) -> None:
     """Add a new event and recompute points. Display points will be updated to not include any events after the hidden
     date. Use the 'publish' function to force them to be equal."""
     async with data.get_conn(dsrc) as conn:
@@ -63,7 +63,7 @@ async def add_new_event(dsrc: Source, new_event: NewEvent):
         )
 
 
-async def sync_publish_ranking(dsrc: Source, publish: bool):
+async def sync_publish_ranking(dsrc: Source, publish: bool) -> None:
     async with data.get_conn(dsrc) as conn:
         training_class = await data.classifications.most_recent_class_of_type(
             conn, "training"
@@ -79,27 +79,33 @@ async def sync_publish_ranking(dsrc: Source, publish: bool):
         )
 
 
+def is_rank_type(rank_type: str) -> TypeGuard[Literal["training", "points"]]:
+    return rank_type in {"training", "points"}
+
+
 async def class_id_or_recent(
     dsrc: Source, class_id: Optional[int], rank_type: Optional[str]
 ) -> int:
-    if class_id is None and rank_type is None:
+    if class_id is not None:
+        return class_id
+    elif rank_type is None:
         reason = "Provide either class_id or rank_type query parameter!"
         raise AppError(
             err_type=ErrorKeys.GET_CLASS,
             err_desc=reason,
             debug_key="user_events_invalid_class",
         )
-    elif class_id is None and rank_type not in {"training", "points"}:
+    elif not is_rank_type(rank_type):
         reason = f"Ranking {rank_type} is unknown!"
         raise AppError(
             err_type=ErrorKeys.GET_CLASS,
             err_desc=reason,
             debug_key="user_events_bad_ranking",
         )
-    elif class_id is None:
+    else:
         async with data.get_conn(dsrc) as conn:
             class_id = (
                 await data.classifications.most_recent_class_of_type(conn, rank_type)
             ).classification_id
 
-    return class_id
+        return class_id

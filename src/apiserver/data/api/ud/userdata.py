@@ -1,11 +1,14 @@
 from datetime import date
-from typing import Optional, Type
+from typing import Any, Optional, Type
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from apiserver.lib.model.entities import UserData, SignedUp, IdInfo, UserNames
-from auth.core.model import IdInfo as AuthIdInfo
-from auth.data.schemad.user import UserDataOps as AuthUserDataOps, UserErrors
+from auth.data.relational.user import (
+    IdUserDataOps as AuthIdUserDataOps,
+    IdUserData as AuthIdUserData,
+    UserErrors,
+)
 from schema.model import (
     USERDATA_TABLE,
     USER_ID,
@@ -16,6 +19,7 @@ from schema.model import (
     UD_LASTNAME,
 )
 from store.db import (
+    lit_model,
     retrieve_by_unique,
     insert_return_col,
     upsert_by_unique,
@@ -26,7 +30,7 @@ from store.db import (
 from store.error import NoDataError, DataError, DbError
 
 
-def parse_userdata(user_dict: Optional[dict]) -> UserData:
+def parse_userdata(user_dict: Optional[dict[str, Any]]) -> UserData:
     if user_dict is None:
         raise NoDataError("UserData does not exist.", UserErrors.UD_EMPTY)
     return UserData.model_validate(user_dict)
@@ -34,7 +38,7 @@ def parse_userdata(user_dict: Optional[dict]) -> UserData:
 
 def new_userdata(
     su: SignedUp, user_id: str, register_id: str, av40id: int, joined: date
-):
+) -> UserData:
     return UserData(
         user_id=user_id,
         active=True,
@@ -52,7 +56,7 @@ def new_userdata(
 
 def finished_userdata(
     ud: UserData, callname: str, eduinstitution: str, birthdate: date, show_age: bool
-):
+) -> UserData:
     return UserData(
         user_id=ud.user_id,
         firstname=ud.firstname,
@@ -71,27 +75,48 @@ def finished_userdata(
     )
 
 
-class UserDataOps(AuthUserDataOps):
-    @classmethod
-    async def get_userdata_by_id(cls, conn: AsyncConnection, user_id: str) -> UserData:
-        userdata_row = await retrieve_by_unique(conn, USERDATA_TABLE, USER_ID, user_id)
-        return parse_userdata(userdata_row)
+class IdUserData(AuthIdUserData):
+    attr_id_info: IdInfo
+
+    def __init__(self, id_info: IdInfo):
+        self.attr_id_info = id_info
 
     @classmethod
-    def id_info_from_ud(cls, ud: UserData) -> AuthIdInfo:
-        return IdInfo(
-            email=ud.email,
-            name=f"{ud.firstname} {ud.lastname}",
-            given_name=ud.firstname,
-            family_name=ud.lastname,
-            nickname=ud.callname,
-            preferred_username=ud.callname,
-            birthdate=ud.birthdate.isoformat(),
+    def from_id_token(cls, id_token: dict[str, Any]) -> "IdUserData":
+        id_info = IdInfo.model_validate(id_token)
+        return IdUserData(id_info)
+
+    def id_info(self) -> dict[str, Any]:
+        return self.attr_id_info.model_dump()
+
+
+async def get_userdata_by_id(conn: AsyncConnection, user_id: str) -> UserData:
+    userdata_row = await retrieve_by_unique(conn, USERDATA_TABLE, USER_ID, user_id)
+    return parse_userdata(userdata_row)
+
+
+class IdUserDataOps(AuthIdUserDataOps):
+    @classmethod
+    async def get_id_userdata_by_id(
+        cls, conn: AsyncConnection, user_id: str
+    ) -> IdUserData:
+        ud = await get_userdata_by_id(conn, user_id)
+
+        return IdUserData(
+            IdInfo(
+                email=ud.email,
+                name=f"{ud.firstname} {ud.lastname}",
+                given_name=ud.firstname,
+                family_name=ud.lastname,
+                nickname=ud.callname,
+                preferred_username=ud.callname,
+                birthdate=ud.birthdate.isoformat(),
+            )
         )
 
     @classmethod
-    def id_info_type(cls) -> Type[IdInfo]:
-        return IdInfo
+    def get_type(cls) -> Type[IdUserData]:
+        return IdUserData
 
 
 async def get_userdata_by_email(conn: AsyncConnection, email: str) -> UserData:
@@ -108,21 +133,21 @@ async def get_userdata_by_register_id(
     return parse_userdata(userdata_row)
 
 
-async def insert_userdata(conn: AsyncConnection, userdata: UserData):
+async def insert_userdata(conn: AsyncConnection, userdata: UserData) -> str:
     try:
-        user_id = await insert_return_col(
-            conn, USERDATA_TABLE, userdata.model_dump(), USER_ID
+        user_id: str = await insert_return_col(
+            conn, USERDATA_TABLE, lit_model(userdata), USER_ID
         )
     except DbError as e:
         raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.key)
     return user_id
 
 
-async def upsert_userdata(conn: AsyncConnection, userdata: UserData):
+async def upsert_userdata(conn: AsyncConnection, userdata: UserData) -> int:
     """Requires known id. Note that this cannot change any unique constraints, those must remain unaltered."""
     try:
         result = await upsert_by_unique(
-            conn, USERDATA_TABLE, userdata.model_dump(), USER_ID
+            conn, USERDATA_TABLE, lit_model(userdata), USER_ID
         )
     except DbError as e:
         raise DataError(f"{e.err_desc} from internal: {e.err_internal}", e.key)

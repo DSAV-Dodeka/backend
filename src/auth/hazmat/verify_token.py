@@ -1,6 +1,6 @@
 from auth.core.error import InvalidRefresh
 from auth.core.model import RefreshToken
-from auth.data.schemad.entities import SavedRefreshToken
+from auth.data.relational.entities import SavedRefreshToken
 
 FIRST_SIGN_TIME = 1640690242
 

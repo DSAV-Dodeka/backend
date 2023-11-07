@@ -13,8 +13,9 @@ class User(BaseModel):
     scope: str
 
 
-class UserData(BaseModel):
-    pass
+# class InfoContainer(BaseModel, Generic[UserDataT, IdInfoT]):
+#     ud: UserDataT
+#     id_info: IdInfoT
 
 
 class SavedRefreshToken(BaseModel):

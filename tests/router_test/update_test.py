@@ -10,12 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 from starlette.testclient import TestClient
 
 from apiserver.app_def import create_app
-from apiserver.app_lifespan import State, safe_startup, register_and_define_code
+from apiserver.app_lifespan import safe_startup, register_and_define_code
 from apiserver.data import Source
 from apiserver.data.context import Code, UpdateContext
 from apiserver.env import load_config
 from apiserver.lib.model.entities import UserData, User
-from datacontext.context import Context
 from router_test.test_util import (
     make_test_user,
     make_base_ud,
@@ -62,7 +61,7 @@ def lifespan_fixture(api_config, make_dsrc: Source, make_cd: Code):
     safe_startup(make_dsrc, api_config)
 
     @asynccontextmanager
-    async def mock_lifespan(app: FastAPI) -> State:
+    async def mock_lifespan(app: FastAPI):
         yield {"dsrc": make_dsrc, "cd": make_cd}
 
     yield mock_lifespan
@@ -87,7 +86,7 @@ def mock_update_ctx(
     class MockUpdateContext(UpdateContext):
         @classmethod
         async def store_email_flow_password_change(
-            cls, ctx: Context, dsrc: Source, email: str
+            cls, dsrc: Source, email: str
         ) -> Optional[str]:
             ud = mock_db.get(email)
             if ud is None:
@@ -96,7 +95,7 @@ def mock_update_ctx(
 
             return mock_flow_id
 
-    return MockUpdateContext
+    return MockUpdateContext()
 
 
 def test_update_register_exists(

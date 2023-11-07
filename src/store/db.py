@@ -1,6 +1,7 @@
 from typing import Optional, Any, LiteralString, TypeAlias
+from pydantic import BaseModel
 
-from sqlalchemy import CursorResult, text, RowMapping
+from sqlalchemy import CursorResult, TextClause, text, RowMapping
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection
 
@@ -8,8 +9,29 @@ from store.error import DbError, DbErrors
 
 LiteralDict: TypeAlias = dict[LiteralString, Any]
 
+# The below type errors do not occur in mypy, but due occur in the pylance type checker
+# So we only ignore them for pyright (on which pylance is built)
 
-def _row_keys_vars_set(row: dict):
+
+def lit_model(m: BaseModel) -> LiteralDict:
+    return m.model_dump()  # pyright: ignore
+
+
+def lit_dict(m: dict[str, Any]) -> LiteralDict:
+    return m  # pyright: ignore
+
+
+def params(d: LiteralDict) -> dict[str, Any]:
+    return d  # pyright: ignore
+
+
+def params_list(d_list: list[LiteralDict]) -> list[dict[str, Any]]:
+    return d_list  # pyright: ignore
+
+
+def _row_keys_vars_set(
+    row: LiteralDict,
+) -> tuple[LiteralString, LiteralString, LiteralString]:
     row_keys = []
     row_keys_vars = []
     row_keys_set = []
@@ -17,21 +39,27 @@ def _row_keys_vars_set(row: dict):
         row_keys.append(key)
         row_keys_vars.append(f":{key}")
         row_keys_set.append(f"{key} = :{key}")
-    row_keys = ", ".join(row_keys)
-    row_keys_vars = ", ".join(row_keys_vars)
-    row_keys_set = ", ".join(row_keys_set)
-    return row_keys, row_keys_vars, row_keys_set
+    row_keys_str = ", ".join(row_keys)
+    row_keys_vars_str = ", ".join(row_keys_vars)
+    row_keys_set_str = ", ".join(row_keys_set)
+    return row_keys_str, row_keys_vars_str, row_keys_set_str
 
 
-def select_set(columns: set[str]):
+def select_set(columns: set[LiteralString]) -> str:
     return ", ".join(columns)
 
 
 async def execute_catch_conn(
-    conn: AsyncConnection, query, params: dict | list[dict]
-) -> CursorResult:
+    conn: AsyncConnection,
+    query: TextClause,
+    parameters: LiteralDict | list[LiteralDict],
+) -> CursorResult[Any]:
     try:
-        result = await conn.execute(query, parameters=params)
+        if isinstance(parameters, list):
+            result = await conn.execute(query, parameters=params_list(parameters))
+        else:
+            result = await conn.execute(query, parameters=params(parameters))
+
     except IntegrityError as e:
         raise DbError(
             "Database relational integrity violation", str(e), DbErrors.INTEGRITY
@@ -40,34 +68,37 @@ async def execute_catch_conn(
     return result
 
 
-def first_or_none(res: CursorResult) -> Optional[dict]:
+def first_or_none(res: CursorResult[Any]) -> Optional[dict[str, Any]]:
     row = res.mappings().first()
     return dict(row) if row is not None else None
 
 
-def all_rows(res: CursorResult) -> list[RowMapping]:
+def all_rows(res: CursorResult[Any]) -> list[RowMapping]:
     return list(res.mappings().all())
 
 
-def row_cnt(res: CursorResult) -> int:
+def row_cnt(res: CursorResult[Any]) -> int:
     return res.rowcount
 
 
 async def retrieve_by_id(
     conn: AsyncConnection, table: LiteralString, id_int: int
-) -> Optional[dict]:
+) -> Optional[dict[str, Any]]:
     """Ensure `table` is never user-defined."""
     query = text(f"SELECT * FROM {table} WHERE id = :id;")
-    res: CursorResult = await conn.execute(query, parameters={"id": id_int})
+    res: CursorResult[Any] = await conn.execute(query, parameters={"id": id_int})
     return first_or_none(res)
 
 
 async def retrieve_by_unique(
-    conn: AsyncConnection, table: LiteralString, unique_column: LiteralString, value
-) -> Optional[dict]:
+    conn: AsyncConnection,
+    table: LiteralString,
+    unique_column: LiteralString,
+    value: Any,
+) -> Optional[dict[str, Any]]:
     """Ensure `table` and `unique_column` are never user-defined."""
     query = text(f"SELECT * FROM {table} WHERE {unique_column} = :val;")
-    res: CursorResult = await conn.execute(query, parameters={"val": value})
+    res: CursorResult[Any] = await conn.execute(query, parameters={"val": value})
     return first_or_none(res)
 
 
@@ -76,7 +107,7 @@ async def select_some_where(
     table: LiteralString,
     sel_col: set[LiteralString],
     where_col: LiteralString,
-    where_value,
+    where_value: Any,
 ) -> list[RowMapping]:
     """Ensure `table`, `where_col` and `sel_col` are never user-defined."""
     some = select_set(sel_col)
@@ -90,9 +121,9 @@ async def select_some_two_where(
     table: LiteralString,
     sel_col: set[LiteralString],
     where_col1: LiteralString,
-    where_value1,
+    where_value1: Any,
     where_col2: LiteralString,
-    where_value2,
+    where_value2: Any,
 ) -> list[RowMapping]:
     """Ensure `table`, `where_col` and `sel_col` are never user-defined."""
     some = select_set(sel_col)
@@ -107,7 +138,7 @@ async def select_some_two_where(
 
 
 async def select_where(
-    conn: AsyncConnection, table: LiteralString, column: LiteralString, value
+    conn: AsyncConnection, table: LiteralString, column: LiteralString, value: Any
 ) -> list[RowMapping]:
     """Ensure `table` and `column` are never user-defined."""
     query = text(f"SELECT * FROM {table} WHERE {column} = :val;")
@@ -123,7 +154,7 @@ async def select_some_join_where(
     join_col_1: LiteralString,
     join_col_2: LiteralString,
     where_col: LiteralString,
-    value,
+    value: Any,
 ) -> list[RowMapping]:
     """Ensure columns and tables are never user-defined. If some select column exists in both tables, they must be
     namespaced: i.e. <table_1 name>.column, <table_2 name>.column."""
@@ -141,7 +172,7 @@ async def get_largest_where(
     table: LiteralString,
     sel_col: set[LiteralString],
     where_col: LiteralString,
-    where_val,
+    where_val: Any,
     order_col: LiteralString,
     num: int,
     descending: bool = True,
@@ -153,20 +184,25 @@ async def get_largest_where(
         f"SELECT {some} FROM {table} where {where_col} = :where_val ORDER BY"
         f" {order_col} {desc_str} LIMIT {num};"
     )
-    res: CursorResult = await conn.execute(query, parameters={"where_val": where_val})
+    res: CursorResult[Any] = await conn.execute(
+        query, parameters={"where_val": where_val}
+    )
     return all_rows(res)
 
 
 async def exists_by_unique(
-    conn: AsyncConnection, table: LiteralString, unique_column: LiteralString, value
+    conn: AsyncConnection,
+    table: LiteralString,
+    unique_column: LiteralString,
+    value: Any,
 ) -> bool:
     """Ensure `unique_column` and `table` are never user-defined."""
     query = text(
         f"SELECT EXISTS (SELECT * FROM {table} WHERE {unique_column} = :val) AS"
         ' "exists";'
     )
-    res: CursorResult = await conn.scalar(query, parameters={"val": value})
-    return res if res is not None else False
+    res: CursorResult[Any] = await conn.scalar(query, parameters={"val": value})
+    return bool(res) if res is not None else False
 
 
 async def upsert_by_unique(
@@ -185,7 +221,7 @@ async def upsert_by_unique(
         f" ({unique_column}) DO UPDATE SET {row_keys_set};"
     )
 
-    res = await execute_catch_conn(conn, query, params=row)
+    res = await execute_catch_conn(conn, query, parameters=row)
     return row_cnt(res)
 
 
@@ -193,9 +229,9 @@ async def update_column_by_unique(
     conn: AsyncConnection,
     table: LiteralString,
     set_column: LiteralString,
-    set_value,
+    set_value: Any,
     unique_column: LiteralString,
-    value,
+    value: Any,
 ) -> int:
     """Note that while the values are safe from injection, the column names are not."""
 
@@ -203,7 +239,9 @@ async def update_column_by_unique(
         f"UPDATE {table} SET {set_column} = :set WHERE {unique_column} = :val;"
     )
 
-    res = await execute_catch_conn(conn, query, params={"set": set_value, "val": value})
+    res = await execute_catch_conn(
+        conn, query, parameters={"set": set_value, "val": value}
+    )
     return row_cnt(res)
 
 
@@ -212,9 +250,9 @@ async def concat_column_by_unique_returning(
     table: LiteralString,
     concat_source_column: LiteralString,
     concat_target_column: LiteralString,
-    concat_value,
+    concat_value: Any,
     unique_column: LiteralString,
-    value,
+    value: Any,
     return_col: LiteralString,
 ) -> Any:
     """Note that while the values are safe from injection, the column names are not."""
@@ -225,7 +263,7 @@ async def concat_column_by_unique_returning(
     )
 
     res = await execute_catch_conn(
-        conn, query, params={"add": concat_value, "val": value}
+        conn, query, parameters={"add": concat_value, "val": value}
     )
     return res.scalar()
 
@@ -237,7 +275,7 @@ async def insert(conn: AsyncConnection, table: LiteralString, row: LiteralDict) 
     row_keys, row_keys_vars, _ = _row_keys_vars_set(row)
     query = text(f"INSERT INTO {table} ({row_keys}) VALUES ({row_keys_vars});")
 
-    res: CursorResult = await execute_catch_conn(conn, query, params=row)
+    res: CursorResult[Any] = await execute_catch_conn(conn, query, parameters=row)
     return row_cnt(res)
 
 
@@ -253,27 +291,27 @@ async def insert_return_col(
         f" ({return_col});"
     )
 
-    return await conn.scalar(query, parameters=row)
+    return await conn.scalar(query, parameters=params(row))
 
 
 async def delete_by_id(conn: AsyncConnection, table: LiteralString, id_int: int) -> int:
     """Ensure `table` is never user-defined."""
     query = text(f"DELETE FROM {table} WHERE id = :id;")
-    res: CursorResult = await conn.execute(query, parameters={"id": id_int})
+    res: CursorResult[Any] = await conn.execute(query, parameters={"id": id_int})
     return row_cnt(res)
 
 
 async def delete_by_column(
-    conn: AsyncConnection, table: LiteralString, column: LiteralString, column_val
+    conn: AsyncConnection, table: LiteralString, column: LiteralString, column_val: Any
 ) -> int:
     """Ensure `table` and `column` are never user-defined."""
     query = text(f"DELETE FROM {table} WHERE {column} = :val;")
-    res: CursorResult = await conn.execute(query, parameters={"val": column_val})
+    res: CursorResult[Any] = await conn.execute(query, parameters={"val": column_val})
     return row_cnt(res)
 
 
 async def insert_many(
-    conn: AsyncConnection, table: LiteralString, row_list: list[dict]
+    conn: AsyncConnection, table: LiteralString, row_list: list[LiteralDict]
 ) -> int:
     """The model type must be known beforehand, it cannot be defined by the user! Same goes for table string. The dict
     column values must also be checked!"""
@@ -282,5 +320,5 @@ async def insert_many(
     row_keys, row_keys_vars, _ = _row_keys_vars_set(row_list[0])
     query = text(f"INSERT INTO {table} ({row_keys}) VALUES ({row_keys_vars});")
 
-    res: CursorResult = await execute_catch_conn(conn, query, params=row_list)
+    res: CursorResult[Any] = await execute_catch_conn(conn, query, parameters=row_list)
     return row_cnt(res)

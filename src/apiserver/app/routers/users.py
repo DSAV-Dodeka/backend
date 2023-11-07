@@ -17,7 +17,9 @@ BirthdayList = TypeAdapter(List[BirthdayData])
 
 
 @router.get("/members/birthdays/", response_model=list[BirthdayData])
-async def get_user_birthdays(request: Request, authorization: Authorization):
+async def get_user_birthdays(
+    request: Request, authorization: Authorization
+) -> RawJSONResponse:
     dsrc: Source = request.state.dsrc
     await require_member(authorization, dsrc)
 

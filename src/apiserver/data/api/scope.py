@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, LiteralString, Optional
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
@@ -22,21 +22,23 @@ from store.db import (
 from store.error import DataError, NoDataError, DbError
 
 
-def parse_scope_data(scope_dict: Optional[dict]) -> ScopeData:
+def parse_scope_data(scope_dict: Optional[dict[str, Any]]) -> ScopeData:
     if scope_dict is None:
         raise NoDataError("ScopeData does not exist.", "scope_data_empty")
 
     return ScopeData.model_validate(scope_dict)
 
 
-def ignore_admin_member(scope: str):
+def ignore_admin_member(scope: str) -> str:
     if scope in {"admin", "member"}:
         return ""
     else:
         return scope
 
 
-def parse_users_scopes_data(users_scope_dict: Optional[dict]) -> UserScopeData:
+def parse_users_scopes_data(
+    users_scope_dict: Optional[dict[str, Any]]
+) -> UserScopeData:
     if users_scope_dict is None:
         raise NoDataError("UserScopeData does not exist.", "user_scope_data_empty")
     raw_user_scope = RawUserScopeData.model_validate(users_scope_dict)
@@ -51,7 +53,7 @@ def parse_users_scopes_data(users_scope_dict: Optional[dict]) -> UserScopeData:
     )
 
 
-async def add_scope(conn: AsyncConnection, user_id: str, new_scope: str):
+async def add_scope(conn: AsyncConnection, user_id: str, new_scope: str) -> None:
     """Whitespace (according to Unicode standard) is removed and scope is added as usph"""
     # We strip whitespace and other nasty characters from start and end
     stripped_scope = strip_edge(new_scope)
@@ -76,7 +78,7 @@ async def add_scope(conn: AsyncConnection, user_id: str, new_scope: str):
         raise DataError("Scope already exists on scope", "scope_duplicate")
 
 
-async def remove_scope(conn: AsyncConnection, user_id: str, old_scope: str):
+async def remove_scope(conn: AsyncConnection, user_id: str, old_scope: str) -> None:
     # Space is added because we concatenate
     scope_usph = usp_hex(old_scope)
 
@@ -117,7 +119,12 @@ async def remove_scope(conn: AsyncConnection, user_id: str, old_scope: str):
 
 async def get_all_users_scopes(conn: AsyncConnection) -> list[UserScopeData]:
     # user_id must be namespaced as it exists in both tables
-    select_columns = {UD_FIRSTNAME, UD_LASTNAME, f"{USER_TABLE}.{USER_ID}", SCOPES}
+    select_columns: set[LiteralString] = {
+        UD_FIRSTNAME,
+        UD_LASTNAME,
+        f"{USER_TABLE}.{USER_ID}",
+        SCOPES,
+    }
 
     all_users_scopes = await select_some_join_where(
         conn,

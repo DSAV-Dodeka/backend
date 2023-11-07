@@ -2,7 +2,7 @@ from typing import Protocol
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from auth.data.schemad.entities import SavedRefreshToken
+from auth.data.relational.entities import SavedRefreshToken
 
 
 class RefreshOps(Protocol):
@@ -20,7 +20,7 @@ class RefreshOps(Protocol):
     async def delete_family(cls, conn: AsyncConnection, family_id: str) -> int: ...
 
     @classmethod
-    async def delete_refresh_by_id(cls, conn: AsyncConnection, id_int: int): ...
+    async def delete_refresh_by_id(cls, conn: AsyncConnection, id_int: int) -> int: ...
 
     @classmethod
-    async def delete_by_user_id(cls, conn: AsyncConnection, user_id: str): ...
+    async def delete_by_user_id(cls, conn: AsyncConnection, user_id: str) -> int: ...

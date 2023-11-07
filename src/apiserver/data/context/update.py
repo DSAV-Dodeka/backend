@@ -4,16 +4,14 @@ from apiserver import data
 from apiserver.data import Source
 from apiserver.data.context import UpdateContext
 from auth.core.util import random_time_hash_hex
-from datacontext.context import ContextRegistry, Context
+from datacontext.context import ContextRegistry
 from store.error import NoDataError
 
 ctx_reg = ContextRegistry()
 
 
 @ctx_reg.register(UpdateContext)
-async def store_email_flow_password_change(
-    ctx: Context, dsrc: Source, email: str
-) -> Optional[str]:
+async def store_email_flow_password_change(dsrc: Source, email: str) -> Optional[str]:
     """If registered user exists for email, then store email with random flow ID and return it. Else, return None."""
     try:
         async with data.get_conn(dsrc) as conn:

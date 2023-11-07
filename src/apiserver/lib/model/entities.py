@@ -3,8 +3,8 @@ from typing import Optional, Literal, List
 
 from pydantic import field_validator, BaseModel, TypeAdapter, Field, AliasChoices
 
-from auth.core.model import IdInfo as AuthIdInfo, AccessTokenBase as AuthAccessToken
-from auth.data.schemad.entities import User as AuthUser, UserData as AuthUserData
+from auth.core.model import AccessTokenBase as AuthAccessToken
+from auth.data.relational.entities import User as AuthUser
 
 
 class User(AuthUser):
@@ -32,7 +32,7 @@ class AccessToken(AuthAccessToken):
     exp: int
 
 
-class IdInfo(AuthIdInfo):
+class IdInfo(BaseModel):
     email: str
     name: str
     given_name: str
@@ -50,7 +50,7 @@ class SignedUp(BaseModel):
     confirmed: bool = False
 
 
-class UserData(AuthUserData):
+class UserData(BaseModel):
     user_id: str
     active: bool
     firstname: str
@@ -68,7 +68,7 @@ class UserData(AuthUserData):
 
     # Coerces null in database to false
     @field_validator("showage")
-    def coerce_showage(cls, value):
+    def coerce_showage(cls, value: Optional[bool]) -> bool:
         if value is None:
             return False
         else:
@@ -103,11 +103,6 @@ class JWKSRow(BaseModel):
     encrypted_value: str
 
 
-class OpaqueSetup(BaseModel):
-    id: int
-    value: str
-
-
 class JWK(BaseModel):
     """Parameters are as standardized in the IANA JOSE registry (https://www.iana.org/assignments/jose/jose.xhtml)"""
 
@@ -128,6 +123,14 @@ class JWKPublicEdDSA(JWK):
     kid: str
     crv: Literal["Ed448"]
     x: str  # public asymmetric key base64url bytes
+
+
+class JWKSymmetricA256GCM(JWK):
+    kty: Literal["oct"]
+    use: Literal["enc"]
+    alg: Literal["A256GCM"]
+    kid: str
+    k: str  # symmetric key base64url bytes
 
 
 class JWKSet(BaseModel):
@@ -214,6 +217,14 @@ class UserPointsNames(BaseModel):
 
 
 UserPointsNamesList = TypeAdapter(List[UserPointsNames])
+
+
+# class PointsData(BaseModel):
+#     points: int
+
+
+class StoredKeyKID(BaseModel):
+    kid: str
 
 
 class ClassEvent(BaseModel):

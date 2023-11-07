@@ -1,8 +1,9 @@
-from typing import Optional
+from typing import Any, Optional
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from store.db import (
+    LiteralDict,
     retrieve_by_unique,
     insert,
     exists_by_unique,
@@ -27,7 +28,7 @@ __all__ = [
 ]
 
 
-def parse_signedup(signedup_dict: Optional[dict]) -> SignedUp:
+def parse_signedup(signedup_dict: Optional[dict[str, Any]]) -> SignedUp:
     if signedup_dict is None:
         raise DataError("User does not exist.", "signedup_empty")
     return SignedUp.model_validate(signedup_dict)
@@ -38,7 +39,7 @@ async def get_signedup_by_email(conn: AsyncConnection, email: str) -> SignedUp:
     return parse_signedup(signedup_row)
 
 
-async def confirm_signup(conn: AsyncConnection, email: str):
+async def confirm_signup(conn: AsyncConnection, email: str) -> None:
     await update_column_by_unique(
         conn, SIGNEDUP_TABLE, SU_CONFIRMED, True, SU_EMAIL, email
     )
@@ -53,7 +54,7 @@ async def signedup_exists(conn: AsyncConnection, email: str) -> bool:
     return await exists_by_unique(conn, SIGNEDUP_TABLE, SU_EMAIL, email)
 
 
-async def insert_su_row(conn: AsyncConnection, su_row: dict):
+async def insert_su_row(conn: AsyncConnection, su_row: LiteralDict) -> int:
     try:
         result = await insert(conn, SIGNEDUP_TABLE, su_row)
     except DbError as e:
@@ -61,5 +62,5 @@ async def insert_su_row(conn: AsyncConnection, su_row: dict):
     return result
 
 
-async def delete_signedup(conn: AsyncConnection, email: str):
+async def delete_signedup(conn: AsyncConnection, email: str) -> None:
     await delete_by_column(conn, SIGNEDUP_TABLE, SU_EMAIL, email)

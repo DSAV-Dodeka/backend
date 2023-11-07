@@ -4,6 +4,8 @@ from urllib.parse import urlencode
 import opaquepy as opq
 from fastapi import APIRouter, Request, BackgroundTasks
 from pydantic import BaseModel
+from apiserver.data.api.ud.userdata import get_userdata_by_id
+from auth.core.response import PasswordResponse
 
 import auth.core.util
 from apiserver import data
@@ -39,7 +41,7 @@ async def request_password_change(
     change_pass: ChangePasswordRequest,
     request: Request,
     background_tasks: BackgroundTasks,
-):
+) -> None:
     """Initiated from authpage. Sends out e-mail with reset link. Does nothing if user does not exist or is not yet
     properly registered."""
     dsrc: Source = request.state.dsrc
@@ -76,14 +78,14 @@ class UpdatePasswordRequest(BaseModel):
 
 
 @router.post("/update/password/start/")
-async def update_password_start(update_pass: UpdatePasswordRequest, request: Request):
+async def update_password_start(
+    update_pass: UpdatePasswordRequest, request: Request
+) -> PasswordResponse:
     dsrc: Source = request.state.dsrc
     cd: Code = request.state.cd
 
-    try:
-        stored_email = await data.trs.pop_string(dsrc, update_pass.flow_id)
-    except NoDataError as e:
-        logger.debug(e.message)
+    stored_email = await data.trs.pop_string(dsrc, update_pass.flow_id)
+    if stored_email is None:
         reason = "No reset has been requested for this user."
         raise ErrorResponse(
             400, err_type="invalid_reset", err_desc=reason, debug_key="no_user_reset"
@@ -113,7 +115,9 @@ class UpdatePasswordFinish(BaseModel):
 
 
 @router.post("/update/password/finish/")
-async def update_password_finish(update_finish: UpdatePasswordFinish, request: Request):
+async def update_password_finish(
+    update_finish: UpdatePasswordFinish, request: Request
+) -> None:
     dsrc: Source = request.state.dsrc
 
     try:
@@ -143,7 +147,7 @@ async def update_email(
     request: Request,
     background_tasks: BackgroundTasks,
     authorization: Authorization,
-):
+) -> None:
     dsrc: Source = request.state.dsrc
     user_id = new_email.user_id
     await require_user(authorization, dsrc, user_id)
@@ -195,10 +199,15 @@ class ChangedEmailResponse(BaseModel):
 
 
 @router.post("/update/email/check/")
-async def update_email_check(update_check: UpdateEmailCheck, request: Request):
+async def update_email_check(
+    update_check: UpdateEmailCheck, request: Request
+) -> ChangedEmailResponse:
     dsrc: Source = request.state.dsrc
+    cd: Code = request.state.cd
 
-    flow_user = await authentication.check_password(dsrc, update_check.code)
+    flow_user = await authentication.check_password(
+        dsrc, update_check.code, cd.auth_context.login_ctx
+    )
 
     try:
         stored_email = await data.trs.reg.get_update_email(dsrc, flow_user.user_id)
@@ -264,14 +273,14 @@ async def delete_account(
     delete_acc: DeleteAccount,
     request: Request,
     authorization: Authorization,
-):
+) -> DeleteUrlResponse:
     dsrc: Source = request.state.dsrc
     user_id = delete_acc.user_id
     await require_user(authorization, dsrc, user_id)
 
     try:
         async with data.get_conn(dsrc) as conn:
-            ud = await ops.userdata.get_userdata_by_id(conn, user_id)
+            ud = await get_userdata_by_id(conn, user_id)
     except NoDataError:
         raise ErrorResponse(
             400, "bad_update", "User no longer exists.", "update_user_empty"
@@ -303,14 +312,18 @@ class DeleteAccountCheck(BaseModel):
 
 
 @router.post("/update/delete/check/")
-async def delete_account_check(delete_check: DeleteAccountCheck, request: Request):
+async def delete_account_check(
+    delete_check: DeleteAccountCheck, request: Request
+) -> DeleteAccount:
     dsrc: Source = request.state.dsrc
+    cd: Code = request.state.cd
 
-    flow_user = await authentication.check_password(dsrc, delete_check.code)
+    flow_user = await authentication.check_password(
+        dsrc, delete_check.code, cd.auth_context.login_ctx
+    )
 
-    try:
-        stored_user_id = await data.trs.pop_string(dsrc, delete_check.flow_id)
-    except NoDataError:
+    stored_user_id = await data.trs.pop_string(dsrc, delete_check.flow_id)
+    if stored_user_id is None:
         reason = "Delete request has expired, please try again!"
         logger.debug(reason + f" {flow_user.user_id}")
         raise ErrorResponse(status_code=400, err_type="bad_update", err_desc=reason)

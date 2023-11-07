@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Generator, TypeVar
 
 from faker import Faker
 from pydantic import BaseModel
@@ -6,6 +7,9 @@ from pydantic import BaseModel
 from apiserver.lib.model.entities import IdInfo, UserData, User
 from apiserver.lib.utilities import gen_id_name
 from auth.core.model import AuthRequest
+
+T = TypeVar("T")
+Fixture = Generator[T, None, None]
 
 
 def cr_user_id(id_int: int, g_id_name: str):
@@ -42,7 +46,7 @@ def make_test_user(faker: Faker):
     )
 
 
-def make_extended_test_user(faker: Faker):
+def make_extended_test_user(faker: Faker) -> tuple[GenUser, IdInfo]:
     user_fn = faker.first_name()
     user_ln = faker.last_name()
     test_user_id_int = faker.random_int(min=3, max=300)

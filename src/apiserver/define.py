@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import tomllib
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -34,11 +34,14 @@ class Define(AuthDefine):
     allowed_envs: set[str]
 
 
-def load_define(define_path_name: Optional[os.PathLike] = None) -> Define:
-    define_path_resolved = Path(define_path_name)
+def load_define(define_path_name: Optional[os.PathLike[Any]] = None) -> Define:
+    if define_path_name is None:
+        config = dict()
+    else:
+        define_path_resolved = Path(define_path_name)
 
-    with open(define_path_resolved, "rb") as f:
-        config = tomllib.load(f)
+        with open(define_path_resolved, "rb") as f:
+            config = tomllib.load(f)
 
     define_dict = (
         default_define | config
@@ -47,7 +50,7 @@ def load_define(define_path_name: Optional[os.PathLike] = None) -> Define:
     return Define.model_validate(define_dict)
 
 
-def load_loc(loc_path_name: Optional[os.PathLike] = None) -> dict:
+def load_loc(loc_path_name: os.PathLike[Any]) -> dict[str, Any]:
     loc_path_resolved = Path(loc_path_name)
 
     with open(loc_path_resolved, "rb") as f:

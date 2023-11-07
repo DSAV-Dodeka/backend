@@ -88,10 +88,6 @@ class KeyState(BaseModel):
     current_signing: str
 
 
-class IdInfo(BaseModel):
-    pass
-
-
 class RefreshToken(BaseModel):
     id: int
     family_id: str

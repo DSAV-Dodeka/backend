@@ -10,7 +10,7 @@ from auth.data.authentication import pop_flow_user
 from auth.data.authorize import get_auth_request
 from auth.data.context import TokenContext
 from store.error import NoDataError
-from auth.data.schemad.ops import SchemaOps
+from auth.data.relational.ops import RelationOps
 from auth.define import Define
 from auth.modules.token.create import new_token, do_refresh
 from auth.validate.token import (
@@ -24,11 +24,11 @@ from store import Store
 async def process_token_request(
     store: Store,
     define: Define,
-    ops: SchemaOps,
+    ops: RelationOps,
     context: TokenContext,
     key_state: KeyState,
     token_request: TokenRequest,
-):
+) -> TokenResponse:
     # We only allow requests meant to be sent from our front end
     # This does not heighten security, only so other clients do not accidentally make requests here
     if token_request.client_id != define.frontend_client_id:
@@ -75,7 +75,7 @@ async def process_token_request(
 async def auth_code_grant(
     store: Store,
     define: Define,
-    ops: SchemaOps,
+    ops: RelationOps,
     context: TokenContext,
     key_state: KeyState,
     code_grant_request: CodeGrantRequest,
@@ -123,7 +123,7 @@ async def auth_code_grant(
 
 async def request_token_grant(
     store: Store,
-    ops: SchemaOps,
+    ops: RelationOps,
     context: TokenContext,
     key_state: KeyState,
     old_refresh: str,

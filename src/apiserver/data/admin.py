@@ -15,7 +15,7 @@ logger = logging.getLogger(LOGGER_NAME)
 #     await execute_queries_unsafe(admin_db, queries)
 
 
-def drop_recreate_database(engine: Engine, db_name: str):
+def drop_recreate_database(engine: Engine, db_name: str) -> None:
     with engine.connect() as connection:
         drop_db = text(f"DROP DATABASE IF EXISTS {db_name}")
         connection.execute(drop_db)

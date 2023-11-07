@@ -13,14 +13,14 @@ from auth.data.authentication import (
 )
 from auth.data.context import LoginContext
 from store.error import NoDataError
-from auth.data.schemad.user import UserOps
+from auth.data.relational.user import UserOps
 from store import Store
 from store.conn import store_session
 
 
 async def start_login(
     store: Store, user_ops: UserOps, context: LoginContext, login_start: PasswordRequest
-):
+) -> PasswordResponse:
     """Login can be initiated in 2 different flows: the first is the OAuth 2 flow, the second is a simple password
     check flow."""
 
@@ -46,7 +46,9 @@ async def start_login(
     return PasswordResponse(server_message=response, auth_id=auth_id)
 
 
-async def finish_login(store: Store, context: LoginContext, login_finish: FinishLogin):
+async def finish_login(
+    store: Store, context: LoginContext, login_finish: FinishLogin
+) -> None:
     finish_email = login_finish.email.lower()
     try:
         saved_state = await get_state(context, store, login_finish.auth_id)

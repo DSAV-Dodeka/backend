@@ -4,17 +4,15 @@ from apiserver.data import Source, ops
 from apiserver.data.context import RegisterAppContext
 from apiserver.lib.model.entities import UserData, User
 from auth.core.model import SavedRegisterState
-from auth.data.schemad.user import UserErrors
-from datacontext.context import ContextRegistry, Context
+from auth.data.relational.user import UserErrors
+from datacontext.context import ContextRegistry
 from store.error import NoDataError
 
 ctx_reg = ContextRegistry()
 
 
 @ctx_reg.register(RegisterAppContext)
-async def get_registration(
-    ctx: Context, dsrc: Source, register_id: str
-) -> tuple[UserData, User]:
+async def get_registration(dsrc: Source, register_id: str) -> tuple[UserData, User]:
     try:
         async with data.get_conn(dsrc) as conn:
             ud = await data.ud.get_userdata_by_register_id(conn, register_id)
@@ -38,9 +36,7 @@ async def get_registration(
 
 
 @ctx_reg.register(RegisterAppContext)
-async def get_register_state(
-    ctx: Context, dsrc: Source, auth_id: str
-) -> SavedRegisterState:
+async def get_register_state(dsrc: Source, auth_id: str) -> SavedRegisterState:
     try:
         saved_state = await data.trs.reg.get_register_state(dsrc, auth_id)
     except NoDataError:
@@ -57,7 +53,7 @@ async def get_register_state(
 
 @ctx_reg.register(RegisterAppContext)
 async def check_userdata_register(
-    ctx: Context, dsrc: Source, register_id: str, request_email: str, saved_user_id: str
+    dsrc: Source, register_id: str, request_email: str, saved_user_id: str
 ) -> UserData:
     """Must also ensure request_email and saved_user_id match the userdata."""
     try:
@@ -103,9 +99,7 @@ async def check_userdata_register(
 
 
 @ctx_reg.register(RegisterAppContext)
-async def save_registration(
-    ctx: Context, dsrc: Source, pw_file: str, new_userdata: UserData
-) -> None:
+async def save_registration(dsrc: Source, pw_file: str, new_userdata: UserData) -> None:
     """Assumes the new_userdata has the same user_id and email as the registration starter."""
     async with data.get_conn(dsrc) as conn:
         await ops.user.update_password_file(conn, new_userdata.user_id, pw_file)

@@ -8,8 +8,14 @@ from sqlalchemy import create_engine
 from apiserver.data.api.classifications import insert_classification
 from apiserver.data.source import KeyState
 from apiserver.env import Config
-from apiserver.lib.model.entities import JWKSet, User, UserData, JWKPublicEdDSA
-from auth.data.schemad.opaque import insert_opaque_row
+from apiserver.lib.model.entities import (
+    JWKSet,
+    User,
+    UserData,
+    JWKPublicEdDSA,
+    JWKSymmetricA256GCM,
+)
+from auth.data.relational.opaque import insert_opaque_row
 from auth.hazmat.structs import A256GCMKey
 from apiserver.lib.hazmat import keys
 from apiserver.lib.hazmat.keys import ed448_private_to_pem
@@ -22,11 +28,12 @@ from apiserver import data
 from apiserver.data import Source
 from schema.model import metadata as db_model
 from apiserver.data.admin import drop_recreate_database
+from store.error import DataError
 
 logger = logging.getLogger(LOGGER_NAME)
 
 
-async def startup(dsrc: Source, config: Config, recreate=False):
+async def startup(dsrc: Source, config: Config, recreate: bool = False) -> None:
     # Checks lock: returns True if it is the first lock since at least 25 seconds (lock expire time)
     first_lock = await waiting_lock(dsrc)
     logger.debug(f"{first_lock} - first lock status")
@@ -54,7 +61,7 @@ async def startup(dsrc: Source, config: Config, recreate=False):
 MAX_WAIT_INDEX = 15
 
 
-async def waiting_lock(dsrc: Source):
+async def waiting_lock(dsrc: Source) -> bool:
     """We need this lock because in production we spawn multiple processes, which each startup separately. Returns
     true if it is the first lock since at least 25 seconds (lock expire time)."""
     await sleep(random() + 0.1)
@@ -73,7 +80,7 @@ async def waiting_lock(dsrc: Source):
     return False
 
 
-def drop_create_database(config: Config):
+def drop_create_database(config: Config) -> None:
     # runtime_key = aes_from_symmetric(config.KEY_PASS)
     db_cluster = f"{config.DB_USER}:{config.DB_PASS}@{config.DB_HOST}:{config.DB_PORT}"
     db_url = f"{db_cluster}/{config.DB_NAME}"
@@ -91,7 +98,7 @@ def drop_create_database(config: Config):
     del sync_engine
 
 
-async def initial_population(dsrc: Source, config: Config):
+async def initial_population(dsrc: Source, config: Config) -> None:
     kid1, kid2, kid3 = (util.random_time_hash_hex(short=True) for _ in range(3))
     old_symmetric = keys.new_symmetric_key(kid1)
     new_symmetric = keys.new_symmetric_key(kid2)
@@ -159,7 +166,7 @@ async def initial_population(dsrc: Source, config: Config):
         await insert_classification(conn, "points")
 
 
-async def get_keystate(dsrc: Source):
+async def get_keystate(dsrc: Source) -> KeyState:
     async with data.get_conn(dsrc) as conn:
         # We get the Key IDs (kid) of the newest keys and also previous symmetric key
         # These newest ones will be used for signing new tokens
@@ -173,13 +180,13 @@ async def get_keystate(dsrc: Source):
     )
 
 
-async def load_keys_from_jwk(dsrc: Source, config: Config):
+async def load_keys_from_jwk(dsrc: Source, config: Config) -> JWKSet:
     # Key used to decrypt the keys stored in the database
     runtime_key = aes_from_symmetric(config.KEY_PASS)
     async with data.get_conn(dsrc) as conn:
         encrypted_key_set = await data.key.get_jwk(conn)
         key_set_dict = decrypt_dict(runtime_key.private, encrypted_key_set)
-        key_set: JWKSet = JWKSet.model_validate(key_set_dict)
+        key_set = JWKSet.model_validate(key_set_dict)
         # We re-encrypt as is required when using AES encryption
         reencrypted_key_set = encrypt_dict(runtime_key.private, key_set_dict)
         await data.key.update_jwk(conn, reencrypted_key_set)
@@ -187,7 +194,7 @@ async def load_keys_from_jwk(dsrc: Source, config: Config):
     return key_set
 
 
-async def load_keys(dsrc: Source, config: Config):
+async def load_keys(dsrc: Source, config: Config) -> None:
     key_set = await load_keys_from_jwk(dsrc, config)
     key_state = await get_keystate(dsrc)
 
@@ -197,6 +204,11 @@ async def load_keys(dsrc: Source, config: Config):
     public_keys = []
     for key in key_set.keys:
         if key.alg == "EdDSA":
+            if key.d is None:
+                raise DataError(
+                    "Key private bytes not defined for EdDSA key!",
+                    "eddsa_no_private_bytes",
+                )
             key_private_bytes = util.dec_b64url(key.d)
             # PyJWT only accepts keys in PEM format, so we convert them from the raw format we store them in
             pem_key, pem_private_key = ed448_private_to_pem(key_private_bytes, key.kid)
@@ -205,12 +217,13 @@ async def load_keys(dsrc: Source, config: Config):
             # The public keys we will store in raw format, we want to exclude the private key as we want to be able to
             # publish these keys
             # The 'x' are the public key bytes (as set by the JWK standard)
-            public_key = JWKPublicEdDSA(
-                alg=key.alg, kid=key.kid, kty=key.kty, use=key.use, crv=key.crv, x=key.x
-            )
+            public_key = JWKPublicEdDSA.model_validate(key.model_dump())
             public_keys.append(public_key)
         elif key.alg == "A256GCM":
-            symmetric_key = A256GCMKey(kid=key.kid, symmetric=key.k)
+            symmetric_key_jwk = JWKSymmetricA256GCM.model_validate(key.model_dump())
+            symmetric_key = A256GCMKey(
+                kid=symmetric_key_jwk.kid, symmetric=symmetric_key_jwk.k
+            )
             symmetric_keys.append(symmetric_key)
 
     # In the future we can publish these keys

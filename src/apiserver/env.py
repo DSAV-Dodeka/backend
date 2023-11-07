@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Optional
 
 import os
 from pathlib import Path
@@ -46,7 +46,7 @@ class Config(StoreConfig):
     DB_NAME_ADMIN: str
 
 
-def load_config(config_path_name: Optional[os.PathLike] = None) -> Config:
+def load_config(config_path_name: Optional[os.PathLike[Any]] = None) -> Config:
     env_config_path = os.environ.get("APISERVER_CONFIG")
     if env_config_path is not None:
         config_path = Path(env_config_path)

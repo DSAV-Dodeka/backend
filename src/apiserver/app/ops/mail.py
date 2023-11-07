@@ -36,7 +36,7 @@ def mail_from_config(config: Config) -> Optional[MailServer]:
 
 
 def send_email(
-    logger_sent,
+    logger_sent: logging.Logger,
     template: str,
     receiver_email: str,
     mail_server: Optional[MailServer],
@@ -76,10 +76,10 @@ def send_signup_email(
     mail_server: Optional[MailServer],
     redirect_link: str,
     signup_link: str,
-):
+) -> None:
     add_vars = {"redirect_link": redirect_link, "signup_link": signup_link}
 
-    def send_lam():
+    def send_lam() -> None:
         send_email(
             logger,
             "confirm.jinja2",
@@ -98,10 +98,10 @@ def send_register_email(
     receiver: str,
     mail_server: Optional[MailServer],
     register_link: str,
-):
+) -> None:
     add_vars = {"register_link": register_link}
 
-    def send_lam():
+    def send_lam() -> None:
         org_name = loc_dict["loc"]["org_name"]
         send_email(
             logger,
@@ -120,12 +120,12 @@ def send_reset_email(
     receiver: str,
     mail_server: Optional[MailServer],
     reset_link: str,
-):
+) -> None:
     add_vars = {
         "reset_link": reset_link,
     }
 
-    def send_lam():
+    def send_lam() -> None:
         send_email(
             logger,
             "passwordchange.jinja2",
@@ -144,13 +144,13 @@ def send_change_email_email(
     mail_server: Optional[MailServer],
     reset_link: str,
     old_email: str,
-):
+) -> None:
     add_vars = {
         "old_email": old_email,
         "reset_link": reset_link,
     }
 
-    def send_lam():
+    def send_lam() -> None:
         send_email(
             logger,
             "emailchange.jinja2",

@@ -1,6 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
-from typing import TypedDict
+from typing import AsyncContextManager, AsyncIterator, Callable, TypedDict
 
 from fastapi import FastAPI
 
@@ -31,7 +31,7 @@ class State(TypedDict):
 
 
 # Should always be manually run in tests
-def safe_startup(dsrc_inst: Source, config: Config):
+def safe_startup(dsrc_inst: Source, config: Config) -> Source:
     dsrc_inst.config = config
     dsrc_inst.store.init_objects(config)
 
@@ -41,7 +41,7 @@ def safe_startup(dsrc_inst: Source, config: Config):
 # We use the functions below, so we can also manually call them in tests
 
 
-async def app_startup(dsrc_inst: Source):
+async def app_startup(dsrc_inst: Source) -> Source:
     # Only startup events that do not work in all environments or require other
     # processes to run belong here
     # Safe startup events with variables that depend on the environment, but should
@@ -76,11 +76,11 @@ async def app_startup(dsrc_inst: Source):
     return dsrc_inst
 
 
-async def app_shutdown(dsrc_inst: Source):
+async def app_shutdown(dsrc_inst: Source) -> None:
     await dsrc_inst.store.shutdown()
 
 
-def register_and_define_code():
+def register_and_define_code() -> Code:
     data_context = Contexts()
     data_context.include_registry(auth_reg)
     data_context.include_registry(athrz_reg)
@@ -95,8 +95,11 @@ def register_and_define_code():
     return Code(auth_context=data_context, app_context=source_data_context)
 
 
+AppLifespan = Callable[[FastAPI], AsyncContextManager[State]]
+
+
 @asynccontextmanager
-async def lifespan(_app: FastAPI) -> State:
+async def lifespan(_app: FastAPI) -> AsyncIterator[State]:
     logger.info("Running startup...")
     dsrc = Source()
     dsrc_started = await app_startup(dsrc)

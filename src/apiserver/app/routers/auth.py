@@ -30,7 +30,9 @@ logger = logging.getLogger(LOGGER_NAME)
 
 
 @router.post("/login/start/", response_model=PasswordResponse)
-async def start_login(login_start: PasswordRequest, request: Request):
+async def start_login(
+    login_start: PasswordRequest, request: Request
+) -> PasswordResponse:
     """Login can be initiated in 2 different flows: the first is the OAuth 2 flow, the second is a simple password
     check flow."""
     dsrc: Source = request.state.dsrc
@@ -42,7 +44,7 @@ async def start_login(login_start: PasswordRequest, request: Request):
 
 
 @router.post("/login/finish/")
-async def finish_login(login_finish: FinishLogin, request: Request):
+async def finish_login(login_finish: FinishLogin, request: Request) -> None:
     dsrc: Source = request.state.dsrc
     cd: Code = request.state.cd
 
@@ -66,7 +68,7 @@ async def oauth_endpoint(
     code_challenge_method: str,
     nonce: str,
     request: Request,
-):
+) -> RedirectResponse:
     """This is the authorization endpoint (as in Section 3.1 of the OAuth 2.1 standard). The auth request is validated
     in this step. This initiates the authentication process. This endpoint can only return an error response. If there
     is no error, the /oauth/callback/ endpoint returns the successful response after authentication. Authentication is
@@ -97,7 +99,9 @@ async def oauth_endpoint(
 
 
 @router.get("/oauth/callback/", status_code=303)
-async def oauth_finish(flow_id: str, code: str, response: Response, request: Request):
+async def oauth_finish(
+    flow_id: str, code: str, response: Response, request: Request
+) -> RedirectResponse:
     """After a successful authentication, this endpoint (the Authorization Endpoint in OAuth 2.1) returns a redirect
     response to the redirect url originally specified in the request. This check has already been performed by the
     /oauth/authorize/ endpoint, as have been all other checks. We do not add the 'iss' parameter (RFC9207) as we assume
@@ -120,8 +124,10 @@ async def oauth_finish(flow_id: str, code: str, response: Response, request: Req
     return RedirectResponse(redirect.url, status_code=redirect.code)
 
 
-@router.post("/oauth/token/", response_model=TokenResponse)
-async def token(token_request: TokenRequest, response: Response, request: Request):
+@router.post("/oauth/token/")
+async def token(
+    token_request: TokenRequest, response: Response, request: Request
+) -> TokenResponse:
     # Prevents cache, required by OpenID Connect
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
@@ -147,7 +153,7 @@ async def token(token_request: TokenRequest, response: Response, request: Reques
 
 
 @router.get("/oauth/ping/")
-async def get_users(user: str, request: Request, authorization: Authorization):
+async def get_users(user: str, request: Request, authorization: Authorization) -> int:
     dsrc: Source = request.state.dsrc
     acc = await require_user(authorization, dsrc, user)
     return acc.exp
@@ -158,7 +164,7 @@ class LogoutRequest(BaseModel):
 
 
 @router.post("/logout/delete/")
-async def delete_token(logout: LogoutRequest, request: Request):
+async def delete_token(logout: LogoutRequest, request: Request) -> None:
     dsrc: Source = request.state.dsrc
     cd: Code = request.state.cd
 

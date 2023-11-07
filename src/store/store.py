@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import AsyncContextManager, Optional, TypeAlias
 
 from redis import ConnectionError as RedisConnectionError
 from pydantic import BaseModel
@@ -30,7 +30,7 @@ class Store:
     # Session is for reusing a single connection across multiple functions
     session: Optional[AsyncConnection] = None
 
-    def init_objects(self, config: StoreConfig):
+    def init_objects(self, config: StoreConfig) -> None:
         db_cluster = (
             f"{config.DB_USER}:{config.DB_PASS}@{config.DB_HOST}:{config.DB_PORT}"
         )
@@ -39,9 +39,12 @@ class Store:
         self.kv = Redis(
             host=config.KV_HOST, port=config.KV_PORT, db=0, password=config.KV_PASS
         )
-        self.db: AsyncEngine = create_async_engine(f"postgresql+asyncpg://{db_url}")
+        self.db = create_async_engine(f"postgresql+asyncpg://{db_url}")
 
-    async def connect(self):
+    async def connect(self) -> None:
+        if self.kv is None or self.db is None:
+            raise StoreError(f"KV: {self.kv!s} or DB: {self.db!s} not initialized!")
+
         try:
             # Redis requires no explicit call to connect, it simply connects the first time
             # a call is made to the database, so we test the connection by pinging
@@ -59,14 +62,19 @@ class Store:
                 " running."
             )
 
-    async def disconnect(self):
+    async def disconnect(self) -> None:
+        if self.kv is None:
+            raise StoreError("Cannot disconenct from uninitialized KV!")
         await self.kv.close()
 
-    async def startup(self):
+    async def startup(self) -> None:
         await self.connect()
 
-    async def shutdown(self):
+    async def shutdown(self) -> None:
         await self.disconnect()
+
+
+StoreContext: TypeAlias = AsyncContextManager[Store]
 
 
 class FakeStore(Store):

@@ -18,10 +18,10 @@ from apiserver.data.special import update_class_points
 from apiserver.define import DEFINE
 from apiserver.env import load_config
 from apiserver.lib.model.entities import SignedUp, UserNames
-from auth.core.model import IdInfo
 from auth.data.authentication import get_apake_setup
 from auth.data.keys import get_keys
-from auth.data.schemad.opaque import get_setup
+from auth.data.relational.opaque import get_setup
+from auth.data.relational.user import EmptyIdUserData
 from auth.define import refresh_exp, access_exp, id_exp
 from auth.token.build import create_tokens, finish_tokens
 from datacontext.context import DontReplaceContext
@@ -57,14 +57,14 @@ async def admin_access(local_dsrc):
     admin_id = "admin_test"
     scope = "member admin"
     utc_now = auth.core.util.utc_timestamp()
-    id_info = IdInfo()
+    id_userdata = EmptyIdUserData()
     access_token_data, id_token_data, access_scope, refresh_save = create_tokens(
         admin_id,
         scope,
         utc_now - 1,
         "test_nonce",
         utc_now,
-        id_info,
+        id_userdata,
         DEFINE.issuer,
         DEFINE.frontend_client_id,
         DEFINE.backend_client_id,
@@ -79,7 +79,7 @@ async def admin_access(local_dsrc):
         keys.symmetric,
         access_token_data,
         id_token_data,
-        id_info,
+        id_userdata,
         utc_now,
         keys.signing,
         access_exp,
@@ -97,7 +97,7 @@ async def test_get_admin_token(admin_access):
 @pytest.mark.asyncio
 async def test_generate_admin(local_dsrc):
     admin_password = "admin"
-    setup = await get_apake_setup(local_dsrc.store)
+    setup = await get_apake_setup(DontReplaceContext(), local_dsrc.store)
 
     cl_req, cl_state = opq.register_client(admin_password)
     serv_resp = opq.register(setup, cl_req, util.usp_hex("0_admin"))

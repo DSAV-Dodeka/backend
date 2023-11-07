@@ -1,3 +1,4 @@
+from logging import Logger
 from typing import Optional, Any
 
 from jinja2 import Environment
@@ -8,7 +9,7 @@ from email.utils import formatdate
 
 
 def send_email_vars(
-    logger,
+    logger: Logger,
     template_name: str,
     has_html: bool,
     loaded_env: Environment,

@@ -1,4 +1,4 @@
-from typing import AsyncIterator
+from typing import AsyncContextManager, AsyncIterator, TypeAlias
 from contextlib import asynccontextmanager
 
 from redis.asyncio import Redis
@@ -6,15 +6,17 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncConnection
 
 from store import Store, StoreError
 
+AsyncConenctionContext: TypeAlias = AsyncContextManager[AsyncConnection]
 
-def _eng_is_init(store: Store):
+
+def _eng_is_init(store: Store) -> AsyncEngine:
     if store.db is None:
         raise StoreError("Database not initialized!", "no_db_init")
     else:
         return store.db
 
 
-def _begin_conn(engine: AsyncEngine) -> AsyncIterator[AsyncConnection]:
+def _begin_conn(engine: AsyncEngine) -> AsyncConenctionContext:
     return engine.begin()
 
 
@@ -44,7 +46,7 @@ async def get_conn(store: Store) -> AsyncIterator[AsyncConnection]:
 
 
 @asynccontextmanager
-async def store_session(store: Store):
+async def store_session(store: Store) -> AsyncIterator[Store]:
     """Use this to reuse a connection across multiple functions. Ensure it is only used within one request.
     Ensure that all consumers commit their own transactions."""
     # It opens a connection
@@ -56,5 +58,7 @@ async def store_session(store: Store):
         yield store
     finally:
         # `finally` is called after the `with` block ends
+        if store.session is None:
+            raise StoreError("Session was set to None before closing!")
         await store.session.close()
         store.session = None

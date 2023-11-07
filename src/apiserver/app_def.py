@@ -1,7 +1,8 @@
 import logging
 from logging import Logger
+from typing import Any, Callable, Coroutine, Type, TypeAlias
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware import Middleware
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.types import ASGIApp
 from uvicorn.logging import DefaultFormatter
+from apiserver.app_lifespan import AppLifespan
 
 # Import types separately to make it clear in what line the module is first loaded and
 # its top-level run
@@ -34,7 +36,7 @@ from apiserver.app.routers import (
 )
 
 
-def init_logging(logger_name: str, log_level: int):
+def init_logging(logger_name: str, log_level: int) -> Logger:
     logger_init = logging.getLogger(logger_name)
     logger_init.setLevel(log_level)
     str_handler = logging.StreamHandler()
@@ -52,16 +54,29 @@ logger = init_logging(LOGGER_NAME, logging.DEBUG)
 
 
 class LoggerMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app: ASGIApp, mw_logger: Logger):
+    def __init__(self, app: ASGIApp, mw_logger: Logger) -> None:
         super().__init__(app)
         self.mw_logger = mw_logger
 
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint):
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
         # self.mw_logger.debug(request.headers)
         return await call_next(request)
 
 
-async def validation_exception_handler(_request, exc: RequestValidationError):
+HandlerType: TypeAlias = Callable[[Request, Any], Coroutine[Any, Any, Response]]
+
+
+def make_handler_dict(
+    exc: int | Type[Exception], handler: HandlerType
+) -> dict[int | Type[Exception], HandlerType]:
+    return {exc: handler}
+
+
+async def validation_exception_handler(
+    _request: Any, exc: RequestValidationError | int
+) -> Response:
     # Also show debug if there is an error in the request
     exc_str = str(exc)
     logger.debug(str(exc))
@@ -70,7 +85,7 @@ async def validation_exception_handler(_request, exc: RequestValidationError):
     )
 
 
-def define_static_routes():
+def define_static_routes() -> list[Mount]:
     return [
         Mount(
             "/credentials",
@@ -82,7 +97,7 @@ def define_static_routes():
     ]
 
 
-def define_middleware():
+def define_middleware() -> list[Middleware]:
     # TODO change all origins
     origins = [
         "*",
@@ -99,7 +114,7 @@ def define_middleware():
     ]
 
 
-def add_routers(new_app: FastAPI):
+def add_routers(new_app: FastAPI) -> FastAPI:
     new_app.include_router(basic.router)
     new_app.include_router(auth_router)
     new_app.include_router(profile.router)
@@ -112,17 +127,19 @@ def add_routers(new_app: FastAPI):
     return new_app
 
 
-def create_app(app_lifespan) -> FastAPI:
+def create_app(app_lifespan: AppLifespan) -> FastAPI:
     """App entrypoint."""
 
     routes = define_static_routes()
     middleware = define_middleware()
 
-    exception_handlers = {RequestValidationError: validation_exception_handler}
+    exception_handlers = make_handler_dict(
+        RequestValidationError, validation_exception_handler
+    )
 
     new_app = FastAPI(
         title="apiserver",
-        routes=routes,
+        routes=routes,  # type: ignore
         middleware=middleware,
         lifespan=app_lifespan,
         exception_handlers=exception_handlers,

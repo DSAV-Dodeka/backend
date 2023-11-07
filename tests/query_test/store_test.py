@@ -1,16 +1,15 @@
+import asyncio
 import os
 from random import randint
 
 import pytest
 import pytest_asyncio
 from sqlalchemy import text
-from apiserver.data.source import Source
 
 
 from apiserver.env import Config, load_config
 from test_util import Fixture, AsyncFixture
 from store.conn import get_conn
-from store.db import insert
 from store.store import Store
 from test_resources import res_path
 
@@ -21,8 +20,12 @@ if not os.environ.get("QUERY_TEST"):
     )
 
 
-def test_something():
-    assert True is True
+@pytest.fixture(scope="module", autouse=True)
+def event_loop():
+    """Necessary for async tests with module-scoped fixtures"""
+    loop = asyncio.get_event_loop()
+    yield loop
+    loop.close()
 
 
 @pytest.fixture(scope="module")
@@ -63,6 +66,7 @@ async def setup_table(local_store: Store) -> AsyncFixture[str]:
         await conn.execute(query)
 
 
+@pytest.mark.asyncio
 async def test_insert(local_store: Store, setup_table: str):
-    async with get_conn(local_store) as conn:
+    async with get_conn(local_store):
         pass

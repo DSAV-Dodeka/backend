@@ -68,7 +68,7 @@ jobs:
         ports:
           - 3141:3141
       redis:
-        image: pull ghcr.io/dsav-dodeka/redis:localdev
+        image: ghcr.io/dsav-dodeka/redis:localdev
         credentials:
           username: ${{ secrets.GH_DODEKACOMCOM_USER }}
           password: ${{ secrets.GH_DODEKACOMCOM_TOKEN }}

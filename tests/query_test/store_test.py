@@ -76,4 +76,17 @@ async def setup_table(local_store: Store) -> AsyncFixture[str]:
 async def test_insert(local_store: Store, setup_table: LiteralString):
     row: LiteralDict = {"first": 3, "second": "some", "third": "other"}
     async with get_conn(local_store) as conn:
-        await insert(conn, setup_table, row)
+        cnt = await insert(conn, setup_table, row)
+        assert cnt == 1
+
+        query = text(f"""
+        SELECT * FROM {setup_table};
+        """)
+
+        res = await conn.execute(query)
+    
+        res_item = res.mappings().first()
+    
+    assert res_item is not None
+    assert dict(res_item) == row
+

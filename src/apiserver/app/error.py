@@ -9,6 +9,7 @@ class ErrorKeys(StrEnum):
     REGISTER = "invalid_register"
     RANKING_UPDATE = "invalid_ranking_update"
     DATA = "invalid_data_load"
+    GET_CLASS = "invalid_get_class"
 
 
 class AppError(Exception):

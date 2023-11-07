@@ -10,6 +10,7 @@ from apiserver.lib.model.entities import (
     ClassView,
     UserPointsNames,
     UserPointsNamesList,
+    EventsList,
 )
 from apiserver.lib.utilities import usp_hex
 from schema.model import (
@@ -40,6 +41,7 @@ from store.db import (
     insert,
     insert_many,
     select_some_join_where,
+    select_some_where,
 )
 from store.error import DataError, NoDataError, DbError, DbErrors
 
@@ -188,30 +190,31 @@ async def add_users_to_event(
             )
 
 
-# async def check_user_in_class(
-#     conn: AsyncConnection,
-#     user_id: str,
-#     classification_id: int,
-# ) -> bool:
-#     data = await select_some_two_where(
-#         conn,
-#         CLASS_POINTS_TABLE,
-#         {TRUE_POINTS},
-#         USER_ID,
-#         user_id,
-#         CLASS_ID,
-#         classification_id,
-#     )
-#
-#     return data is not None
+async def events_in_class(conn: AsyncConnection, class_id: int) -> bool:
+    events = await select_some_where(
+        conn,
+        CLASS_EVENTS_TABLE,
+        {C_EVENTS_ID, C_EVENTS_CATEGORY, C_EVENTS_DESCRIPTION, C_EVENTS_DATE},
+        CLASS_ID,
+        class_id,
+    )
+
+    return EventsList.validate_python(events)
 
 
-# async def get_hidden_date(conn: AsyncConnection, classification_id: int) -> str:
-#     hidden_date_data = await select_some_where(
-#         conn, CLASSIFICATION_TABLE, {CLASS_HIDDEN_DATE}, CLASS_ID, classification_id
-#     )
-#
-#     print(
-#         ORJSONResponse([hidden_date.model_dump() for hidden_date in hidden_date_data])
-#     )
-#     return "str"
+async def get_event_user_points(
+    conn: AsyncConnection, event_id: str
+) -> list[UserPointsNames]:
+    user_id_select = f"{USERDATA_TABLE}.{USER_ID}"
+    user_points = await select_some_join_where(
+        conn,
+        {user_id_select, UD_FIRSTNAME, UD_LASTNAME, C_EVENTS_POINTS},
+        CLASS_EVENTS_POINTS_TABLE,
+        USERDATA_TABLE,
+        USER_ID,
+        USER_ID,
+        C_EVENTS_ID,
+        event_id,
+    )
+
+    return UserPointsNamesList.validate_python(user_points)

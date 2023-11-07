@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel
 from datetime import date
@@ -77,3 +77,29 @@ async def sync_publish_ranking(dsrc: Source, publish: bool) -> None:
         await data.special.update_class_points(
             conn, points_class.classification_id, publish
         )
+
+
+async def class_id_or_recent(
+    dsrc: Source, class_id: Optional[int], rank_type: Optional[str]
+) -> int:
+    if class_id is None and rank_type is None:
+        reason = "Provide either class_id or rank_type query parameter!"
+        raise AppError(
+            err_type=ErrorKeys.GET_CLASS,
+            err_desc=reason,
+            debug_key="user_events_invalid_class",
+        )
+    elif class_id is None and rank_type not in {"training", "points"}:
+        reason = f"Ranking {rank_type} is unknown!"
+        raise AppError(
+            err_type=ErrorKeys.GET_CLASS,
+            err_desc=reason,
+            debug_key="user_events_bad_ranking",
+        )
+    elif class_id is None:
+        async with data.get_conn(dsrc) as conn:
+            class_id = (
+                await data.classifications.most_recent_class_of_type(conn, rank_type)
+            ).classification_id
+
+    return class_id

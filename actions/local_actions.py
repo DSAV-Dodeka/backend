@@ -185,7 +185,7 @@ async def test_update_points(local_dsrc):
 
 @pytest.mark.asyncio
 async def test_add_event(local_dsrc, faker: Faker):
-    faker.seed_instance(242424)
+    faker.seed_instance(3)
     async with get_conn(local_dsrc) as conn:
         users = await data.ud.get_all_usernames(conn)
 

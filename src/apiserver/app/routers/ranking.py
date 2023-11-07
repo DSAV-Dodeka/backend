@@ -13,11 +13,15 @@ from apiserver.app.modules.ranking import (
 from apiserver.app.ops.header import Authorization
 from apiserver.app.response import RawJSONResponse
 from apiserver.app.routers.helper import require_admin, require_member
-from apiserver.lib.model.entities import UserPointsNames, UserPointsNamesList
+from apiserver.lib.model.entities import (
+    UserPointsNames,
+    UserPointsNamesList,
+    UserEventsList,
+    EventsList,
+)
 from apiserver.data import Source, get_conn
 from apiserver.data.api.classifications import events_in_class, get_event_user_points
 from apiserver.data.special import user_events_in_class
-from apiserver.lib.model.entities import UserPointsNamesList, UserEventsList, EventsList
 
 router = APIRouter()
 
@@ -91,6 +95,7 @@ async def sync_publish_classification(
 
     do_publish = publish == "publish"
     await sync_publish_ranking(dsrc, do_publish)
+
 
 @router.get("/admin/class/events/user/{user_id}/")
 async def get_user_events_in_class(

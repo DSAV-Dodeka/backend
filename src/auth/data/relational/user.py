@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import Any, Protocol, Self, Type
+from typing import Any, Protocol, Type
 
 from sqlalchemy.ext.asyncio import AsyncConnection
 
@@ -28,7 +28,7 @@ class UserOps(Protocol):
 
 class IdUserData(Protocol):
     @classmethod
-    def from_id_token(cls, id_token: dict[str, Any]) -> Self: ...
+    def from_id_token(cls, id_token: dict[str, Any]) -> "IdUserData": ...
 
     """id_userdata_from_token"""
 
@@ -47,15 +47,15 @@ class IdUserDataOps(Protocol):
     def get_type(cls) -> Type[IdUserData]: ...
 
 
-# class IdUserDataOps(Protocol, Generic[IdUserDataT]):
-#     @classmethod
-#     async def get_id_userdata_by_id(cls, conn: AsyncConnection, user_id: str) -> IdUserDataT:
-#         """Throws NoDataError if user does not exist."""
-#         ...
+class EmptyIdUserData(IdUserData):
+    def __init__(self) -> None:
+        pass
 
-#     @classmethod
-#     def id_info_from_id_userdata(cls, ud: IdUserDataT) -> dict[str, Any]: ...
+    @classmethod
+    def from_id_token(cls, id_token: dict[str, Any]) -> "EmptyIdUserData":
+        return EmptyIdUserData()
 
+    """id_userdata_from_token"""
 
-#     @classmethod
-#     def id_userdata_from_token(cls, id_token: dict[str, Any]) -> IdUserDataT: ...
+    def id_info(self) -> dict[str, Any]:
+        return dict()

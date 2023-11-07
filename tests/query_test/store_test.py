@@ -23,7 +23,7 @@ if not os.environ.get("QUERY_TEST"):
     )
 
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def event_loop():
     """Necessary for async tests with module-scoped fixtures"""
     loop = asyncio.get_event_loop()
@@ -84,9 +84,8 @@ async def test_insert(local_store: Store, setup_table: LiteralString):
         """)
 
         res = await conn.execute(query)
-    
+
         res_item = res.mappings().first()
-    
+
     assert res_item is not None
     assert dict(res_item) == row
-

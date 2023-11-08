@@ -74,11 +74,11 @@ async def new_db_store(api_config: Config, admin_engine: Engine):
         await conn.run_sync(db_model.create_all)
         query = text(f"SELECT current_database();")
         res = await conn.execute(query)
-        print(res)
+        print(res.mappings().first())
 
         query_tbl = text(f"SELECT * FROM pg_catalog.pg_tables;")
         res_tbl = await conn.execute(query_tbl)
-        print(res_tbl)
+        print(res_tbl.mappings().first())
     # we don't run startup due to its overhead
     
     yield store
@@ -98,11 +98,11 @@ async def test_create_class(new_db_store: Store):
     async with get_conn(new_db_store) as conn:
         query_db = text(f"SELECT current_database();")
         res_db = await conn.execute(query_db)
-        print(res_db)
+        print(res_db.mappings().first())
 
         query_tbl = text(f"SELECT * FROM pg_catalog.pg_tables;")
         res_tbl = await conn.execute(query_tbl)
-        print(res_tbl)
+        print(res_tbl.mappings().first())
         
         await insert_classification(conn, "points", date(2022, 1, 1))
 

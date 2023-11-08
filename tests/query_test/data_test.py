@@ -10,6 +10,7 @@ from apiserver.data.api.classifications import insert_classification
 
 
 from apiserver.env import Config, load_config
+from schema.model import metadata as db_model
 from schema.model.model import (
     CLASS_END_DATE,
     CLASS_HIDDEN_DATE,
@@ -66,6 +67,10 @@ async def new_db_store(api_config: Config, admin_engine: Engine):
 
     store = Store()
     store.init_objects(modified_config)
+    assert store.db is not None
+    # create schema
+    async with store.db.connect() as conn:
+        await conn.run_sync(db_model.create_all)
     # we don't run startup due to its overhead
     yield store
     # Ensure connections are disposed and GC'd

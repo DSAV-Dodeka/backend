@@ -246,3 +246,17 @@ class UserEvent(BaseModel):
 
 
 UserEventsList = TypeAdapter(List[UserEvent])
+
+
+class UserPoints(BaseModel):
+    user_id: str
+    points: int
+
+
+class NewEvent(BaseModel):
+    users: list[UserPoints]
+    class_type: Literal["points", "training"]
+    date: date
+    event_id: str
+    category: str
+    description: str = ""

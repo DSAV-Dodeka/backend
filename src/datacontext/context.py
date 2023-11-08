@@ -5,9 +5,12 @@ from dataclasses import dataclass, field
 from typing import (
     Any,
     Callable,
+    Concatenate,
+    Coroutine,
     Generic,
     Protocol,
     Type,
+    TypeAlias,
     TypeVar,
     ParamSpec,
 )
@@ -107,6 +110,49 @@ def replace_context(func: Callable[P, T_co]) -> ContextCallable[P, T_co]:
         return replace_func(*args, **kwargs)
 
     return replace
+
+
+class WrapContext(Context):
+    pass
+
+
+R_out_contra = TypeVar("R_out_contra", contravariant=True)
+R_in_contra = TypeVar("R_in_contra", contravariant=True)
+
+
+class ContextWrapCallable(Protocol, Generic[R_in_contra, P, T_co]):
+    def __call__(
+        self, ctx: WrapContext, r: R_in_contra, *args: P.args, **kwargs: P.kwargs
+    ) -> Coroutine[Any, Any, T_co]: ...
+
+
+RIn: TypeAlias = Callable[Concatenate[R_in_contra, P], Coroutine[Any, Any, T_co]]
+
+
+class ROut(Protocol, Generic[R_out_contra, P, T_co]):
+    def __call__(
+        self, r: R_out_contra, *args: P.args, **kwargs: P.kwargs
+    ) -> Coroutine[Any, Any, T_co]: ...
+
+
+Wrapper: TypeAlias = Callable[[RIn[R_in_contra, P, T_co]], ROut[R_out_contra, P, T_co]]
+
+
+def ctxlize(
+    c: RIn[R_in_contra, P, T_co],
+    w: Callable[[RIn[R_in_contra, P, T_co]], ROut[R_out_contra, P, T_co]],
+) -> ContextWrapCallable[R_out_contra, P, T_co]:
+    def ctx_callable(
+        ctx: WrapContext, r: R_out_contra, *args: P.args, **kwargs: P.kwargs
+    ) -> Coroutine[Any, Any, T_co]:
+        if not ctx.dont_replace and hasattr(ctx, c.__name__):
+            replaced_f: ROut[R_out_contra, P, T_co] = getattr(ctx, c.__name__)
+            return replaced_f(r, *args, **kwargs)
+
+        new_f = w(c)
+        return new_f(r, *args, **kwargs)
+
+    return ctx_callable
 
 
 @dataclass

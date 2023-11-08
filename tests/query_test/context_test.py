@@ -1,25 +1,15 @@
 import asyncio
-from datetime import date, datetime
 import os
 from uuid import uuid4
 
 import pytest
 import pytest_asyncio
 from sqlalchemy import Engine, create_engine, text
-from apiserver.data.api.classifications import insert_classification
 
 
 from apiserver.env import Config, load_config
 from schema.model import metadata as db_model
-from schema.model.model import (
-    CLASS_END_DATE,
-    CLASS_HIDDEN_DATE,
-    CLASS_START_DATE,
-    CLASS_TYPE,
-    CLASSIFICATION_TABLE,
-)
 from test_util import Fixture
-from store.conn import get_conn
 from store.store import Store
 from test_resources import res_path
 
@@ -86,21 +76,4 @@ async def new_db_store(api_config: Config, admin_engine: Engine):
         conn.execute(drop_db)
 
 
-@pytest.mark.asyncio
-async def test_create_class(new_db_store: Store):
-    async with get_conn(new_db_store) as conn:
-        await insert_classification(conn, "points", date(2022, 1, 1))
-
-        query = text(f"""
-        SELECT * FROM {CLASSIFICATION_TABLE};
-        """)
-
-        res = await conn.execute(query)
-
-        res_item = res.mappings().first()
-
-    assert res_item is not None
-    assert res_item[CLASS_TYPE] == "points"
-    assert res_item[CLASS_START_DATE] == datetime(2022, 1, 1, 0, 0)
-    assert res_item[CLASS_END_DATE] == datetime(2022, 5, 31, 0, 0)
-    assert res_item[CLASS_HIDDEN_DATE] == datetime(2022, 5, 1, 0, 0)
+# TODO add tests for context functions

@@ -1,7 +1,6 @@
 from datetime import date, timedelta
 from typing import Literal
 
-from pydantic import BaseModel
 from sqlalchemy import RowMapping
 from sqlalchemy.ext.asyncio import AsyncConnection
 
@@ -9,6 +8,7 @@ from apiserver.lib.model.entities import (
     ClassEvent,
     Classification,
     ClassView,
+    UserPoints,
     UserPointsNames,
     UserPointsNamesList,
     EventsList,
@@ -169,11 +169,6 @@ async def upsert_user_event_points(
     await insert(conn, CLASS_EVENTS_POINTS_TABLE, row_to_insert)
 
 
-class UserPoints(BaseModel):
-    user_id: str
-    points: int
-
-
 async def add_users_to_event(
     conn: AsyncConnection, event_id: str, points: list[UserPoints]
 ) -> int:
@@ -209,6 +204,7 @@ async def events_in_class(conn: AsyncConnection, class_id: int) -> list[ClassEve
 async def get_event_user_points(
     conn: AsyncConnection, event_id: str
 ) -> list[UserPointsNames]:
+    """If resulting list is empty, either the event doesn't exist or it has no users in it."""
     user_id_select = f"{USERDATA_TABLE}.{USER_ID}"
     user_points = await select_some_join_where(
         conn,

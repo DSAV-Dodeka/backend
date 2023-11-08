@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 import pytest_asyncio
 from sqlalchemy import Engine, create_engine, text
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine, AsyncConnection
 from apiserver.data.api.classifications import insert_classification
 
 
@@ -69,8 +70,8 @@ async def new_db_store(api_config: Config, admin_engine: Engine):
     store.init_objects(modified_config)
     assert store.db is not None
     # create schema
-    async with store.db.connect() as conn:
-        db_model.create_all(bind=store.db.sync_engine)
+    async with store.db.begin() as conn:
+        await conn.run_sync(db_model.create_all)
         query = text(f"SELECT current_database();")
         res = await conn.execute(query)
         print(res.mappings().first())
@@ -80,6 +81,25 @@ async def new_db_store(api_config: Config, admin_engine: Engine):
         print(res_tbl.mappings().all())
 
     # we don't run startup due to its overhead
+
+    db_cluster = (
+        f"{modified_config.DB_USER}:{modified_config.DB_PASS}@{modified_config.DB_HOST}:{modified_config.DB_PORT}"
+    )
+    db_url = f"{db_cluster}/{modified_config.DB_NAME}"
+    # # Connections are not actually established, it simply initializes the connection parameters
+
+    new_engine = create_async_engine(f"postgresql+asyncpg://{db_url}")
+
+    async with new_engine.begin() as conn:
+        query = text(f"SELECT current_database();")
+        res = await conn.execute(query)
+        print(res.mappings().first())
+
+        query_tbl = text(f"SELECT * FROM pg_catalog.pg_tables;")
+        res_tbl = await conn.execute(query_tbl)
+        print(res_tbl.mappings().all())
+
+    await new_engine.dispose()
     
     yield store
     

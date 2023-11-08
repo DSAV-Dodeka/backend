@@ -56,7 +56,7 @@ def admin_engine(api_config) -> Fixture[Engine]:
 
 @pytest_asyncio.fixture
 async def new_db_store(api_config: Config, admin_engine: Engine):
-    db_name = f"db_{uuid4()}".replace('-', '_')
+    db_name = f"db_{uuid4()}".replace("-", "_")
 
     with admin_engine.connect() as conn:
         create_db = text(f"CREATE DATABASE {db_name}")
@@ -76,6 +76,7 @@ async def new_db_store(api_config: Config, admin_engine: Engine):
         conn.execute(drop_db)
 
 
+@pytest.mark.asyncio
 async def test_create_class(new_db_store: Store):
     async with get_conn(new_db_store) as conn:
         await insert_classification(conn, "points", date(2022, 1, 1))

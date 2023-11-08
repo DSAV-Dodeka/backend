@@ -68,7 +68,9 @@ async def new_db_store(api_config: Config, admin_engine: Engine):
     store.init_objects(modified_config)
     # we don't run startup due to its overhead
     yield store
-    # Ensure connections are GC'd
+    # Ensure connections are disposed and GC'd
+    if store.db is not None:
+        await store.db.dispose()
     del store
 
     with admin_engine.connect() as conn:

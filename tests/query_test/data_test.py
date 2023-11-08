@@ -1,5 +1,5 @@
 import asyncio
-from datetime import date
+from datetime import date, datetime
 import os
 from uuid import uuid4
 
@@ -72,34 +72,8 @@ async def new_db_store(api_config: Config, admin_engine: Engine):
     # create schema
     async with store.db.begin() as conn:
         await conn.run_sync(db_model.create_all)
-        query = text(f"SELECT current_database();")
-        res = await conn.execute(query)
-        print(res.mappings().first())
-
-        query_tbl = text(f"SELECT * FROM pg_catalog.pg_tables;")
-        res_tbl = await conn.execute(query_tbl)
-        print(res_tbl.mappings().all())
 
     # we don't run startup due to its overhead
-
-    db_cluster = (
-        f"{modified_config.DB_USER}:{modified_config.DB_PASS}@{modified_config.DB_HOST}:{modified_config.DB_PORT}"
-    )
-    db_url = f"{db_cluster}/{modified_config.DB_NAME}"
-    # # Connections are not actually established, it simply initializes the connection parameters
-
-    new_engine = create_async_engine(f"postgresql+asyncpg://{db_url}")
-
-    async with new_engine.begin() as conn:
-        query = text(f"SELECT current_database();")
-        res = await conn.execute(query)
-        print(res.mappings().first())
-
-        query_tbl = text(f"SELECT * FROM pg_catalog.pg_tables;")
-        res_tbl = await conn.execute(query_tbl)
-        print(res_tbl.mappings().all())
-
-    await new_engine.dispose()
     
     yield store
     
@@ -116,14 +90,6 @@ async def new_db_store(api_config: Config, admin_engine: Engine):
 @pytest.mark.asyncio
 async def test_create_class(new_db_store: Store):
     async with get_conn(new_db_store) as conn:
-        query_db = text(f"SELECT current_database();")
-        res_db = await conn.execute(query_db)
-        print(res_db.mappings().first())
-
-        query_tbl = text(f"SELECT * FROM pg_catalog.pg_tables;")
-        res_tbl = await conn.execute(query_tbl)
-        print(res_tbl.mappings().all())
-        
         await insert_classification(conn, "points", date(2022, 1, 1))
 
         query = text(f"""
@@ -136,6 +102,6 @@ async def test_create_class(new_db_store: Store):
 
     assert res_item is not None
     assert res_item[CLASS_TYPE] == "points"
-    assert res_item[CLASS_START_DATE] == date(2022, 1, 1)
-    assert res_item[CLASS_END_DATE] == date(2022, 5, 31)
-    assert res_item[CLASS_HIDDEN_DATE] == date(2022, 5, 1)
+    assert res_item[CLASS_START_DATE] == datetime(2022, 1, 1, 0, 0)
+    assert res_item[CLASS_END_DATE] == datetime(2022, 5, 31, 0, 0)
+    assert res_item[CLASS_HIDDEN_DATE] == datetime(2022, 5, 1, 0, 0)

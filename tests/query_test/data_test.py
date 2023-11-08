@@ -70,8 +70,7 @@ async def new_db_store(api_config: Config, admin_engine: Engine):
     assert store.db is not None
     # create schema
     async with store.db.connect() as conn:
-        
-        await conn.run_sync(db_model.create_all)
+        db_model.create_all(bind=store.db.sync_engine)
         query = text(f"SELECT current_database();")
         res = await conn.execute(query)
         print(res.mappings().first())
@@ -79,6 +78,7 @@ async def new_db_store(api_config: Config, admin_engine: Engine):
         query_tbl = text(f"SELECT * FROM pg_catalog.pg_tables;")
         res_tbl = await conn.execute(query_tbl)
         print(res_tbl.mappings().all())
+
     # we don't run startup due to its overhead
     
     yield store

@@ -18,9 +18,12 @@ from apiserver.data import Source
 from apiserver.data.context import Code, SourceContexts
 from apiserver.data.context.register import ctx_reg as register_app_reg
 from apiserver.data.context.update import ctx_reg as update_reg
+from apiserver.data.context.ranking import ctx_reg as ranking_reg
+from apiserver.data.context.authorize import ctx_reg as authrz_app_reg
 from apiserver.define import LOGGER_NAME, DEFINE
 from apiserver.env import load_config, Config
 from apiserver.resources import res_path
+from datacontext.context import WrapContext
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -91,8 +94,16 @@ def register_and_define_code() -> Code:
     source_data_context = SourceContexts()
     source_data_context.include_registry(register_app_reg)
     source_data_context.include_registry(update_reg)
+    source_data_context.include_registry(ranking_reg)
+    source_data_context.include_registry(authrz_app_reg)
 
-    return Code(auth_context=data_context, app_context=source_data_context)
+    wrap_data_context = WrapContext()
+
+    return Code(
+        auth_context=data_context,
+        app_context=source_data_context,
+        wrap=wrap_data_context,
+    )
 
 
 AppLifespan = Callable[[FastAPI], AsyncContextManager[State]]

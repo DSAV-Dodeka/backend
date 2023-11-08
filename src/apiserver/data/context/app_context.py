@@ -1,15 +1,29 @@
 from dataclasses import dataclass
-from typing import Optional, Type
+from typing import Literal, Optional, Type
 
-from apiserver.data import Source
-from apiserver.lib.model.entities import UserData, User
-from auth.core.model import SavedRegisterState
-from auth.data.context import Contexts
+from sqlalchemy.ext.asyncio import AsyncConnection
+from apiserver.data.source import get_conn
 from datacontext.context import (
     Context,
     AbstractContexts,
     ContextError,
     ContextNotImpl,
+    RIn,
+    ROut,
+    P,
+    T_co,
+    WrapContext,
+)
+from auth.core.model import SavedRegisterState
+from auth.data.context import Contexts
+from apiserver.data import Source
+from apiserver.lib.model.entities import (
+    ClassEvent,
+    NewEvent,
+    UserData,
+    User,
+    UserEvent,
+    UserPointsNames,
 )
 
 
@@ -49,24 +63,87 @@ class UpdateContext(Context):
         raise ContextNotImpl()
 
 
+class RankingContext(Context):
+    @classmethod
+    async def add_new_event(cls, dsrc: Source, new_event: NewEvent) -> None:
+        raise ContextNotImpl()
+
+    @classmethod
+    async def context_most_recent_class_id_of_type(
+        cls, dsrc: Source, rank_type: Literal["points", "training"]
+    ) -> int:
+        raise ContextNotImpl()
+
+    @classmethod
+    async def context_most_recent_class_points(
+        cls, dsrc: Source, rank_type: Literal["points", "training"], is_admin: bool
+    ) -> list[UserPointsNames]:
+        raise ContextNotImpl()
+
+    @classmethod
+    async def sync_publish_ranking(cls, dsrc: Source, publish: bool) -> None:
+        raise ContextNotImpl()
+
+    @classmethod
+    async def context_user_events_in_class(
+        cls, dsrc: Source, user_id: str, class_id: int
+    ) -> list[UserEvent]:
+        raise ContextNotImpl()
+
+    @classmethod
+    async def context_events_in_class(
+        cls, dsrc: Source, class_id: int
+    ) -> list[ClassEvent]:
+        raise ContextNotImpl()
+
+    @classmethod
+    async def context_get_event_users(
+        cls, dsrc: Source, event_id: str
+    ) -> list[UserPointsNames]:
+        raise ContextNotImpl()
+
+
+class AuthorizeAppContext(Context):
+    @classmethod
+    async def require_admin(cls, authorization: str, dsrc: Source) -> bool:
+        raise ContextNotImpl()
+
+
 class SourceContexts(AbstractContexts):
     register_ctx: RegisterAppContext
     update_ctx: UpdateContext
+    rank_ctx: RankingContext
+    authrz_ctx: AuthorizeAppContext
 
     def __init__(self) -> None:
         self.register_ctx = RegisterAppContext()
         self.update_ctx = UpdateContext()
+        self.rank_ctx = RankingContext()
+        self.authrz_ctx = AuthorizeAppContext()
 
     def context_from_type(self, registry_type: Type[Context]) -> Context:
         if registry_type is RegisterAppContext:
             return self.register_ctx
         elif registry_type is UpdateContext:
             return self.update_ctx
+        elif registry_type is RankingContext:
+            return self.register_ctx
+        elif registry_type is AuthorizeAppContext:
+            return self.authrz_ctx
 
         raise ContextError("Type does not match any valid contexts!")
+
+
+def conn_wrap(c: RIn[AsyncConnection, P, T_co]) -> ROut[Source, P, T_co]:
+    async def wrapped(r: Source, *args: P.args, **kwargs: P.kwargs) -> T_co:
+        async with get_conn(r) as conn:
+            return await c(conn, *args, **kwargs)
+
+    return wrapped
 
 
 @dataclass
 class Code:
     auth_context: Contexts
     app_context: SourceContexts
+    wrap: WrapContext

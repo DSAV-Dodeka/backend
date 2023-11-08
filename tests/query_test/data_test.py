@@ -56,7 +56,7 @@ def admin_engine(api_config) -> Fixture[Engine]:
 
 @pytest_asyncio.fixture
 async def new_db_store(api_config: Config, admin_engine: Engine):
-    db_name = f"db_{uuid4()}"
+    db_name = f"db_{uuid4()}".replace('-', '_')
 
     with admin_engine.connect() as conn:
         create_db = text(f"CREATE DATABASE {db_name}")

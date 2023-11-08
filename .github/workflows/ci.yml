@@ -40,17 +40,16 @@ jobs:
         npm install
         npm run build
       working-directory: ${{ github.workspace }}/authpage
-    
+    - name: Pytest
+      run: poetry run pytest
+      env:
+        QUERY_TEST: true
     - name: Black
       run: poetry run black src tests
     - name: Ruff
       run: poetry run ruff src tests
     - name: Mypy
       run: poetry run mypy
-    - name: Pytest
-      run: poetry run pytest
-      env:
-        QUERY_TEST: true
     services:
       postgres:
         image: ghcr.io/dsav-dodeka/postgres:localdev

@@ -3,15 +3,14 @@ from typing import Optional
 
 from apiserver.app.error import ErrorKeys, AppError
 from apiserver.data import Source
-from apiserver.data.context.app_context import RankingContext
-from apiserver.data.context.ranking import (
-    context_events_in_class,
-    context_most_recent_class_id_of_type,
-    context_user_events_in_class,
-)
+from apiserver.data.api.classifications import events_in_class
+from apiserver.data.context.app_context import RankingContext, conn_wrap
+from apiserver.data.context.ranking import context_most_recent_class_id_of_type
 from apiserver.data.source import source_session
+from apiserver.data.special import user_events_in_class
 from apiserver.lib.logic.ranking import is_rank_type
 from apiserver.lib.model.entities import ClassEvent, UserEvent
+from datacontext.context import ctxlize_wrap
 
 
 async def class_id_or_recent(
@@ -49,7 +48,7 @@ async def mod_user_events_in_class(
     async with source_session(dsrc) as session:
         sure_class_id = await class_id_or_recent(session, ctx, class_id, rank_type)
 
-        user_events = await context_user_events_in_class(
+        user_events = await ctxlize_wrap(user_events_in_class, conn_wrap)(
             ctx, session, user_id, sure_class_id
         )
 
@@ -65,6 +64,8 @@ async def mod_events_in_class(
     async with source_session(dsrc) as session:
         sure_class_id = await class_id_or_recent(session, ctx, class_id, rank_type)
 
-        events = await context_events_in_class(ctx, session, sure_class_id)
+        events = await ctxlize_wrap(events_in_class, conn_wrap)(
+            ctx, session, sure_class_id
+        )
 
     return events

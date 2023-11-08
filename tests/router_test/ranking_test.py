@@ -11,14 +11,10 @@ from apiserver.app_def import create_app
 from apiserver.app_lifespan import safe_startup, register_and_define_code
 from apiserver.data import Source
 from apiserver.data.context import Code
-from apiserver.data.context.app_context import AuthorizeAppContext
+from apiserver.data.context.app_context import AuthorizeAppContext, RankingContext
 from apiserver.env import load_config
-from apiserver.lib.model.entities import UserPointsNames
-from datacontext.context import WrapContext
-from test_util import (
-    make_test_user,
-    make_base_ud,
-)
+from apiserver.lib.model.entities import User, UserData, UserPointsNames
+from test_util import make_test_user, make_base_ud, Fixture
 from test_resources import res_path
 
 
@@ -28,7 +24,7 @@ def gen_user(faker: Faker):
 
 
 @pytest.fixture
-def gen_ud_u(faker: Faker):
+def gen_ud_u(faker: Faker) -> Fixture[tuple[UserData, User]]:
     yield make_base_ud(faker)
 
 
@@ -89,23 +85,49 @@ def mock_authrz_ctx():
     return MockAuthorizeAppContext()
 
 
-def mock_wrap_ctx():
-    class MockWrapContext(WrapContext):
+def mock_wrap_ctx(point_names: list[UserPointsNames], test_event_id: str):
+    class MockWrapContext(RankingContext):
         @classmethod
         async def get_event_user_points(
             cls, dsrc: Source, event_id: str
         ) -> list[UserPointsNames]:
-            return list()
+            if event_id == test_event_id:
+                return point_names
+
+            return []
 
     return MockWrapContext()
 
 
-def test_get_events_in_class(
-    test_client: TestClient,
-    make_cd: Code,
+def test_get_event_users(
+    test_client: TestClient, make_cd: Code, gen_ud_u: tuple[UserData, User]
 ):
-    make_cd.wrap = mock_wrap_ctx()
+    test_ud, test_u = gen_ud_u
+    point_names = [
+        UserPointsNames.model_validate(
+            {
+                "user_id": test_u.user_id,
+                "firstname": test_ud.firstname,
+                "lastname": test_ud.lastname,
+                "points": 3,
+            }
+        ),
+        UserPointsNames.model_validate(
+            {
+                "user_id": "someperson2",
+                "firstname": "first2",
+                "lastname": "last2",
+                "points": 5,
+            }
+        ),
+    ]
+    event_id = "some_event"
+
+    make_cd.app_context.rank_ctx = mock_wrap_ctx(point_names, event_id)
     make_cd.app_context.authrz_ctx = mock_authrz_ctx()
     headers = {"Authorization": "something"}
-    response = test_client.get(f"/admin/class/users/event/{3}/", headers=headers)
-    assert response.json() == []
+    response = test_client.get(f"/admin/class/users/event/{event_id}/", headers=headers)
+    r_json = response.json()
+    assert len(r_json) == len(point_names)
+    assert r_json[0]["user_id"] == test_u.user_id
+    assert r_json[1]["lastname"] == "last2"

@@ -2,6 +2,7 @@ from typing import Optional
 from fastapi import APIRouter
 from starlette.requests import Request
 
+from datacontext.context import ctxlize_wrap
 from apiserver.app.error import ErrorResponse, AppError
 from apiserver.app.modules.ranking import (
     mod_events_in_class,
@@ -11,6 +12,7 @@ from apiserver.app.ops.header import Authorization
 from apiserver.app.response import RawJSONResponse
 from apiserver.app.routers.helper import require_admin, require_member
 from apiserver.data.api.classifications import get_event_user_points
+from apiserver.data import Source
 from apiserver.data.context.app_context import Code, RankingContext, conn_wrap
 from apiserver.data.context.authorize import require_admin as ctx_require_admin
 from apiserver.data.context.ranking import (
@@ -28,8 +30,7 @@ from apiserver.lib.model.entities import (
     UserEventsList,
     EventsList,
 )
-from apiserver.data import Source
-from datacontext.context import ctxlize
+
 
 router = APIRouter()
 
@@ -154,8 +155,8 @@ async def get_event_users(
     await ctx_require_admin(cd.app_context.authrz_ctx, authorization, dsrc)
 
     # Result could be empty!
-    event_users = await ctxlize(get_event_user_points, conn_wrap)(
-        cd.wrap, dsrc, event_id
+    event_users = await ctxlize_wrap(get_event_user_points, conn_wrap)(
+        cd.app_context.rank_ctx, dsrc, event_id
     )
 
     return RawJSONResponse(UserPointsNamesList.dump_json(event_users))

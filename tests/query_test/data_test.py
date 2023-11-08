@@ -60,7 +60,7 @@ async def new_db_store(api_config: Config, admin_engine: Engine):
     db_name = f"db_{uuid4()}".replace("-", "_")
 
     with admin_engine.connect() as conn:
-        create_db = text(f"CREATE DATABASE {db_name}")
+        create_db = text(f"CREATE DATABASE {db_name};")
         conn.execute(create_db)
 
     modified_config = api_config.model_copy(update={"DB_NAME": db_name})
@@ -78,7 +78,7 @@ async def new_db_store(api_config: Config, admin_engine: Engine):
 
         query_tbl = text(f"SELECT * FROM pg_catalog.pg_tables;")
         res_tbl = await conn.execute(query_tbl)
-        print(res_tbl.mappings().first())
+        print(res_tbl.mappings().all())
     # we don't run startup due to its overhead
     
     yield store
@@ -89,7 +89,7 @@ async def new_db_store(api_config: Config, admin_engine: Engine):
     del store
 
     with admin_engine.connect() as conn:
-        drop_db = text(f"DROP DATABASE {db_name}")
+        drop_db = text(f"DROP DATABASE {db_name};")
         conn.execute(drop_db)
 
 
@@ -102,7 +102,7 @@ async def test_create_class(new_db_store: Store):
 
         query_tbl = text(f"SELECT * FROM pg_catalog.pg_tables;")
         res_tbl = await conn.execute(query_tbl)
-        print(res_tbl.mappings().first())
+        print(res_tbl.mappings().all())
         
         await insert_classification(conn, "points", date(2022, 1, 1))
 

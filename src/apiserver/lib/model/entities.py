@@ -125,6 +125,10 @@ class JWKPublicEdDSA(JWK):
     x: str  # public asymmetric key base64url bytes
 
 
+class JWKPairEdDSA(JWKPublicEdDSA):
+    d: str  # private asymmetric key base64url bytes
+
+
 class JWKSymmetricA256GCM(JWK):
     kty: Literal["oct"]
     use: Literal["enc"]

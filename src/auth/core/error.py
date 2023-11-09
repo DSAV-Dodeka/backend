@@ -23,9 +23,6 @@ ErrorCode = Union[
  request)"""
 
 
-
-
-
 class AuthError(Exception):
     def __init__(
         self,

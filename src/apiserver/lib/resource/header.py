@@ -3,6 +3,7 @@ from apiserver.lib.hazmat.tokens import BadVerification, get_kid, verify_access_
 from apiserver.lib.model.entities import AccessToken
 from apiserver.lib.resource.error import ResourceError
 
+
 @dataclass
 class AccessSettings:
     grace_period: int
@@ -12,7 +13,9 @@ class AccessSettings:
 
 def extract_token_and_kid(authorization: str) -> tuple[str, str]:
     if authorization is None:
-        raise ResourceError(err_type="invalid_request", err_desc="No authorization provided.")
+        raise ResourceError(
+            err_type="invalid_request", err_desc="No authorization provided."
+        )
     if not authorization.startswith("Bearer "):
         raise ResourceError(
             err_type="invalid_request",
@@ -28,15 +31,17 @@ def extract_token_and_kid(authorization: str) -> tuple[str, str]:
             err_desc="Token verification failed!",
             debug_key=e.err_key,
         )
-    
+
     return token, kid
 
 
-def resource_verify_token(token: str, public_key: str, settings: AccessSettings) -> AccessToken:
+def resource_verify_token(
+    token: str, public_key: str, settings: AccessSettings
+) -> AccessToken:
     try:
         return verify_access_token(
-            public_key,
             token,
+            public_key,
             settings.grace_period,
             settings.issuer,
             settings.aud_client_ids,

@@ -26,6 +26,7 @@ class ResourceError(Exception):
         self.err_desc = err_desc
         self.debug_key = debug_key
 
+
 def resource_error_code(err_type: ResourceErrorCode) -> int:
     match err_type:
         case "invalid_request":

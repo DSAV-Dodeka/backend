@@ -80,7 +80,25 @@ def create_tokens(
     backend_client_id: str,
     refresh_exp: int,
 ) -> tuple[AccessTokenBase, IdTokenBase, str, SavedRefreshToken]:
-    """This function simply builds the required structures and encodes information for the refresh token."""
+    """
+    Builds the required structures and encodes information for the refresh token.
+
+    Args:
+        user_id: `sub` claim
+        scope: scope string that will be added as `scope` claim
+        auth_time: time that user was authenticated
+        id_nonce: nonce value for ID token
+        utc_now: timestamp that will be used for the token's `iat` value
+        id_userdata: contains any additional data that needs to be added to ID token
+        issuer: `iss` claim
+        frontend_client_id: used for the audience of the access and id tokens
+        backend_client_id: used for the audience of the access token
+        refresh_exp: the time that will be added to utc_now to compute the token's `exp` value
+
+    Returns:
+        A tuple of newly built access token, ID token, scope and refresh token. They are not yet fully formed and need
+        to be finished.
+    """
     # Build new tokens
     access_token_data, id_token_core_data = id_access_tokens(
         sub=user_id,

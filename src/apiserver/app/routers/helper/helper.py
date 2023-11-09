@@ -15,7 +15,7 @@ async def handle_auth(authorization: str, dsrc: Source) -> AccessToken:
         return await verify_token_header(authorization, dsrc)
     except ResourceError as e:
         code = resource_error_code(e.err_type)
-        
+
         raise ErrorResponse(
             code,
             err_type=e.err_type,

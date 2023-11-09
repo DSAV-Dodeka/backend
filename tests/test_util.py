@@ -1,12 +1,22 @@
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import AsyncGenerator, Generator, TypeVar
+from typing import AsyncGenerator, AsyncIterator, Generator, TypeVar
 
+from sqlalchemy.ext.asyncio import AsyncConnection
 from faker import Faker
+from fastapi import FastAPI
 from pydantic import BaseModel
+from pytest_mock import MockerFixture
+from apiserver.app_lifespan import State, safe_startup
+from apiserver.data.context.app_context import Code
+from apiserver.data.source import Source
+from apiserver.define import DEFINE
+from apiserver.env import Config
 
-from apiserver.lib.model.entities import IdInfo, UserData, User
+from apiserver.lib.model.entities import AccessToken, IdInfo, UserData, User
 from apiserver.lib.utilities import gen_id_name
 from auth.core.model import AuthRequest
+from auth.core.util import utc_timestamp
 
 T = TypeVar("T")
 Fixture = Generator[T, None, None]
@@ -97,6 +107,18 @@ def make_base_ud(faker: Faker):
     )
 
 
+def acc_token_from_info(user_id: str, scopes: str):
+    now = utc_timestamp()
+    return AccessToken(
+        sub=user_id,
+        iss=DEFINE.issuer,
+        aud=[DEFINE.backend_client_id],
+        scope=scopes,
+        iat=now,
+        exp=now + 60 * 60 * 24 * 14,
+    )
+
+
 mock_redirect = "http://localhost:3000/auth/callback"
 mock_auth_request = AuthRequest(
     response_type="code",
@@ -113,3 +135,24 @@ class KeyValues(BaseModel):
     symmetric: str
     signing_public: str
     signing_private: str
+
+
+def setup_fake_dsrc(module_mocker: MockerFixture):
+    dsrc_inst = Source()
+    store_mock = module_mocker.MagicMock(spec=dsrc_inst.store)
+    store_mock.db.connect = module_mocker.MagicMock(
+        return_value=module_mocker.MagicMock(spec=AsyncConnection)
+    )
+    dsrc_inst.store = store_mock
+
+    return dsrc_inst
+
+
+def mock_lifespan(dsrc: Source, config: Config, cd: Code):
+    safe_startup(dsrc, config)
+
+    @asynccontextmanager
+    async def mock_lifespan(app: FastAPI) -> AsyncIterator[State]:
+        yield {"dsrc": dsrc, "cd": cd}
+
+    return mock_lifespan

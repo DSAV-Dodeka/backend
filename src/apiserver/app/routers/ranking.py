@@ -1,6 +1,6 @@
 from typing import Optional
 from fastapi import APIRouter
-from starlette.requests import Request
+from apiserver.app.dependencies import AppContext, SourceDep
 
 from datacontext.context import ctxlize_wrap
 from apiserver.app.error import ErrorResponse, AppError
@@ -8,13 +8,10 @@ from apiserver.app.modules.ranking import (
     mod_events_in_class,
     mod_user_events_in_class,
 )
-from apiserver.app.ops.header import Authorization
 from apiserver.app.response import RawJSONResponse
-from apiserver.app.routers.helper import require_admin, require_member
 from apiserver.data.api.classifications import get_event_user_points
 from apiserver.data import Source
-from apiserver.data.context.app_context import Code, RankingContext, conn_wrap
-from apiserver.data.context.authorize import require_admin as ctx_require_admin
+from apiserver.data.context.app_context import RankingContext, conn_wrap
 from apiserver.data.context.ranking import (
     add_new_event,
     context_most_recent_class_points,
@@ -32,19 +29,16 @@ from apiserver.lib.model.entities import (
 )
 
 
-router = APIRouter()
+ranking_admin_router = APIRouter(prefix="/class", tags=["ranking"])
+ranking_members_router = APIRouter(prefix="/class", tags=["ranking"])
 
 
-@router.post("/admin/ranking/update/")
+@ranking_admin_router.post("/update/")
 async def admin_update_ranking(
-    new_event: NewEvent, request: Request, authorization: Authorization
+    new_event: NewEvent, dsrc: SourceDep, app_context: AppContext
 ) -> None:
-    dsrc: Source = request.state.dsrc
-    cd: Code = request.state.cd
-    await require_admin(authorization, dsrc)
-
     try:
-        await add_new_event(cd.app_context.rank_ctx, dsrc, new_event)
+        await add_new_event(app_context.rank_ctx, dsrc, new_event)
     except AppError as e:
         raise ErrorResponse(400, "invalid_ranking_update", e.err_desc, e.debug_key)
 
@@ -65,57 +59,39 @@ async def get_classification(
     return RawJSONResponse(UserPointsNamesList.dump_json(user_points))
 
 
-@router.get(
-    "/members/classification/{rank_type}/", response_model=list[UserPointsNames]
-)
+@ranking_members_router.get("/get/{rank_type}/", response_model=list[UserPointsNames])
 async def member_classification(
-    rank_type: str, request: Request, authorization: Authorization
+    rank_type: str, dsrc: SourceDep, app_context: AppContext
 ) -> RawJSONResponse:
-    dsrc: Source = request.state.dsrc
-    cd: Code = request.state.cd
-    await require_member(authorization, dsrc)
-
-    return await get_classification(dsrc, cd.app_context.rank_ctx, rank_type, False)
+    return await get_classification(dsrc, app_context.rank_ctx, rank_type, False)
 
 
-@router.get("/admin/classification/{rank_type}/", response_model=list[UserPointsNames])
+@ranking_admin_router.get("/get/{rank_type}/", response_model=list[UserPointsNames])
 async def member_classification_admin(
-    rank_type: str, request: Request, authorization: Authorization
+    rank_type: str, dsrc: SourceDep, app_context: AppContext
 ) -> RawJSONResponse:
-    dsrc: Source = request.state.dsrc
-    cd: Code = request.state.cd
-    await require_admin(authorization, dsrc)
-
-    return await get_classification(dsrc, cd.app_context.rank_ctx, rank_type, True)
+    return await get_classification(dsrc, app_context.rank_ctx, rank_type, True)
 
 
-@router.post("/admin/class/sync/")
+@ranking_admin_router.post("/sync/")
 async def sync_publish_classification(
-    request: Request, authorization: Authorization, publish: Optional[str] = None
+    dsrc: SourceDep, app_context: AppContext, publish: Optional[str] = None
 ) -> None:
-    dsrc: Source = request.state.dsrc
-    cd: Code = request.state.cd
-    await require_admin(authorization, dsrc)
-
     do_publish = publish == "publish"
-    await sync_publish_ranking(cd.app_context.rank_ctx, dsrc, do_publish)
+    await sync_publish_ranking(app_context.rank_ctx, dsrc, do_publish)
 
 
-@router.get("/admin/class/events/user/{user_id}/", response_model=list[UserEvent])
+@ranking_admin_router.get("/events/user/{user_id}/", response_model=list[UserEvent])
 async def get_user_events_in_class(
     user_id: str,
-    request: Request,
-    authorization: Authorization,
+    dsrc: SourceDep,
+    app_context: AppContext,
     class_id: Optional[int] = None,
     rank_type: Optional[str] = None,
 ) -> RawJSONResponse:
-    dsrc: Source = request.state.dsrc
-    cd: Code = request.state.cd
-    await require_admin(authorization, dsrc)
-
     try:
         user_events = await mod_user_events_in_class(
-            dsrc, cd.app_context.rank_ctx, user_id, class_id, rank_type
+            dsrc, app_context.rank_ctx, user_id, class_id, rank_type
         )
     except AppError as e:
         raise ErrorResponse(400, e.err_type, e.err_desc, e.debug_key)
@@ -123,20 +99,16 @@ async def get_user_events_in_class(
     return RawJSONResponse(UserEventsList.dump_json(user_events))
 
 
-@router.get("/admin/class/events/all/", response_model=list[ClassEvent])
+@ranking_admin_router.get("/events/all/", response_model=list[ClassEvent])
 async def get_events_in_class(
-    request: Request,
-    authorization: Authorization,
+    dsrc: SourceDep,
+    app_context: AppContext,
     class_id: Optional[int] = None,
     rank_type: Optional[str] = None,
 ) -> RawJSONResponse:
-    dsrc: Source = request.state.dsrc
-    cd: Code = request.state.cd
-    await require_admin(authorization, dsrc)
-
     try:
         events = await mod_events_in_class(
-            dsrc, cd.app_context.rank_ctx, class_id, rank_type
+            dsrc, app_context.rank_ctx, class_id, rank_type
         )
     except AppError as e:
         raise ErrorResponse(400, e.err_type, e.err_desc, e.debug_key)
@@ -144,19 +116,17 @@ async def get_events_in_class(
     return RawJSONResponse(EventsList.dump_json(events))
 
 
-@router.get(
-    "/admin/class/users/event/{event_id}/", response_model=list[UserPointsNames]
+@ranking_admin_router.get(
+    "/users/event/{event_id}/", response_model=list[UserPointsNames]
 )
 async def get_event_users(
-    event_id: str, request: Request, authorization: Authorization
+    event_id: str,
+    dsrc: SourceDep,
+    app_context: AppContext,
 ) -> RawJSONResponse:
-    dsrc: Source = request.state.dsrc
-    cd: Code = request.state.cd
-    await ctx_require_admin(cd.app_context.authrz_ctx, authorization, dsrc)
-
     # Result could be empty!
     event_users = await ctxlize_wrap(get_event_user_points, conn_wrap)(
-        cd.app_context.rank_ctx, dsrc, event_id
+        app_context.rank_ctx, dsrc, event_id
     )
 
     return RawJSONResponse(UserPointsNamesList.dump_json(event_users))

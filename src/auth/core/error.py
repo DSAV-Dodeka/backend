@@ -23,13 +23,7 @@ ErrorCode = Union[
  request)"""
 
 
-ResourceErrorCode = Union[
-    Literal["invalid_request"],  # HTTP 400
-    Literal["invalid_token"],  # HTTP 401
-    Literal["insufficient_scope"],  # HTTP 403
-]
-"""https://www.rfc-editor.org/rfc/rfc6750.html#section-6.2 error codes for accessing resources. No error info should
-be provided when no authentication information is provided."""
+
 
 
 class AuthError(Exception):

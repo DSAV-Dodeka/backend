@@ -13,12 +13,17 @@ class ErrorKeys(StrEnum):
 
 
 class AppError(Exception):
+    err_type: ErrorKeys
+    err_desc: str
+    debug_key: Optional[str]
+    
     def __init__(
         self,
         err_type: ErrorKeys,
         err_desc: str,
         debug_key: Optional[str] = None,
     ):
+        super().__init__(err_desc)
         self.err_type = err_type
         self.err_desc = err_desc
         self.debug_key = debug_key

@@ -45,7 +45,7 @@ def verify_access_token(
     access_token: str,
     grace_period: int,
     issuer: str,
-    backend_client_id: str,
+    audience: list[str],
 ) -> AccessToken:
     try:
         decoded_payload = jwt.decode(
@@ -55,7 +55,7 @@ def verify_access_token(
             leeway=grace_period,
             require=["exp", "aud"],
             issuer=issuer,
-            audience=[backend_client_id],
+            audience=audience,
         )
     except InvalidSignatureError:
         raise BadVerification("invalid_signature")

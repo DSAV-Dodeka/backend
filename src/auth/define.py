@@ -18,6 +18,8 @@ class Define(BaseModel):
     credentials_url: str
     signup_url: str
     onboard_email: str
+    # realm as in the realm for WWW-Authenticate
+    realm: str
 
 
 # On the client we refresh if ID is almost expired

@@ -9,9 +9,9 @@ from sqlalchemy import Engine, create_engine, text
 
 from apiserver.env import Config, load_config
 from schema.model import metadata as db_model
-from test_util import Fixture
+from tests.test_util import Fixture
 from store.store import Store
-from test_resources import res_path
+from tests.test_resources import res_path
 
 if not os.environ.get("QUERY_TEST"):
     pytest.skip(

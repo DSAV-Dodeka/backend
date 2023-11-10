@@ -18,10 +18,10 @@ from schema.model.model import (
     CLASS_TYPE,
     CLASSIFICATION_TABLE,
 )
-from test_util import Fixture
+from tests.test_util import Fixture
 from store.conn import get_conn
 from store.store import Store
-from test_resources import res_path
+from tests.test_resources import res_path
 
 if not os.environ.get("QUERY_TEST"):
     pytest.skip(

@@ -23,7 +23,6 @@ from apiserver.data.context.authorize import ctx_reg as authrz_app_reg
 from apiserver.define import LOGGER_NAME, DEFINE
 from apiserver.env import load_config, Config
 from apiserver.resources import res_path
-from datacontext.context import WrapContext
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -97,12 +96,9 @@ def register_and_define_code() -> Code:
     source_data_context.include_registry(ranking_reg)
     source_data_context.include_registry(authrz_app_reg)
 
-    wrap_data_context = WrapContext()
-
     return Code(
         auth_context=data_context,
         app_context=source_data_context,
-        wrap=wrap_data_context,
     )
 
 

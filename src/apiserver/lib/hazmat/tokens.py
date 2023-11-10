@@ -41,11 +41,11 @@ def get_kid(access_token: str) -> str:
 
 
 def verify_access_token(
-    public_key: str,
     access_token: str,
+    public_key: str,
     grace_period: int,
     issuer: str,
-    backend_client_id: str,
+    audience: list[str],
 ) -> AccessToken:
     try:
         decoded_payload = jwt.decode(
@@ -53,9 +53,9 @@ def verify_access_token(
             public_key,
             algorithms=["EdDSA"],
             leeway=grace_period,
-            require=["exp", "aud"],
+            options={"require": ["exp", "aud"]},
             issuer=issuer,
-            audience=[backend_client_id],
+            audience=audience,
         )
     except InvalidSignatureError:
         raise BadVerification("invalid_signature")

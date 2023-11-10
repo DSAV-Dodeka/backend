@@ -2,32 +2,40 @@ import logging
 from urllib.parse import urlencode
 
 import opaquepy as opq
-from fastapi import APIRouter, Request, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks
 from pydantic import BaseModel
+from apiserver.app.dependencies import (
+    AppContext,
+    AuthContext,
+    RequireMember,
+    SourceDep,
+    verify_user,
+)
+from apiserver.app.modules.update import verify_delete_account
 from apiserver.data.api.ud.userdata import get_userdata_by_id
+from apiserver.data.api.user import delete_user
+from apiserver.data.context.app_context import conn_wrap
 from auth.core.response import PasswordResponse
 
 import auth.core.util
 from apiserver import data
-from apiserver.app.error import ErrorResponse
-from apiserver.app.ops.header import Authorization
+from apiserver.app.error import AppError, ErrorKeys, ErrorResponse
 from apiserver.app.ops.mail import (
     send_change_email_email,
     send_reset_email,
     mail_from_config,
 )
-from apiserver.app.routers.helper import authentication
-from apiserver.app.routers.helper import require_user
-from apiserver.data import Source, ops
-from apiserver.data.context import Code
+from apiserver.data import ops
 from apiserver.data.context.update import store_email_flow_password_change
 from apiserver.define import LOGGER_NAME, DEFINE
 from apiserver.lib.model.entities import UpdateEmailState
+from auth.data.authentication import pop_flow_user
 from auth.modules.register import send_register_start
 from auth.modules.update import change_password
+from datacontext.context import ctxlize_wrap
 from store.error import DataError, NoDataError
 
-router = APIRouter()
+router = APIRouter(prefix="/update", tags=["update"])
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -36,21 +44,20 @@ class ChangePasswordRequest(BaseModel):
     email: str
 
 
-@router.post("/update/password/reset/")
+@router.post("/password/reset/")
 async def request_password_change(
     change_pass: ChangePasswordRequest,
-    request: Request,
+    dsrc: SourceDep,
+    app_context: AppContext,
     background_tasks: BackgroundTasks,
 ) -> None:
     """Initiated from authpage. Sends out e-mail with reset link. Does nothing if user does not exist or is not yet
     properly registered."""
-    dsrc: Source = request.state.dsrc
-    cd: Code = request.state.cd
 
     # Check if registered user exists and if they have finished registration
     # If yes, then we generate a random flow ID that can later be used to confirm the password change
     flow_id = await store_email_flow_password_change(
-        cd.app_context.update_ctx, dsrc, change_pass.email
+        app_context.update_ctx, dsrc, change_pass.email
     )
 
     if flow_id is None:
@@ -77,13 +84,10 @@ class UpdatePasswordRequest(BaseModel):
     client_request: str
 
 
-@router.post("/update/password/start/")
+@router.post("/password/start/")
 async def update_password_start(
-    update_pass: UpdatePasswordRequest, request: Request
+    update_pass: UpdatePasswordRequest, dsrc: SourceDep, auth_context: AuthContext
 ) -> PasswordResponse:
-    dsrc: Source = request.state.dsrc
-    cd: Code = request.state.cd
-
     stored_email = await data.trs.pop_string(dsrc, update_pass.flow_id)
     if stored_email is None:
         reason = "No reset has been requested for this user."
@@ -105,7 +109,7 @@ async def update_password_start(
         u = await ops.user.get_user_by_email(conn, update_pass.email)
 
     return await send_register_start(
-        dsrc.store, cd.auth_context.register_ctx, u.user_id, update_pass.client_request
+        dsrc.store, auth_context.register_ctx, u.user_id, update_pass.client_request
     )
 
 
@@ -114,12 +118,11 @@ class UpdatePasswordFinish(BaseModel):
     client_request: str
 
 
-@router.post("/update/password/finish/")
+@router.post("/password/finish/")
 async def update_password_finish(
-    update_finish: UpdatePasswordFinish, request: Request
+    update_finish: UpdatePasswordFinish,
+    dsrc: SourceDep,
 ) -> None:
-    dsrc: Source = request.state.dsrc
-
     try:
         saved_state = await data.trs.reg.get_register_state(dsrc, update_finish.auth_id)
     except NoDataError as e:
@@ -141,16 +144,17 @@ class UpdateEmail(BaseModel):
     new_email: str
 
 
-@router.post("/update/email/send/")
+@router.post("/email/send/")
 async def update_email(
     new_email: UpdateEmail,
-    request: Request,
+    dsrc: SourceDep,
+    member: RequireMember,
     background_tasks: BackgroundTasks,
-    authorization: Authorization,
 ) -> None:
-    dsrc: Source = request.state.dsrc
     user_id = new_email.user_id
-    await require_user(authorization, dsrc, user_id)
+
+    # THROWS ErrorResponse
+    assert verify_user(member, user_id)
 
     try:
         async with data.get_conn(dsrc) as conn:
@@ -198,16 +202,25 @@ class ChangedEmailResponse(BaseModel):
     new_email: str
 
 
-@router.post("/update/email/check/")
+@router.post("/email/check/")
 async def update_email_check(
-    update_check: UpdateEmailCheck, request: Request
+    update_check: UpdateEmailCheck,
+    dsrc: SourceDep,
+    auth_context: AuthContext,
 ) -> ChangedEmailResponse:
-    dsrc: Source = request.state.dsrc
-    cd: Code = request.state.cd
-
-    flow_user = await authentication.check_password(
-        dsrc, update_check.code, cd.auth_context.login_ctx
-    )
+    try:
+        flow_user = await pop_flow_user(
+            auth_context.login_ctx, dsrc.store, update_check.code
+        )
+    except NoDataError:
+        # logger.debug(e.message)
+        reason = "Expired or missing auth code"
+        raise ErrorResponse(
+            status_code=400,
+            err_type=ErrorKeys.CHECK,
+            err_desc=reason,
+            debug_key="empty_flow",
+        )
 
     try:
         stored_email = await data.trs.reg.get_update_email(dsrc, flow_user.user_id)
@@ -268,15 +281,16 @@ class DeleteUrlResponse(BaseModel):
     delete_url: str
 
 
-@router.post("/update/delete/url/")
+@router.post("/delete/url/")
 async def delete_account(
     delete_acc: DeleteAccount,
-    request: Request,
-    authorization: Authorization,
+    dsrc: SourceDep,
+    member: RequireMember,
 ) -> DeleteUrlResponse:
-    dsrc: Source = request.state.dsrc
     user_id = delete_acc.user_id
-    await require_user(authorization, dsrc, user_id)
+
+    # THROWS ErrorResponse
+    verify_user(member, user_id)
 
     try:
         async with data.get_conn(dsrc) as conn:
@@ -293,14 +307,21 @@ async def delete_account(
             debug_key="delete_not_registered",
         )
 
+    # At this point we know the user is a valid user and is still registered.
+    # Latter is important because access token might still be valid even after deletion.
+
     flow_id = auth.core.util.random_time_hash_hex(user_id)
     params = {
         "flow_id": flow_id,
         "user": ud.email,
         "redirect": "client:account/delete/",
     }
+    # This URL is a special login URL that will redirect back to /delete/check/
+    # They will have generated a valid auth_code using the standard login flow
     delete_url = f"{DEFINE.credentials_url}?{urlencode(params)}"
 
+    # We store that this is a delete request, so that a normal auth code generated using normal login won't be enough
+    # to achieve deletion
     await data.trs.store_string(dsrc, flow_id, user_id, 1000)
 
     return DeleteUrlResponse(delete_url=delete_url)
@@ -311,32 +332,38 @@ class DeleteAccountCheck(BaseModel):
     code: str
 
 
-@router.post("/update/delete/check/")
+@router.post("/delete/check/")
 async def delete_account_check(
-    delete_check: DeleteAccountCheck, request: Request
+    delete_check: DeleteAccountCheck,
+    dsrc: SourceDep,
+    auth_context: AuthContext,
+    app_context: AppContext,
 ) -> DeleteAccount:
-    dsrc: Source = request.state.dsrc
-    cd: Code = request.state.cd
+    try:
+        delete_user_id = await verify_delete_account(
+            delete_check.code,
+            delete_check.flow_id,
+            dsrc,
+            app_context.update_ctx,
+            auth_context.login_ctx,
+        )
+    except AppError as e:
+        raise ErrorResponse(
+            status_code=400,
+            err_type=e.err_type,
+            err_desc=e.err_desc,
+            debug_key=e.debug_key,
+        )
 
-    flow_user = await authentication.check_password(
-        dsrc, delete_check.code, cd.auth_context.login_ctx
-    )
-
-    stored_user_id = await data.trs.pop_string(dsrc, delete_check.flow_id)
-    if stored_user_id is None:
-        reason = "Delete request has expired, please try again!"
-        logger.debug(reason + f" {flow_user.user_id}")
-        raise ErrorResponse(status_code=400, err_type="bad_update", err_desc=reason)
-
-    async with data.get_conn(dsrc) as conn:
-        try:
-            await data.user.delete_user(conn, stored_user_id)
-            return DeleteAccount(user_id=stored_user_id)
-        except NoDataError:
-            reason = "User for delete request does not exist!"
-            logger.debug(reason + f" {flow_user.user_id}")
-            raise ErrorResponse(
-                status_code=400,
-                err_type="bad_update",
-                err_desc="Delete request has expired, please try again!",
-            )
+    try:
+        await ctxlize_wrap(delete_user, conn_wrap)(
+            app_context.update_ctx, dsrc, delete_user_id
+        )
+        return DeleteAccount(user_id=delete_user_id)
+    except NoDataError:
+        reason = "User for delete request no longer exists!"
+        # logger.debug(reason + f" {flow_user.user_id}")
+        raise AppError(
+            err_type=ErrorKeys.UPDATE,
+            err_desc=reason,
+        )

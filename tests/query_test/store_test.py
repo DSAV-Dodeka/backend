@@ -10,11 +10,11 @@ from apiserver.app.ops.startup import drop_create_database
 
 
 from apiserver.env import Config, load_config
-from test_util import Fixture, AsyncFixture
+from tests.test_util import Fixture, AsyncFixture
 from store.conn import get_conn
 from store.store import Store
 from store.db import LiteralDict, insert
-from test_resources import res_path
+from tests.test_resources import res_path
 
 
 if not os.environ.get("QUERY_TEST"):

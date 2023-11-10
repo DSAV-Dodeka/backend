@@ -9,3 +9,5 @@ backend_client_id = "dodekabackend_client"
 credentials_url = "http://localhost:4243/credentials/"
 signup_url = "https://www.av40.nl/index.php?page=Inschrijfformulier&sid=1"
 onboard_email = "comcom@dsavdodeka.nl"
+
+realm = "dodeka"

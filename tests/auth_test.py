@@ -2,10 +2,11 @@ import opaquepy.lib as opq
 import pytest
 
 import apiserver.lib.utilities as util
+from tests.test_util import Fixture
 
 
 @pytest.fixture(scope="module")
-def opaque_setup() -> str:
+def opaque_setup() -> Fixture[str]:
     yield opq.create_setup()
 
 
@@ -14,7 +15,7 @@ password = "abcd"
 
 
 @pytest.fixture
-def gen_pw_file(opaque_setup: str) -> str:
+def gen_pw_file(opaque_setup: str) -> Fixture[str]:
     cl_req, cl_state = opq.register_client(password)
     serv_resp = opq.register(opaque_setup, cl_req, util.usp_hex(user_id))
     cl_fin = opq.register_client_finish(cl_state, password, serv_resp)

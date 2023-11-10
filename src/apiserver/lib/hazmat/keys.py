@@ -8,18 +8,18 @@ from cryptography.hazmat.primitives.serialization import (
     NoEncryption,
 )
 
-from apiserver.lib.model.entities import PEMKey, JWK
+from apiserver.lib.model.entities import JWKPairEdDSA, JWKSymmetricA256GCM, PEMKey
 from auth.core.util import enc_b64url
 from auth.data.relational.entities import OpaqueSetup
 from auth.hazmat.structs import PEMPrivateKey
 
 
-def new_ed448_keypair(kid: str) -> JWK:
+def new_ed448_keypair(kid: str) -> JWKPairEdDSA:
     private_key = Ed448PrivateKey.generate()
     d_bytes = private_key.private_bytes(Encoding.Raw, PrivateFormat.Raw, NoEncryption())
     x_bytes = private_key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
 
-    return JWK(
+    return JWKPairEdDSA(
         kty="OKP",
         use="sig",
         alg="EdDSA",
@@ -64,8 +64,10 @@ def new_opaque_setup(id_int: int) -> OpaqueSetup:
     return new_setup
 
 
-def new_symmetric_key(kid: str) -> JWK:
+def new_symmetric_key(kid: str) -> JWKSymmetricA256GCM:
     symmetric_bytes = AESGCM.generate_key(256)
     symmetric = enc_b64url(symmetric_bytes)
 
-    return JWK(kty="oct", use="enc", alg="A256GCM", k=symmetric, kid=kid)
+    return JWKSymmetricA256GCM(
+        kty="oct", use="enc", alg="A256GCM", k=symmetric, kid=kid
+    )

@@ -10,15 +10,22 @@ class ErrorKeys(StrEnum):
     RANKING_UPDATE = "invalid_ranking_update"
     DATA = "invalid_data_load"
     GET_CLASS = "invalid_get_class"
+    CHECK = "invalid_code_check"
+    UPDATE = "invalid_update"
 
 
 class AppError(Exception):
+    err_type: ErrorKeys
+    err_desc: str
+    debug_key: Optional[str]
+
     def __init__(
         self,
         err_type: ErrorKeys,
         err_desc: str,
         debug_key: Optional[str] = None,
     ):
+        super().__init__(err_desc)
         self.err_type = err_type
         self.err_desc = err_desc
         self.debug_key = debug_key

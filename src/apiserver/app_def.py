@@ -25,12 +25,12 @@ from apiserver.app.error import (
 
 # Router modules, each router has its own API endpoints
 from apiserver.app.routers import (
-    admin,
+    admin_router,
     basic,
-    update_router,
+    members_router,
+    update,
     profile,
-    users,
-    onboard_router,
+    onboard,
     auth_router,
     ranking,
 )
@@ -118,11 +118,16 @@ def add_routers(new_app: FastAPI) -> FastAPI:
     new_app.include_router(basic.router)
     new_app.include_router(auth_router)
     new_app.include_router(profile.router)
-    new_app.include_router(onboard_router)
-    new_app.include_router(update_router)
-    new_app.include_router(admin.router)
-    new_app.include_router(users.router)
-    new_app.include_router(ranking.router)
+    new_app.include_router(onboard.router)
+    new_app.include_router(update.router)
+    new_app.include_router(ranking.old_router)
+
+    admin_router.include_router(onboard.onboard_admin_router)
+    admin_router.include_router(ranking.ranking_admin_router)
+    members_router.include_router(ranking.ranking_members_router)
+
+    new_app.include_router(admin_router)
+    new_app.include_router(members_router)
 
     return new_app
 

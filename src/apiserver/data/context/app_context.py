@@ -12,7 +12,6 @@ from datacontext.context import (
     ROut,
     P,
     T_co,
-    WrapContext,
 )
 from auth.core.model import SavedRegisterState
 from auth.data.context import Contexts
@@ -127,17 +126,23 @@ class SourceContexts(AbstractContexts):
         elif registry_type is UpdateContext:
             return self.update_ctx
         elif registry_type is RankingContext:
-            return self.register_ctx
+            return self.rank_ctx
         elif registry_type is AuthorizeAppContext:
             return self.authrz_ctx
 
         raise ContextError("Type does not match any valid contexts!")
 
 
-def conn_wrap(c: RIn[AsyncConnection, P, T_co]) -> ROut[Source, P, T_co]:
-    async def wrapped(r: Source, *args: P.args, **kwargs: P.kwargs) -> T_co:
-        async with get_conn(r) as conn:
-            return await c(conn, *args, **kwargs)
+def conn_wrap(
+    original_function: RIn[AsyncConnection, P, T_co]
+) -> ROut[Source, P, T_co]:
+    """Wraps original_function by getting a Connection from the Source object and providing that to the original
+    function. Returns a function which has Source as its first argument, instead of AsyncConnection. Use this with
+    `ctxlize_wrap`."""
+
+    async def wrapped(replaced_arg: Source, *args: P.args, **kwargs: P.kwargs) -> T_co:
+        async with get_conn(replaced_arg) as conn:
+            return await original_function(conn, *args, **kwargs)
 
     return wrapped
 
@@ -146,4 +151,3 @@ def conn_wrap(c: RIn[AsyncConnection, P, T_co]) -> ROut[Source, P, T_co]:
 class Code:
     auth_context: Contexts
     app_context: SourceContexts
-    wrap: WrapContext

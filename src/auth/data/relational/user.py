@@ -30,8 +30,6 @@ class IdUserData(Protocol):
     @classmethod
     def from_id_token(cls, id_token: dict[str, Any]) -> "IdUserData": ...
 
-    """id_userdata_from_token"""
-
     def id_info(self) -> dict[str, Any]: ...
 
 

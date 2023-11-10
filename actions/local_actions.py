@@ -5,11 +5,11 @@ import opaquepy as opq
 import pytest
 import pytest_asyncio
 from faker import Faker
+from apiserver.data.context.ranking import add_new_event
 
 import apiserver.lib.utilities as util
 import auth.core.util
 from apiserver import data
-from apiserver.app.modules.ranking import add_new_event, NewEvent
 from apiserver.app.ops.startup import get_keystate
 from apiserver.data import Source, get_conn
 from apiserver.data.api.classifications import insert_classification, UserPoints
@@ -17,7 +17,7 @@ from apiserver.data.api.ud.userdata import new_userdata
 from apiserver.data.special import update_class_points
 from apiserver.define import DEFINE
 from apiserver.env import load_config
-from apiserver.lib.model.entities import SignedUp, UserNames
+from apiserver.lib.model.entities import NewEvent, SignedUp, UserNames
 from auth.data.authentication import get_apake_setup
 from auth.data.keys import get_keys
 from auth.data.relational.opaque import get_setup
@@ -28,7 +28,7 @@ from datacontext.context import DontReplaceContext
 from store import Store
 
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def event_loop():
     """Necessary for async tests with module-scoped fixtures"""
     loop = asyncio.get_event_loop()
@@ -212,4 +212,4 @@ async def test_add_event(local_dsrc, faker: Faker):
         description="desc",
     )
 
-    await add_new_event(local_dsrc, new_event)
+    await add_new_event(DontReplaceContext(), local_dsrc, new_event)

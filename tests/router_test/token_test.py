@@ -1,27 +1,14 @@
-from contextlib import asynccontextmanager
-from typing import Any, AsyncIterator
+from typing import Any
 
 import pytest
 import tomllib
 from faker import Faker
-from fastapi import FastAPI
 from httpx import codes
-from pytest_mock import MockerFixture
-from sqlalchemy.ext.asyncio import AsyncConnection
 from starlette.testclient import TestClient
 
-from apiserver.app_def import create_app
-from apiserver.app_lifespan import (
-    AppLifespan,
-    State,
-    safe_startup,
-    register_and_define_code,
-)
-from apiserver.data import Source
 from apiserver.data.api.ud.userdata import IdUserData
 from apiserver.data.context import Code
 from apiserver.define import DEFINE
-from apiserver.env import Config, load_config
 from apiserver.lib.model.entities import IdInfo
 from auth.core.model import (
     FlowUser,
@@ -37,7 +24,7 @@ from auth.data.relational.ops import RelationOps
 from auth.define import refresh_exp, id_exp, access_exp
 from auth.hazmat.key_decode import aes_from_symmetric
 from auth.hazmat.structs import PEMPrivateKey
-from test_util import (
+from tests.test_util import (
     Fixture,
     make_test_user,
     mock_auth_request,
@@ -48,7 +35,7 @@ from test_util import (
 )
 from store import Store
 from store.error import NoDataError
-from test_resources import res_path
+from tests.test_resources import res_path
 
 
 # @pytest.fixture(scope="session", autouse=True)
@@ -66,54 +53,9 @@ def gen_ext_user(faker: Faker) -> Fixture[tuple[GenUser, IdInfo]]:
     yield make_extended_test_user(faker)
 
 
-@pytest.fixture(scope="module")
-def api_config() -> Fixture[Config]:
-    test_config_path = res_path.joinpath("testenv.toml")
-    yield load_config(test_config_path)
-
-
-@pytest.fixture(scope="module")
-def make_dsrc(module_mocker: MockerFixture) -> Fixture[Source]:
-    dsrc_inst = Source()
-    store_mock = module_mocker.MagicMock(spec=dsrc_inst.store)
-    store_mock.db.connect = module_mocker.MagicMock(
-        return_value=module_mocker.MagicMock(spec=AsyncConnection)
-    )
-    dsrc_inst.store = store_mock
-
-    yield dsrc_inst
-
-
-@pytest.fixture(scope="module")
-def make_cd() -> Fixture[Code]:
-    cd = register_and_define_code()
-    yield cd
-
-
-@pytest.fixture(scope="module")
-def lifespan_fixture(
-    api_config: Config, make_dsrc: Source, make_cd: Code
-) -> Fixture[AppLifespan]:
-    safe_startup(make_dsrc, api_config)
-
-    @asynccontextmanager
-    async def mock_lifespan(app: FastAPI) -> AsyncIterator[State]:
-        yield {"dsrc": make_dsrc, "cd": make_cd}
-
-    yield mock_lifespan
-
-
-@pytest.fixture(scope="module")
-def app(lifespan_fixture: AppLifespan) -> Fixture[FastAPI]:
-    # startup, shutdown is not run
-    apiserver_app = create_app(lifespan_fixture)
-    yield apiserver_app
-
-
-@pytest.fixture(scope="module")
-def test_client(app: FastAPI) -> Fixture[TestClient]:
-    with TestClient(app=app) as test_client:
-        yield test_client
+pytest_plugins = [
+    "tests.router_test.data_fixtures",
+]
 
 
 @pytest.fixture

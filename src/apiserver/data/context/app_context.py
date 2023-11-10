@@ -126,7 +126,7 @@ class SourceContexts(AbstractContexts):
         elif registry_type is UpdateContext:
             return self.update_ctx
         elif registry_type is RankingContext:
-            return self.register_ctx
+            return self.rank_ctx
         elif registry_type is AuthorizeAppContext:
             return self.authrz_ctx
 

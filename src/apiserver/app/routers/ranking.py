@@ -29,6 +29,7 @@ from apiserver.lib.model.entities import (
 )
 
 
+old_router = APIRouter(tags=["ranking"])
 ranking_admin_router = APIRouter(prefix="/class", tags=["ranking"])
 ranking_members_router = APIRouter(prefix="/class", tags=["ranking"])
 
@@ -66,11 +67,29 @@ async def member_classification(
     return await get_classification(dsrc, app_context.rank_ctx, rank_type, False)
 
 
+@old_router.get(
+    "/members/classification/{rank_type}/", response_model=list[UserPointsNames]
+)
+async def member_classification_old(
+    rank_type: str, dsrc: SourceDep, app_context: AppContext
+) -> RawJSONResponse:
+    return await member_classification(rank_type, dsrc, app_context)
+
+
 @ranking_admin_router.get("/get/{rank_type}/", response_model=list[UserPointsNames])
 async def member_classification_admin(
     rank_type: str, dsrc: SourceDep, app_context: AppContext
 ) -> RawJSONResponse:
     return await get_classification(dsrc, app_context.rank_ctx, rank_type, True)
+
+
+@old_router.get(
+    "/admin/classification/{rank_type}/", response_model=list[UserPointsNames]
+)
+async def member_classification_admin_old(
+    rank_type: str, dsrc: SourceDep, app_context: AppContext
+) -> RawJSONResponse:
+    return await member_classification_admin(rank_type, dsrc, app_context)
 
 
 @ranking_admin_router.post("/sync/")

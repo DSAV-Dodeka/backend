@@ -120,6 +120,7 @@ def add_routers(new_app: FastAPI) -> FastAPI:
     new_app.include_router(profile.router)
     new_app.include_router(onboard.router)
     new_app.include_router(update.router)
+    new_app.include_router(ranking.old_router)
 
     admin_router.include_router(onboard.onboard_admin_router)
     admin_router.include_router(ranking.ranking_admin_router)

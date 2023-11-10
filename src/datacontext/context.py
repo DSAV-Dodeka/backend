@@ -68,6 +68,12 @@ def make_data_context(
     """This function is called for each registration (which happens through decorators) and it sets the dependency
     container function (which only has a stub implementation) to the actual implementation. It performs a few checks
     to ensure the stub matches the target function to avoid mistakes."""
+    if not isinstance(context_inst, context_type):
+        raise ContextError(
+            f"Context inst {context_inst} is not of the same type as the registry"
+            f" {context_type}!"
+        )
+
     # We check if the target protocol has a name of that function
     if not hasattr(context_type, func.__name__):
         raise ContextError(

@@ -180,6 +180,11 @@ async def get_signedup(dsrc: SourceDep) -> list[SignedUp]:
     return signed_up
 
 
+@router.get("/get/", response_model=list[SignedUp])
+async def get_signedup_old(dsrc: SourceDep) -> list[SignedUp]:
+    return await get_signedup(dsrc)
+
+
 class SignupConfirm(BaseModel):
     email: str
     av40id: int
@@ -238,3 +243,12 @@ async def confirm_join(
     send_register_email(
         background_tasks, signup_email, mail_from_config(dsrc.config), registration_url
     )
+
+
+@router.post("/confirm/")
+async def confirm_join_old(
+    dsrc: SourceDep,
+    signup: SignupConfirm,
+    background_tasks: BackgroundTasks,
+) -> None:
+    return await confirm_join(dsrc, signup, background_tasks)

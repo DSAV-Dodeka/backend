@@ -1,6 +1,4 @@
-from typing import Annotated
-
-from fastapi import Depends, HTTPException, Request
+from fastapi import HTTPException, Request
 from fastapi.datastructures import Headers
 
 from apiserver.define import DEFINE, grace_period
@@ -55,6 +53,3 @@ async def verify_token_header(authorization: str, dsrc: Source) -> AccessToken:
 
     # THROWS ResourceError
     return resource_verify_token(token, public_key, access_settings)
-
-
-Authorization = Annotated[str, Depends(auth_header)]

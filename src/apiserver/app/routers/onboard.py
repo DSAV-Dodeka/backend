@@ -4,10 +4,11 @@ from datetime import date
 from urllib.parse import urlencode
 
 from anyio import sleep
-from fastapi import APIRouter, BackgroundTasks, Request
+from fastapi import APIRouter, BackgroundTasks
 from pydantic import BaseModel
 
 from apiserver import data
+from apiserver.app.dependencies import AppContext, AuthContext, SourceDep
 from apiserver.app.error import ErrorResponse, AppError
 from apiserver.app.modules.register import (
     RegisterRequest,
@@ -15,15 +16,11 @@ from apiserver.app.modules.register import (
     FinishRequest,
     finalize_save_register,
 )
-from apiserver.app.ops.header import Authorization
 from apiserver.app.ops.mail import (
     send_signup_email,
     send_register_email,
     mail_from_config,
 )
-from apiserver.app.routers.helper import require_admin
-from apiserver.data import Source
-from apiserver.data.context import Code
 from apiserver.define import (
     LOGGER_NAME,
     DEFINE,
@@ -36,7 +33,8 @@ from auth.modules.register import send_register_start
 from store.db import lit_model
 from store.error import DataError, NoDataError
 
-router = APIRouter()
+router = APIRouter(prefix="/onboard", tags=["onboard"])
+onboard_admin_router = APIRouter(prefix="/onboard", tags=["onboard"])
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -48,14 +46,13 @@ class SignupRequest(BaseModel):
     phone: str
 
 
-@router.post("/onboard/signup/")
+@router.post("/signup/")
 async def init_signup(
-    signup: SignupRequest, request: Request, background_tasks: BackgroundTasks
+    signup: SignupRequest, dsrc: SourceDep, background_tasks: BackgroundTasks
 ) -> None:
     """Signup is initiated by leaving basic information. User is redirected to AV'40 page, where they will actually
     sign up. Board can see who has signed up this way. There might not be full correspondence between exact signup and
     what is provided to AV'40. So there is a manual check."""
-    dsrc: Source = request.state.dsrc
     if not signup.email.islower():
         signup.email = signup.email.lower()
 
@@ -101,10 +98,8 @@ class EmailConfirm(BaseModel):
     confirm_id: str
 
 
-@router.post("/onboard/email/")
-async def email_confirm(confirm_req: EmailConfirm, request: Request) -> None:
-    dsrc: Source = request.state.dsrc
-
+@router.post("/email/")
+async def email_confirm(confirm_req: EmailConfirm, dsrc: SourceDep) -> None:
     try:
         signup = await data.trs.reg.get_email_confirmation(dsrc, confirm_req.confirm_id)
     except NoDataError as e:
@@ -138,12 +133,48 @@ async def email_confirm(confirm_req: EmailConfirm, request: Request) -> None:
             raise e
 
 
-@router.get("/onboard/get/", response_model=list[SignedUp])
-async def get_signedup(
-    request: Request, authorization: Authorization
-) -> list[SignedUp]:
-    dsrc: Source = request.state.dsrc
-    await require_admin(authorization, dsrc)
+@router.post("/register/", response_model=PasswordResponse)
+async def start_register(
+    register_start: RegisterRequest,
+    dsrc: SourceDep,
+    app_context: AppContext,
+    auth_context: AuthContext,
+) -> PasswordResponse:
+    """First step of OPAQUE registration, requires username and client message generated in first client registration
+    step."""
+    try:
+        user_id = await check_register(dsrc, app_context.register_ctx, register_start)
+    except AppError as e:
+        raise ErrorResponse(
+            400, err_type=e.err_type, err_desc=e.err_desc, debug_key=e.debug_key
+        )
+
+    return await send_register_start(
+        dsrc.store, auth_context.register_ctx, user_id, register_start.client_request
+    )
+
+
+@router.post("/finish/")
+async def finish_register(
+    register_finish: FinishRequest, dsrc: SourceDep, app_context: AppContext
+) -> None:
+    """At this point, we have info saved under 'userdata', 'users' and short-term storage as SavedRegisterState. All
+    this data must match up for there to be a successful registration."""
+
+    try:
+        await finalize_save_register(dsrc, app_context.register_ctx, register_finish)
+    except AppError as e:
+        # logger.debug(e.message)
+        raise ErrorResponse(
+            400,
+            err_type=e.err_type,
+            err_desc=e.err_desc,
+            debug_key=e.debug_key,
+        )
+
+
+@onboard_admin_router.get("/get/", response_model=list[SignedUp])
+async def get_signedup(dsrc: SourceDep) -> list[SignedUp]:
     async with data.get_conn(dsrc) as conn:
         signed_up = await data.signedup.get_all_signedup(conn)
     return signed_up
@@ -155,16 +186,13 @@ class SignupConfirm(BaseModel):
     joined: date
 
 
-@router.post("/onboard/confirm/")
+@onboard_admin_router.post("/confirm/")
 async def confirm_join(
+    dsrc: SourceDep,
     signup: SignupConfirm,
-    request: Request,
     background_tasks: BackgroundTasks,
-    authorization: Authorization,
 ) -> None:
     """Board confirms data from AV`40 signup through admin tool."""
-    dsrc: Source = request.state.dsrc
-    await require_admin(authorization, dsrc)
     signup_email = signup.email.lower()
 
     try:
@@ -210,45 +238,3 @@ async def confirm_join(
     send_register_email(
         background_tasks, signup_email, mail_from_config(dsrc.config), registration_url
     )
-
-
-@router.post("/onboard/register/", response_model=PasswordResponse)
-async def start_register(
-    register_start: RegisterRequest, request: Request
-) -> PasswordResponse:
-    """First step of OPAQUE registration, requires username and client message generated in first client registration
-    step."""
-    dsrc: Source = request.state.dsrc
-    cd: Code = request.state.cd
-
-    try:
-        user_id = await check_register(
-            dsrc, cd.app_context.register_ctx, register_start
-        )
-    except AppError as e:
-        raise ErrorResponse(
-            400, err_type=e.err_type, err_desc=e.err_desc, debug_key=e.debug_key
-        )
-
-    return await send_register_start(
-        dsrc.store, cd.auth_context.register_ctx, user_id, register_start.client_request
-    )
-
-
-@router.post("/onboard/finish/")
-async def finish_register(register_finish: FinishRequest, request: Request) -> None:
-    """At this point, we have info saved under 'userdata', 'users' and short-term storage as SavedRegisterState. All
-    this data must match up for there to be a successful registration."""
-    dsrc: Source = request.state.dsrc
-    cd: Code = request.state.cd
-
-    try:
-        await finalize_save_register(dsrc, cd.app_context.register_ctx, register_finish)
-    except AppError as e:
-        # logger.debug(e.message)
-        raise ErrorResponse(
-            400,
-            err_type=e.err_type,
-            err_desc=e.err_desc,
-            debug_key=e.debug_key,
-        )

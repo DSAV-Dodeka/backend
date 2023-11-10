@@ -55,6 +55,18 @@ AccessDep = Annotated[AccessToken, Depends(dep_header_token)]
 
 
 def verify_user(acc: AccessToken, user_id: str) -> bool:
+    """Verifies if the user in the access token corresponds to the provided user_id.
+
+    Args:
+        acc: AccessToken object.
+        user_id: user_id that will be compared against.
+
+    Returns:
+        True if user_id = acc.sub.
+
+    Raises:
+        ErrorResponse: If access token subject does not correspond to user_id.
+    """
     if acc.sub != user_id:
         reason = "Resource not available to this subject."
         raise ErrorResponse(

@@ -28,9 +28,9 @@ from apiserver.app.routers import (
     admin_router,
     basic,
     members_router,
-    update_router,
+    update,
     profile,
-    onboard_router,
+    onboard,
     auth_router,
     ranking,
 )
@@ -118,9 +118,10 @@ def add_routers(new_app: FastAPI) -> FastAPI:
     new_app.include_router(basic.router)
     new_app.include_router(auth_router)
     new_app.include_router(profile.router)
-    new_app.include_router(onboard_router)
-    new_app.include_router(update_router)
+    new_app.include_router(onboard.router)
+    new_app.include_router(update.router)
 
+    admin_router.include_router(onboard.onboard_admin_router)
     admin_router.include_router(ranking.ranking_admin_router)
     members_router.include_router(ranking.ranking_members_router)
 

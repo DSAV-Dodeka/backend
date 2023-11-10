@@ -10,6 +10,8 @@ class ErrorKeys(StrEnum):
     RANKING_UPDATE = "invalid_ranking_update"
     DATA = "invalid_data_load"
     GET_CLASS = "invalid_get_class"
+    CHECK = "invalid_code_check"
+    UPDATE = "invalid_update"
 
 
 class AppError(Exception):

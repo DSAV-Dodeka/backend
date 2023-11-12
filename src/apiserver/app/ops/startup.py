@@ -32,23 +32,26 @@ from store.error import DataError
 
 async def startup(dsrc: Source, config: Config, recreate: bool = False) -> None:
     # Checks lock: returns True if it is the first lock since at least 25 seconds (lock expire time)
-    first_lock = await waiting_lock(dsrc)
-    logger.debug(f"{first_lock} - first lock status")
+    is_first_process = await wait_for_lock_is_first(dsrc)
+    logger.debug(f"Unlocked startup, first={is_first_process}")
     # Only recreates if it is also the first lock since at least 25 seconds (lock expire time)
-    logger.debug(f"Startup with recreate={recreate and first_lock}")
+    logger.debug(f"Startup with recreate={recreate and is_first_process}")
 
     # Set lock
     await data.trs.startup.set_startup_lock(dsrc)
-    if first_lock and recreate:
-        logger.debug("Dropping and recreating...")
+    if is_first_process and recreate:
+        logger.warning("Dropping and recreating...")
         drop_create_database(config)
-    # Connect to store
+
+    # Store startup (tests connection)
     await dsrc.store.startup()
 
-    if first_lock and recreate:
-        logger.debug("Initial population...")
+    if is_first_process and recreate:
+        logger.warning("Initial population...")
         await initial_population(dsrc, config)
+
     # Load keys
+    logger.debug("Loading keys.")
     await load_keys(dsrc, config)
 
     # Release lock
@@ -58,12 +61,13 @@ async def startup(dsrc: Source, config: Config, recreate: bool = False) -> None:
 MAX_WAIT_INDEX = 15
 
 
-async def waiting_lock(dsrc: Source) -> bool:
+async def wait_for_lock_is_first(dsrc: Source) -> bool:
     """We need this lock because in production we spawn multiple processes, which each startup separately. Returns
     true if it is the first lock since at least 25 seconds (lock expire time)."""
+    # We sleep for a shor time to increase the distribution in startup times, hopefully reducing race conditions
     await sleep(random() + 0.1)
     was_locked = await data.trs.startup.startup_is_locked(dsrc)
-    logger.debug(f"{was_locked} - was_locked init")
+    logger.debug(f"Checked for startup lock: {was_locked}")
     if was_locked is None:
         return True
     elif was_locked is False:
@@ -89,7 +93,7 @@ def drop_create_database(config: Config) -> None:
 
     sync_engine = create_engine(f"postgresql+psycopg://{db_url}")
     db_model.create_all(bind=sync_engine)
-    logger.debug("Recreated database.")
+    logger.warning("Populated database.")
     del admin_engine
     del sync_engine
 
@@ -133,6 +137,7 @@ async def initial_population(dsrc: Source, config: Config) -> None:
         id_name="admin",
         email="admin",
         # This does not adhere to OPAQUE requirements, so you cannot actually login with this
+        # We don't set the password file to something valid to prevent us forgetting to set a secure password
         password_file="admin",
         scope="member admin",
     )
@@ -163,6 +168,7 @@ async def initial_population(dsrc: Source, config: Config) -> None:
 
 
 async def get_keystate(dsrc: Source) -> KeyState:
+    """The KeyState object includes the key IDs (kids) of the currently used keys."""
     async with data.get_conn(dsrc) as conn:
         # We get the Key IDs (kid) of the newest keys and also previous symmetric key
         # These newest ones will be used for signing new tokens
@@ -177,6 +183,10 @@ async def get_keystate(dsrc: Source) -> KeyState:
 
 
 async def load_keys_from_jwk(dsrc: Source, config: Config) -> JWKSet:
+    """Loads keys from the database's jwk table (JSON Web Key). These are stored in standard JWK format and then
+    encrypted with the runtime key. After decrypting, it re-encrypts the keys and stores them again.
+    """
+
     # Key used to decrypt the keys stored in the database
     runtime_key = aes_from_symmetric(config.KEY_PASS)
     async with data.get_conn(dsrc) as conn:
@@ -190,7 +200,7 @@ async def load_keys_from_jwk(dsrc: Source, config: Config) -> JWKSet:
     return key_set
 
 
-async def load_keys(dsrc: Source, config: Config) -> None:
+async def load_keys(dsrc: Source, config: Config) -> KeyState:
     key_set = await load_keys_from_jwk(dsrc, config)
     key_state = await get_keystate(dsrc)
 
@@ -230,7 +240,5 @@ async def load_keys(dsrc: Source, config: Config) -> None:
     await data.trs.key.store_symmetric_keys(dsrc, symmetric_keys)
     # Currently, this is not actually used, but it could be used to publicize the public key
     await data.trs.key.store_jwks(dsrc, public_jwk_set)
-    # We don't store these in the KV since that is an additional roundtrip that is not worth it
-    # Consequently, they can only be refreshed at restart
 
-    dsrc.key_state = key_state
+    return key_state

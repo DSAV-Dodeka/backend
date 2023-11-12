@@ -3,6 +3,7 @@
 **/*.pyd
 **/.coverage
 .python-version
-localenv.toml
 .DS_Store
 .vscode
+localenv.toml
+*.local

@@ -29,7 +29,7 @@ from apiserver.data.context.ranking import ctx_reg as ranking_reg
 from apiserver.data.context.authorize import ctx_reg as authrz_app_reg
 from apiserver.define import DEFINE
 from apiserver.env import load_config, Config
-from apiserver.resources import res_path
+from apiserver.resources import res_path, project_path
 
 
 class State(TypedDict):
@@ -64,22 +64,22 @@ async def app_startup(dsrc_inst: Source) -> Source:
             " (define.toml)! Ensure defined variables are appropriate for the runtime"
             " environment before changing the environment!"
         )
+    # This is not perfect, but should do the trick in most cases
     if config.APISERVER_ENV == "localdev":
         cr_time = util.when_modified(res_path.joinpath("static/credentials"))
-        src_time = util.when_modified(
-            res_path.parent.parent.parent.joinpath("authpage/src")
-        )
-        if cr_time > src_time:
+        src_time = util.when_modified(project_path.joinpath("authpage/src"))
+        if cr_time < src_time:
             logger.warning(
                 "Most likely authpage has not been recently built for development,"
                 " please run `npm run build` in /authpage directory."
             )
 
     dsrc_inst = safe_startup(dsrc_inst, config)
+    logger.debug("Source instantiated, running startup...")
     # Db connections, etc.
     do_recreate = config.RECREATE == "yes"
     await startup(dsrc_inst, config, do_recreate)
-
+    logger.debug("Finished startup.")
     return dsrc_inst
 
 
@@ -112,6 +112,7 @@ AppLifespan = Callable[[FastAPI], AsyncContextManager[State]]
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[State]:
+    # Logging setup
     loguru_remove_default()
     logger_stderr_sink()
     enable_libraries()

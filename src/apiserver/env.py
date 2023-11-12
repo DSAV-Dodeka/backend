@@ -3,8 +3,9 @@ from typing import Any, Optional
 import os
 from pathlib import Path
 import tomllib
+from apiserver.app.error import AppEnvironmentError
 
-from apiserver.resources import res_path
+from apiserver.resources import res_path, project_path
 from store import StoreConfig
 
 
@@ -16,8 +17,8 @@ from store import StoreConfig
 # deployment but can still test against as a live system. It can load in certain secrets, like e-mail passwords. Uses a
 # dedicated config file for env.py.
 # 3) Local (dev) environment ('localdev'): Can be set up fully featured. No automatic loading of secrets, but can be set
-# locally. These secrets MUST NEVER be stored in Git. Use localenv.toml for this. Some tests with live side effects can
-# be run.
+# locally. These secrets MUST NEVER be stored in Git. Use devenv.toml.local for this. Some tests with live side effects
+# can be run.
 # 4) No environment ('envless'): Can be in tests either locally or in automated CI, but not in a live environment. No
 # access to any secrets and only dummy values from env.py. It does use define.py.
 
@@ -46,14 +47,31 @@ class Config(StoreConfig):
     DB_NAME_ADMIN: str
 
 
-def load_config(config_path_name: Optional[os.PathLike[Any]] = None) -> Config:
+def get_config_path(config_path_name: Optional[os.PathLike[Any]] = None) -> Path:
     env_config_path = os.environ.get("APISERVER_CONFIG")
     if env_config_path is not None:
-        config_path = Path(env_config_path)
-    elif config_path_name is None:
-        config_path = res_path.joinpath("env.toml")
-    else:
-        config_path = Path(config_path_name)
+        return Path(env_config_path)
+    elif config_path_name is not None:
+        return Path(config_path_name)
+
+    try_paths = [
+        res_path.joinpath("env.toml"),
+        project_path.joinpath("devenv.toml.local"),
+        project_path.joinpath("devenv.toml"),
+    ]
+
+    for path in try_paths:
+        if path.exists():
+            return path
+
+    raise AppEnvironmentError(
+        "No env.toml found! If you are in development, did you remove `devenv.toml`? If"
+        " you are in production, was `env.toml` not added to resources?"
+    )
+
+
+def load_config(config_path_name: Optional[os.PathLike[Any]] = None) -> Config:
+    config_path = get_config_path(config_path_name)
 
     with open(config_path, "rb") as f:
         config = tomllib.load(f)

@@ -69,3 +69,7 @@ def error_response_return(
 
 def error_response_handler(_request: Request, e: ErrorResponse) -> JSONResponse:
     return error_response_return(e.status_code, e.err_type, e.err_desc, e.debug_key)
+
+
+class AppEnvironmentError(Exception):
+    pass

@@ -1,4 +1,5 @@
 from datetime import date
+from loguru import logger
 
 import opaquepy as opq
 from pydantic import BaseModel
@@ -27,7 +28,7 @@ async def check_register(
     ud, u = await get_registration(context, dsrc, register_start.register_id)
 
     if ud.registered or len(u.password_file) > 0:
-        # logger.debug("Already registered.")
+        logger.debug("Already registered.")
         reason = "Bad registration."
         raise AppError(
             err_type=ErrorKeys.REGISTER,
@@ -36,7 +37,7 @@ async def check_register(
         )
 
     if u.email != register_start.email.lower():
-        # logger.debug("Registration start does not match e-mail")
+        logger.debug("Registration start does not match e-mail")
         reason = "Bad registration."
         raise AppError(
             err_type=ErrorKeys.REGISTER,
@@ -67,8 +68,8 @@ async def finalize_save_register(
     # Note that this is equal to the client request, it simply is a check for correct format
     try:
         password_file = opq.register_finish(register_finish.client_request)
-    except ValueError:
-        # logger.debug(f"OPAQUE failure from client OPAQUE message: {e!s}")
+    except ValueError as e:
+        logger.debug(f"OPAQUE failure from client OPAQUE message: {e!s}")
         raise AppError(
             err_type=ErrorKeys.REGISTER,
             err_desc="Invalid OPAQUE registration.",

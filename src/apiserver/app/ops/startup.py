@@ -1,4 +1,4 @@
-import logging
+from loguru import logger
 from asyncio import sleep
 from datetime import date
 from random import random
@@ -23,14 +23,11 @@ from auth.hazmat.crypt_dict import encrypt_dict, decrypt_dict
 from auth.hazmat.key_decode import aes_from_symmetric
 from auth.core import util
 from store import StoreError
-from apiserver.define import LOGGER_NAME
 from apiserver import data
 from apiserver.data import Source
 from schema.model import metadata as db_model
 from apiserver.data.admin import drop_recreate_database
 from store.error import DataError
-
-logger = logging.getLogger(LOGGER_NAME)
 
 
 async def startup(dsrc: Source, config: Config, recreate: bool = False) -> None:

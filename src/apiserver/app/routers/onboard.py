@@ -1,5 +1,5 @@
 import json
-import logging
+from loguru import logger
 from datetime import date
 from urllib.parse import urlencode
 
@@ -22,7 +22,6 @@ from apiserver.app.ops.mail import (
     mail_from_config,
 )
 from apiserver.define import (
-    LOGGER_NAME,
     DEFINE,
     email_expiration,
 )
@@ -35,8 +34,6 @@ from store.error import DataError, NoDataError
 
 router = APIRouter(prefix="/onboard", tags=["onboard"])
 onboard_admin_router = APIRouter(prefix="/onboard", tags=["onboard"])
-
-logger = logging.getLogger(LOGGER_NAME)
 
 
 class SignupRequest(BaseModel):
@@ -164,7 +161,7 @@ async def finish_register(
     try:
         await finalize_save_register(dsrc, app_context.register_ctx, register_finish)
     except AppError as e:
-        # logger.debug(e.message)
+        logger.debug(e.err_desc)
         raise ErrorResponse(
             400,
             err_type=e.err_type,

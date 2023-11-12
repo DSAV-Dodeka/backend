@@ -18,17 +18,24 @@ class AppError(Exception):
     err_type: ErrorKeys
     err_desc: str
     debug_key: Optional[str]
+    inner: Optional[Exception]
 
     def __init__(
         self,
         err_type: ErrorKeys,
         err_desc: str,
         debug_key: Optional[str] = None,
+        inner: Optional[Exception] = None,
     ):
         super().__init__(err_desc)
         self.err_type = err_type
         self.err_desc = err_desc
         self.debug_key = debug_key
+        self.inner = inner
+
+    def to_message(self) -> str:
+        debug_key = ":" + self.debug_key if self.debug_key is not None else ""
+        return f"{self.err_type}{debug_key}: {self.err_desc}"
 
 
 class ErrorResponse(Exception):

@@ -1,8 +1,15 @@
-import logging
 from contextlib import asynccontextmanager
 from typing import AsyncContextManager, AsyncIterator, Callable, TypedDict
 
+from loguru import logger
+
 from fastapi import FastAPI
+from apiserver.app.app_logging import (
+    enable_libraries,
+    intercept_logging,
+    logger_stderr_sink,
+    loguru_remove_default,
+)
 
 from auth.data.context import Contexts
 from auth.data.authentication import ctx_reg as auth_reg
@@ -20,11 +27,9 @@ from apiserver.data.context.register import ctx_reg as register_app_reg
 from apiserver.data.context.update import ctx_reg as update_reg
 from apiserver.data.context.ranking import ctx_reg as ranking_reg
 from apiserver.data.context.authorize import ctx_reg as authrz_app_reg
-from apiserver.define import LOGGER_NAME, DEFINE
+from apiserver.define import DEFINE
 from apiserver.env import load_config, Config
 from apiserver.resources import res_path
-
-logger = logging.getLogger(LOGGER_NAME)
 
 
 class State(TypedDict):
@@ -107,6 +112,11 @@ AppLifespan = Callable[[FastAPI], AsyncContextManager[State]]
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[State]:
+    loguru_remove_default()
+    logger_stderr_sink()
+    enable_libraries()
+    intercept_logging(["uvicorn.error"])
+
     logger.info("Running startup...")
     dsrc = Source()
     dsrc_started = await app_startup(dsrc)

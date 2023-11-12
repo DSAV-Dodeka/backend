@@ -10,18 +10,20 @@ from apiserver.lib.resource.error import ResourceError, resource_error_code
 from auth.data.context import Contexts as AuthContexts
 from datacontext.context import ctxlize
 
+# Due to some internal stuff in FastAPI/Starlette, it's important to make all dependencies async. https://github.com/tiangolo/fastapi/discussions/5999
 
-def dep_source(request: Request) -> Source:
+
+async def dep_source(request: Request) -> Source:
     dsrc: Source = request.state.dsrc
     return dsrc
 
 
-def dep_app_context(request: Request) -> SourceContexts:
+async def dep_app_context(request: Request) -> SourceContexts:
     cd: Code = request.state.cd
     return cd.app_context
 
 
-def dep_auth_context(request: Request) -> AuthContexts:
+async def dep_auth_context(request: Request) -> AuthContexts:
     cd: Code = request.state.cd
     return cd.auth_context
 
@@ -81,7 +83,7 @@ def has_scope(scopes: str, required: set[str]) -> bool:
     return required.issubset(scope_set)
 
 
-def require_admin(acc: AccessDep) -> AccessToken:
+async def require_admin(acc: AccessDep) -> AccessToken:
     if not has_scope(acc.scope, {"admin"}):
         raise ErrorResponse(
             403,
@@ -93,7 +95,7 @@ def require_admin(acc: AccessDep) -> AccessToken:
     return acc
 
 
-def require_member(acc: AccessDep) -> AccessToken:
+async def require_member(acc: AccessDep) -> AccessToken:
     if not has_scope(acc.scope, {"member"}):
         raise ErrorResponse(
             403,

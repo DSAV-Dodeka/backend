@@ -27,7 +27,8 @@ def test_auth_test():
     assert "WWW-Authenticate" in e.value.headers
 
 
-def test_require_admin(faker: Faker):
+@pytest.mark.asyncio
+async def test_require_admin(faker: Faker):
     test_user = make_test_user(faker)
 
     acc1 = acc_token_from_info(test_user.user_id, scopes="admin")
@@ -36,16 +37,17 @@ def test_require_admin(faker: Faker):
     acc4 = acc_token_from_info(test_user.user_id, scopes="admin alsoelse")
 
     with pytest.raises(ErrorResponse):
-        require_admin(acc2)
+        await require_admin(acc2)
 
     with pytest.raises(ErrorResponse):
-        require_admin(acc3)
+        await require_admin(acc3)
 
-    assert acc1 == require_admin(acc1)
-    assert acc4 == require_admin(acc4)
+    assert acc1 == await require_admin(acc1)
+    assert acc4 == await require_admin(acc4)
 
 
-def test_require_member(faker: Faker):
+@pytest.mark.asyncio
+async def test_require_member(faker: Faker):
     test_user = make_test_user(faker)
 
     acc1 = acc_token_from_info(test_user.user_id, scopes="admin member")
@@ -54,13 +56,13 @@ def test_require_member(faker: Faker):
     acc4 = acc_token_from_info(test_user.user_id, scopes="member")
 
     with pytest.raises(ErrorResponse):
-        require_member(acc2)
+        await require_member(acc2)
 
     with pytest.raises(ErrorResponse):
-        require_member(acc3)
+        await require_member(acc3)
 
-    assert acc1 == require_member(acc1)
-    assert acc4 == require_member(acc4)
+    assert acc1 == await require_member(acc1)
+    assert acc4 == await require_member(acc4)
 
 
 def test_verify_user(faker: Faker):

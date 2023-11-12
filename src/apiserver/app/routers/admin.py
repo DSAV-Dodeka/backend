@@ -1,4 +1,4 @@
-import logging
+from loguru import logger
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import ORJSONResponse
@@ -9,15 +9,12 @@ import apiserver.data.api.scope
 import apiserver.data.api.ud.userdata
 from apiserver import data
 from apiserver.app.error import ErrorResponse
-from apiserver.define import LOGGER_NAME
 from apiserver.lib.model.entities import UserData, UserScopeData, UserID
 from store.error import DataError, NoDataError
 
 admin_router = APIRouter(
     prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)]
 )
-
-logger = logging.getLogger(LOGGER_NAME)
 
 
 @admin_router.get("/users/", response_model=list[UserData])

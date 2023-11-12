@@ -1,11 +1,8 @@
-import logging
+from loguru import logger
 
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
-from apiserver.define import LOGGER_NAME
-
-logger = logging.getLogger(LOGGER_NAME)
 
 # async def remove_test_dbs(admin_db: Database):
 #     query_databases = "SELECT datname FROM pg_database"

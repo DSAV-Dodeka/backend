@@ -1,3 +1,4 @@
+from loguru import logger
 from apiserver.app.error import AppError, ErrorKeys
 from apiserver.data.context.app_context import UpdateContext
 from apiserver.data.source import Source
@@ -20,8 +21,8 @@ async def verify_delete_account(
     # delete their account
     try:
         flow_user = await pop_flow_user(login_ctx, dsrc.store, auth_code)
-    except NoDataError:
-        # logger.debug(e.message)
+    except NoDataError as e:
+        logger.debug(e.message)
         reason = "Expired or missing auth code"
         raise AppError(
             err_type=ErrorKeys.CHECK, err_desc=reason, debug_key="empty_flow"
@@ -40,7 +41,7 @@ async def verify_delete_account(
     stored_user_id = await ctxlize(pop_string)(update_ctx, dsrc, flow_id)
     if stored_user_id is None:
         reason = "Delete request has expired, please try again!"
-        # logger.debug(reason + f" {flow_user.user_id}")
+        logger.debug(reason + f" {flow_user.user_id}")
         raise AppError(err_type=ErrorKeys.UPDATE, err_desc=reason)
 
     # If the user ID's are equal, we know that the person who requested the deletion is the same person who
@@ -50,7 +51,7 @@ async def verify_delete_account(
         raise AppError(err_type=ErrorKeys.UPDATE, err_desc=reason)
     if stored_user_id is None:
         reason = "Delete request has expired, please try again!"
-        # logger.debug(reason + f" {flow_user.user_id}")
+        logger.debug(reason + f" {flow_user.user_id}")
         raise AppError(err_type=ErrorKeys.UPDATE, err_desc=reason)
 
     return stored_user_id

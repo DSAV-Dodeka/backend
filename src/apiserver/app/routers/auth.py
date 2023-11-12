@@ -1,4 +1,4 @@
-import logging
+from loguru import logger
 
 from fastapi import APIRouter, Response
 from fastapi.responses import RedirectResponse
@@ -16,15 +16,13 @@ from auth.modules.login import (
 from auth.modules.token.create import delete_refresh
 from auth.modules.token.process import process_token_request
 
-from apiserver.define import LOGGER_NAME, DEFINE
+from apiserver.define import DEFINE
 from apiserver.data import schema
 from apiserver.app.error import ErrorResponse
 
 router = APIRouter(tags=["auth"])
 
 port_front = 3000
-
-logger = logging.getLogger(LOGGER_NAME)
 
 
 @router.post("/login/start/", response_model=PasswordResponse)

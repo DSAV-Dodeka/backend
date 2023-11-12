@@ -1,5 +1,4 @@
-import logging
-from logging import Logger
+from loguru import logger
 from typing import Any, Callable, Coroutine, Type, TypeAlias
 
 from fastapi import FastAPI, Request, Response
@@ -8,14 +7,11 @@ from fastapi.middleware import Middleware
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import Mount
 from fastapi.staticfiles import StaticFiles
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.types import ASGIApp
-from uvicorn.logging import DefaultFormatter
+from apiserver.app.app_logging import LoggerMiddleware
 from apiserver.app_lifespan import AppLifespan
 
 # Import types separately to make it clear in what line the module is first loaded and
 # its top-level run
-from apiserver.define import LOGGER_NAME
 from apiserver.resources import res_path
 from apiserver.app.error import (
     error_response_return,
@@ -36,41 +32,12 @@ from apiserver.app.routers import (
 )
 
 
-def init_logging(logger_name: str, log_level: int) -> Logger:
-    logger_init = logging.getLogger(logger_name)
-    logger_init.setLevel(log_level)
-    str_handler = logging.StreamHandler()
-    # handler = logging.FileHandler(filename=log_path)
-    log_format = "%(levelprefix)s %(asctime)s | %(message)s "
-    formatter = DefaultFormatter(log_format, datefmt="%Y-%m-%d %H:%M:%S")
-    # handler.setFormatter(formatter)
-    str_handler.setFormatter(formatter)
-    # logger_init.addHandler(handler)
-    logger_init.addHandler(str_handler)
-    return logger_init
+ExceptionHandler: TypeAlias = Callable[[Request, Any], Coroutine[Any, Any, Response]]
 
 
-logger = init_logging(LOGGER_NAME, logging.DEBUG)
-
-
-class LoggerMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app: ASGIApp, mw_logger: Logger) -> None:
-        super().__init__(app)
-        self.mw_logger = mw_logger
-
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
-        # self.mw_logger.debug(request.headers)
-        return await call_next(request)
-
-
-HandlerType: TypeAlias = Callable[[Request, Any], Coroutine[Any, Any, Response]]
-
-
-def make_handler_dict(
-    exc: int | Type[Exception], handler: HandlerType
-) -> dict[int | Type[Exception], HandlerType]:
+def define_exception_handlers(
+    exc: int | Type[Exception], handler: ExceptionHandler
+) -> dict[int | Type[Exception], ExceptionHandler]:
     return {exc: handler}
 
 
@@ -86,18 +53,16 @@ async def validation_exception_handler(
 
 
 def define_static_routes() -> list[Mount]:
-    return [
-        Mount(
-            "/credentials",
-            app=StaticFiles(
-                directory=res_path.joinpath("static/credentials"), html=True
-            ),
-            name="credentials",
-        )
-    ]
+    credential_mount = Mount(
+        "/credentials",
+        app=StaticFiles(directory=res_path.joinpath("static/credentials"), html=True),
+        name="credentials",
+    )
+
+    return [credential_mount]
 
 
-def define_middleware() -> list[Middleware]:
+def define_middleware(routes_to_trace_log: set[str]) -> list[Middleware]:
     # TODO change all origins
     origins = [
         "*",
@@ -110,7 +75,7 @@ def define_middleware() -> list[Middleware]:
             allow_methods=["*"],
             allow_headers=["Authorization"],
         ),
-        Middleware(LoggerMiddleware, mw_logger=logger),
+        Middleware(LoggerMiddleware, trace_routes=routes_to_trace_log),
     ]
 
 
@@ -135,25 +100,24 @@ def add_routers(new_app: FastAPI) -> FastAPI:
 def create_app(app_lifespan: AppLifespan) -> FastAPI:
     """App entrypoint."""
 
-    routes = define_static_routes()
-    middleware = define_middleware()
+    static_routes = define_static_routes()
+    # We need the top-level route names because we don't want the logs to be spammed with them
+    static_paths = set(map(lambda r: r.path.removeprefix("/"), static_routes))
+    middleware = define_middleware(routes_to_trace_log=static_paths)
 
-    exception_handlers = make_handler_dict(
+    exception_handlers = define_exception_handlers(
         RequestValidationError, validation_exception_handler
     )
 
     new_app = FastAPI(
         title="apiserver",
-        routes=routes,  # type: ignore
+        # Types don't work because BaseRoute is not covariant, which we can't control
+        routes=static_routes,  # type: ignore
         middleware=middleware,
         lifespan=app_lifespan,
         exception_handlers=exception_handlers,
     )
     new_app = add_routers(new_app)
-
     new_app.add_exception_handler(ErrorResponse, handler=error_response_handler)
-
-    # TODO change logger behavior in tests
-    logger.info("Starting...")
 
     return new_app

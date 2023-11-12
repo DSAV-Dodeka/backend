@@ -1,3 +1,4 @@
+from loguru import logger
 from auth.core.error import AuthError, RefreshOperationError
 from auth.core.model import (
     CodeGrantRequest,
@@ -49,7 +50,7 @@ async def process_token_request(
         )
 
     elif token_request.grant_type == "refresh_token":
-        # logger.debug("refresh_token request")
+        logger.debug("refresh_token request")
         old_refresh = refresh_validate(token_request)
         # Verify old refresh token
         tokens = await request_token_grant(store, ops, context, key_state, old_refresh)
@@ -58,10 +59,9 @@ async def process_token_request(
         reason = (
             "Only 'refresh_token' and 'authorization_code' grant types are available."
         )
-        # logger.debug(f"{reason} Used: {token_request.grant_type}")
+        logger.debug(f"{reason} Used: {token_request.grant_type}")
         raise AuthError(err_type="unsupported_grant_type", err_desc=reason)
 
-    # logger.info(f"Token request granted for {token_user_id}")
     return TokenResponse(
         id_token=tokens.id,
         access_token=tokens.acc,
@@ -130,7 +130,7 @@ async def request_token_grant(
 ) -> Tokens:
     try:
         return await do_refresh(store, ops, context, key_state, old_refresh)
-    except RefreshOperationError:
+    except RefreshOperationError as e:
         error_desc = "Invalid refresh_token!"
-        # logger.debug(f"{str(e)}: {error_desc}")
+        logger.debug(f"{e!s}: {error_desc}")
         raise AuthError(err_type="invalid_grant", err_desc=error_desc)

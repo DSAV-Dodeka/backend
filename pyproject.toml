@@ -23,7 +23,6 @@ psycopg = { extras = ["binary"], version="^3.1.0" }
 pydantic = "2.4.2"
 redis = "5.0.1"
 sqlalchemy = { extras = ["asyncio"], version = "2.0.22" }
-
 opaquepy = "0.3.5"
 jinja2 = "^3.1.2"
 anyio = "^3.7.1"
@@ -31,6 +30,7 @@ regex = "^2023.10.3"
 orjson = "^3.9.5"
 yarl = "^1.9.2"
 types-regex = "^2023.10.3.0"
+loguru = "^0.7.2"
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
@@ -46,7 +46,7 @@ pre-commit = "^2.20.0"
 httpx = "^0.24.1"
 alembic = "^1.12.0"
 coverage = "^7.3.2"
-black = "^23.9.1"
+black = "23.11.0"
 mypy = "^1.5.1"
 #types-redis = "^4.3.21"
 # sqlalchemy-stubs = "^0.4"

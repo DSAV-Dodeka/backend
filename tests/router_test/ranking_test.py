@@ -55,22 +55,18 @@ def test_get_event_users(
 ):
     test_ud, test_u = gen_ud_u
     point_names = [
-        UserPointsNames.model_validate(
-            {
-                "user_id": test_u.user_id,
-                "firstname": test_ud.firstname,
-                "lastname": test_ud.lastname,
-                "points": 3,
-            }
-        ),
-        UserPointsNames.model_validate(
-            {
-                "user_id": "someperson2",
-                "firstname": "first2",
-                "lastname": "last2",
-                "points": 5,
-            }
-        ),
+        UserPointsNames.model_validate({
+            "user_id": test_u.user_id,
+            "firstname": test_ud.firstname,
+            "lastname": test_ud.lastname,
+            "points": 3,
+        }),
+        UserPointsNames.model_validate({
+            "user_id": "someperson2",
+            "firstname": "first2",
+            "lastname": "last2",
+            "points": 5,
+        }),
     ]
     event_id = "some_event"
     acc_token = acc_token_from_info("1_admin", "admin member")

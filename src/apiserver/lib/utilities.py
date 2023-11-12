@@ -4,9 +4,9 @@ import math
 import regex as re
 
 urlsafe = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_"
-urlsafe_set = set(
-    [int.from_bytes(c.encode("utf-8"), byteorder=sys.byteorder) for c in urlsafe]
-)
+urlsafe_set = set([
+    int.from_bytes(c.encode("utf-8"), byteorder=sys.byteorder) for c in urlsafe
+])
 
 rad64_dict = urlsafe + "~"
 

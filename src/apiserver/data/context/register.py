@@ -1,3 +1,4 @@
+from loguru import logger
 from apiserver import data
 from apiserver.app.error import AppError, ErrorKeys
 from apiserver.data import Source, ops
@@ -39,8 +40,8 @@ async def get_registration(dsrc: Source, register_id: str) -> tuple[UserData, Us
 async def get_register_state(dsrc: Source, auth_id: str) -> SavedRegisterState:
     try:
         saved_state = await data.trs.reg.get_register_state(dsrc, auth_id)
-    except NoDataError:
-        # logger.debug(e.message)
+    except NoDataError as e:
+        logger.debug(e.message)
         reason = "Registration not initialized or expired."
         raise AppError(
             err_type=ErrorKeys.REGISTER,
@@ -59,8 +60,8 @@ async def check_userdata_register(
     try:
         async with data.get_conn(dsrc) as conn:
             ud = await data.ud.get_userdata_by_register_id(conn, register_id)
-    except NoDataError:
-        # logger.debug(e)
+    except NoDataError as e:
+        logger.debug(e)
         reason = "No registration for that register_id."
         raise AppError(
             err_type=ErrorKeys.REGISTER,
@@ -69,7 +70,7 @@ async def check_userdata_register(
         )
 
     if ud.registered:
-        # logger.debug("Already registered.")
+        logger.debug("Already registered.")
         reason = "Bad registration."
         raise AppError(
             err_type=ErrorKeys.REGISTER,
@@ -78,7 +79,7 @@ async def check_userdata_register(
         )
 
     if ud.email != request_email.lower():
-        # logger.debug("Registration does not match e-mail.")
+        logger.debug("Registration does not match e-mail.")
         reason = "Bad registration."
         raise AppError(
             err_type=ErrorKeys.REGISTER,
@@ -87,7 +88,7 @@ async def check_userdata_register(
         )
 
     if ud.user_id != saved_user_id:
-        # logger.debug("Registration does not match user_id.")
+        logger.debug("Registration does not match user_id.")
         reason = "Bad registration."
         raise AppError(
             err_type=ErrorKeys.REGISTER,

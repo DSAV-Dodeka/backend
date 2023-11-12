@@ -1,4 +1,4 @@
-import logging
+from loguru import logger
 
 import jwt
 from jwt import (
@@ -36,7 +36,7 @@ def get_kid(access_token: str) -> str:
     except DecodeError:
         raise BadVerification("decode_error")
     except PyJWTError as e:
-        logging.debug(e)
+        logger.debug(e)
         raise BadVerification("other")
 
 
@@ -66,7 +66,7 @@ def verify_access_token(
     except InvalidTokenError:
         raise BadVerification("bad_token")
     except PyJWTError as e:
-        logging.debug(e)
+        logger.debug(e)
         raise BadVerification("other")
 
     return AccessToken.model_validate(decoded_payload)

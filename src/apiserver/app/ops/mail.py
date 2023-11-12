@@ -1,14 +1,12 @@
 from typing import Optional, Any, TypedDict
 
-import logging
 
 from fastapi import BackgroundTasks
 
 from apiserver.env import Config
 from apiserver.lib.actions.mail import send_email_vars
-from apiserver.define import template_env, loc_dict, LOGGER_NAME, DEFINE
+from apiserver.define import template_env, loc_dict, DEFINE
 
-logger = logging.getLogger(LOGGER_NAME)
 
 __all__ = [
     "send_signup_email",
@@ -36,7 +34,6 @@ def mail_from_config(config: Config) -> Optional[MailServer]:
 
 
 def send_email(
-    logger_sent: logging.Logger,
     template: str,
     receiver_email: str,
     mail_server: Optional[MailServer],
@@ -53,7 +50,6 @@ def send_email(
         add_vars = dict()
     templ_vars = loc_dict | add_vars
     send_email_vars(
-        logger_sent,
         template_name=template,
         has_html=True,
         loaded_env=template_env,
@@ -81,7 +77,6 @@ def send_signup_email(
 
     def send_lam() -> None:
         send_email(
-            logger,
             "confirm.jinja2",
             receiver,
             mail_server,
@@ -104,7 +99,6 @@ def send_register_email(
     def send_lam() -> None:
         org_name = loc_dict["loc"]["org_name"]
         send_email(
-            logger,
             "register.jinja2",
             receiver,
             mail_server,
@@ -127,7 +121,6 @@ def send_reset_email(
 
     def send_lam() -> None:
         send_email(
-            logger,
             "passwordchange.jinja2",
             receiver,
             mail_server,
@@ -152,7 +145,6 @@ def send_change_email_email(
 
     def send_lam() -> None:
         send_email(
-            logger,
             "emailchange.jinja2",
             receiver,
             mail_server,

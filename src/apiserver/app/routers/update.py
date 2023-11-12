@@ -1,4 +1,4 @@
-import logging
+from loguru import logger
 from urllib.parse import urlencode
 
 import opaquepy as opq
@@ -27,7 +27,7 @@ from apiserver.app.ops.mail import (
 )
 from apiserver.data import ops
 from apiserver.data.context.update import store_email_flow_password_change
-from apiserver.define import LOGGER_NAME, DEFINE
+from apiserver.define import DEFINE
 from apiserver.lib.model.entities import UpdateEmailState
 from auth.data.authentication import pop_flow_user
 from auth.modules.register import send_register_start
@@ -36,8 +36,6 @@ from datacontext.context import ctxlize_wrap
 from store.error import DataError, NoDataError
 
 router = APIRouter(prefix="/update", tags=["update"])
-
-logger = logging.getLogger(LOGGER_NAME)
 
 
 class ChangePasswordRequest(BaseModel):
@@ -212,8 +210,8 @@ async def update_email_check(
         flow_user = await pop_flow_user(
             auth_context.login_ctx, dsrc.store, update_check.code
         )
-    except NoDataError:
-        # logger.debug(e.message)
+    except NoDataError as e:
+        logger.debug(e.message)
         reason = "Expired or missing auth code"
         raise ErrorResponse(
             status_code=400,
@@ -362,7 +360,7 @@ async def delete_account_check(
         return DeleteAccount(user_id=delete_user_id)
     except NoDataError:
         reason = "User for delete request no longer exists!"
-        # logger.debug(reason + f" {flow_user.user_id}")
+        logger.debug(reason + f" {delete_user_id}")
         raise AppError(
             err_type=ErrorKeys.UPDATE,
             err_desc=reason,

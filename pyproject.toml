@@ -87,6 +87,6 @@ ignore-init-module-imports = true
 max-doc-length = 120
 
 [tool.poe.tasks.check]
-shell = "pytest && ruff src actions tests && black src tests actions"
+shell = "pytest && ruff src actions tests && mypy && black src tests actions"
 interpreter = ["powershell", "posix"]
 

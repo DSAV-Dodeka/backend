@@ -65,9 +65,10 @@ async def app_startup(dsrc_inst: Source) -> Source:
             " environment before changing the environment!"
         )
     # This is not perfect, but should do the trick in most cases
-    if config.APISERVER_ENV == "localdev":
+    src_path = project_path.joinpath("authpage/src")
+    if config.APISERVER_ENV == "localdev" and src_path.exists():
         cr_time = util.when_modified(res_path.joinpath("static/credentials"))
-        src_time = util.when_modified(project_path.joinpath("authpage/src"))
+        src_time = util.when_modified(src_path)
         if cr_time < src_time:
             logger.warning(
                 "Most likely authpage has not been recently built for development,"

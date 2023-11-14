@@ -52,7 +52,8 @@ async def startup(dsrc: Source, config: Config, recreate: bool = False) -> None:
 
     # Load keys
     logger.debug("Loading keys.")
-    await load_keys(dsrc, config)
+    key_state = await load_keys(dsrc, config)
+    dsrc.key_state = key_state
 
     # Release lock
     await data.trs.startup.set_startup_lock(dsrc, "not")

@@ -76,6 +76,7 @@ jobs:
         # These values must align with the config used by the tests in the repo
         # The port is set in the image
         options: >-
+          --entrypoint "redis-server /usr/local/etc/redis/redis.conf --requirepass redisredis"
           --health-cmd "redis-cli ping"
           --health-interval 10s
           --health-timeout 5s

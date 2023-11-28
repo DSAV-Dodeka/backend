@@ -4,7 +4,7 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
-from model import metadata
+from schema.model import metadata
 
 
 # this is the Alembic Config object, which provides
@@ -18,7 +18,7 @@ try:
     from apiserver.resources import project_path
 
     api_config = load_config(project_path.joinpath("devenv.toml"))
-    db_cluster = f"postgresql://{api_config.DB_USER}:{api_config.DB_PASS}@{api_config.DB_HOST}:{api_config.DB_PORT}"
+    db_cluster = f"postgresql+psycopg://{api_config.DB_USER}:{api_config.DB_PASS}@{api_config.DB_HOST}:{api_config.DB_PORT}"
     db_url = f"{db_cluster}/{api_config.DB_NAME}"
 except ImportError:
     # we use json so we don't have to worry about tomli/tomllib
@@ -34,13 +34,15 @@ except ImportError:
     if not db_pass:
         db_pass = db_config["DB_PASS"]
     db_cluster = (
-        f"postgresql://{db_config['DB_USER']}:{db_pass}"
+        f"postgresql+psycopg://{db_config['DB_USER']}:{db_pass}"
         + f"@{db_config['DB_HOST']}:{db_config['DB_PORT']}"
     )
     db_url = f"{db_cluster}/{db_config['DB_NAME']}"
 
 
 config.set_main_option("sqlalchemy.url", db_url)
+if config.config_file_name is None:
+    raise ValueError("config_file_name cannot be none!")
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -89,8 +91,12 @@ def run_migrations_online():
     and associate a connection with the context.
 
     """
+    cfg_section = config.get_section(config.config_ini_section)
+    print(cfg_section)
+    if cfg_section is None:
+        raise ValueError(f"section {config.config_ini_section} must exist!")
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section),
+        cfg_section,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )

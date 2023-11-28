@@ -94,11 +94,15 @@ def logger_struct_file_sink(config: Config) -> None:
 
 
 class LoggerMiddleware(BaseHTTPMiddleware):
+    """
+    Logs every request and response. By default it logs at DEBUG level, but routes set in `trace_routes` are logged
+    at TRACE level.
+    """
+
     trace_routes: set[str]
 
     def __init__(self, app: FastAPI, trace_routes: set[str]) -> None:
         """
-
         Args:
             app: the FastAPI app that will use this middleware.
             trace_routes: set of routes that will not be logged at debug level but at trace level instead.

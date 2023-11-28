@@ -206,7 +206,7 @@ class_events = sqla.Table(
         sqla.ForeignKey(f"{CLASSIFICATION_TABLE}.{CLASS_ID}", ondelete="SET NULL"),
         nullable=True,
     ),
-    sqla.Column(C_EVENTS_CATEGORY, sqla.String(length=100), primary_key=True),
+    sqla.Column(C_EVENTS_CATEGORY, sqla.String(length=100), nullable=False),
     sqla.Column(C_EVENTS_DESCRIPTION, sqla.String(length=500)),
     sqla.Column(C_EVENTS_DATE, sqla.DateTime, nullable=False),
     sqla.Column(

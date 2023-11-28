@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - run: pipx install poetry==1.6.1
+    - run: pipx install poetry==1.7.1
     - uses: actions/setup-python@v4
       with:
         python-version: '3.11'
@@ -75,8 +75,9 @@ jobs:
           password: ${{ secrets.GH_DODEKACOMCOM_TOKEN }}
         # These values must align with the config used by the tests in the repo
         # The port is set in the image
+        env:
+          REDIS_PASSWORD: redisredis
         options: >-
-          --entrypoint "redis-server /usr/local/etc/redis/redis.conf --requirepass redisredis"
           --health-cmd "redis-cli ping"
           --health-interval 10s
           --health-timeout 5s

@@ -16,7 +16,8 @@ import {base64ToBin} from "../../functions/encode";
 import Back from "../../components/Back";
 import {z} from "zod";
 import {new_err} from "../../functions/error";
-import timeout from "ky/distribution/utils/timeout";
+import Logo from "../../logo.svg?react"
+import Title from "../../components/Title";
 // Imported lazily due to large library size
 const PasswordStrength = React.lazy(() => import('../../components/PasswordStrength'));
 
@@ -204,7 +205,7 @@ const Register = () => {
     return (
         <div className="backend_page">
             <Back />
-            <h1 className="title">Register</h1>
+            <Title title="Registeren" />
             {!infoOk && handled &&
             <p className="largeText">Deze link voor het registratieformulier werkt niet, probeer het opnieuw of vraag het bestuur om een nieuwe link!</p>
             }
@@ -218,9 +219,7 @@ const Register = () => {
                        onChange={handleFormChange}/>
                 <input disabled className={submitted} required id="phone" type="text" placeholder="Telefoonnummer" name="phone" value={state.phone}
                        onChange={handleFormChange}/>
-                <p>Staat hierboven een foutje? Laat het weten aan het bestuur en ze zullen je een nieuwe e-mail sturen!</p>
-                <input className={submitted} required id="callname" type="text" placeholder="Roepnaam" name="callname" value={state.callname}
-                       onChange={handleFormChange}/>
+                <p className="maybeMistakeText">Staat hierboven een foutje? Het kan ook na registratie aangepast worden, laat het aan ons weten!</p>
                 <input required className={"formPassword " + submitted}  id="password" type="password" placeholder="Wachtwoord" name="password" value={state.password}
                        onChange={handleFormChange}/>
                 {/** The Suspense is used because the library used for loading is quite big, so it is loaded in the background after page load **/}

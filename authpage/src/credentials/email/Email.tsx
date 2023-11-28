@@ -4,6 +4,7 @@ import {confirm_succesful, register_link} from '../../loc.json'
 import './Email.scss'
 import Back from "../../components/Back";
 import {AuthPageError} from "../../functions/error";
+import Title from "../../components/Title";
 
 const Email = () => {
     const [status, setStatus] = useState("De bevestigingslink is incorrect of verlopen. Probeer het opnieuw.")
@@ -61,7 +62,7 @@ const Email = () => {
     return (
         <div className="backend_page">
             <Back />
-            <h1 className="title">E-MAIL BEVESTIGEN</h1>
+            <Title title="E-mail bevestigen" />
             <p className="largeText">{status}</p>
             <p className="largeText">{confirmed && (<a className="regLink" href={register_link}>{register_link}</a>)}</p>
         </div>

@@ -1,5 +1,4 @@
 from datetime import date
-from apiserver.data.api.classifications import add_class_event
 from apiserver.lib.utilities import usp_hex
 from schema.model.model import C_EVENTS_CATEGORY, C_EVENTS_DATE, C_EVENTS_DESCRIPTION, C_EVENTS_ID, CLASS_EVENTS_TABLE, CLASS_ID, MAX_EVENT_ID_LEN
 from store.conn import AsyncConenctionContext

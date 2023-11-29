@@ -1,12 +1,12 @@
 from datetime import date
 from apiserver.lib.utilities import usp_hex
 from schema.model.model import C_EVENTS_CATEGORY, C_EVENTS_DATE, C_EVENTS_DESCRIPTION, C_EVENTS_ID, CLASS_EVENTS_TABLE, CLASS_ID, MAX_EVENT_ID_LEN
-from store.conn import AsyncConenctionContext
+from sqlalchemy.ext.asyncio import AsyncConnection
 from store.db import LiteralDict, insert_many
 from store.error import DataError
 
 async def add_training_event(
-    conn: AsyncConenctionContext,
+    conn: AsyncConnection,
     classification_id: int,
     categories: list[str],
     event_date: date,
@@ -15,8 +15,8 @@ async def add_training_event(
     """breaks up a training into their subcategories and insert them into the class_events table.
     event_id will be created in the form of: "training[dd/mm/yyyy][category]"
     we make the assumption that there are no two trainings in a day"""
-    idList = [str]
-    event_rows = [LiteralDict]
+    idList = []
+    event_rows = []
     for subCategory in categories:
         subEventId = usp_hex(f'training{event_date.isoformat()}{subCategory}')
 

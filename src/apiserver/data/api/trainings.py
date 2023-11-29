@@ -35,7 +35,7 @@ async def add_training_event(
             C_EVENTS_DATE: event_date,
             C_EVENTS_DESCRIPTION: description,
         }
-        event_rows.append[event_row]
+        event_rows.append(event_row)
 
     await insert_many(conn, CLASS_EVENTS_TABLE, event_rows)
     

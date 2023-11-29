@@ -16,7 +16,7 @@ async def add_training_event(
     event_id will be created in the form of: "training[dd/mm/yyyy][category]"
     we make the assumption that there are no two trainings in a day"""
     idList = []
-    event_rows = []
+    event_rows: list[LiteralDict] = []
     for subCategory in categories:
         subEventId = usp_hex(f'training{event_date.isoformat()}{subCategory}')
 

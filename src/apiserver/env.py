@@ -70,13 +70,29 @@ def get_config_path(config_path_name: Optional[os.PathLike[Any]] = None) -> Path
     )
 
 
-def load_config(config_path_name: Optional[os.PathLike[Any]] = None) -> Config:
+def load_config_with_message(
+    config_path_name: Optional[os.PathLike[Any]] = None,
+) -> tuple[Config, str]:
     config_path = get_config_path(config_path_name)
 
     with open(config_path, "rb") as f:
         config = tomllib.load(f)
 
-    # Config will contain all variables in a dict
+    keys_in_environ = set(config.keys()).intersection(os.environ.keys())
+    override_message = (
+        f" with overriding environment variables: {keys_in_environ}"
+        if keys_in_environ
+        else ""
+    )
+
     config |= os.environ  # override loaded values with environment variables
 
-    return Config.model_validate(config)
+    config_message = f"config from {config_path}{override_message}"
+
+    return Config.model_validate(config), config_message
+
+
+def load_config(config_path_name: Optional[os.PathLike[Any]] = None) -> Config:
+    config, _ = load_config_with_message(config_path_name)
+
+    return config

@@ -28,7 +28,7 @@ from apiserver.data.context.update import ctx_reg as update_reg
 from apiserver.data.context.ranking import ctx_reg as ranking_reg
 from apiserver.data.context.authorize import ctx_reg as authrz_app_reg
 from apiserver.define import DEFINE
-from apiserver.env import load_config, Config
+from apiserver.env import Config, load_config_with_message
 from apiserver.resources import res_path, project_path
 
 
@@ -56,7 +56,7 @@ async def app_startup(dsrc_inst: Source) -> Source:
     # Safe startup events that do not depend on the environment, can be included in
     # the 'create_app()' above
 
-    config = load_config()
+    config, config_message = load_config_with_message()
 
     if config.APISERVER_ENV not in DEFINE.allowed_envs:
         raise RuntimeError(
@@ -75,6 +75,7 @@ async def app_startup(dsrc_inst: Source) -> Source:
                 " please run `npm run build` in /authpage directory."
             )
 
+    logger.debug(f"Starting up with {config_message}")
     dsrc_inst = safe_startup(dsrc_inst, config)
     logger.debug("Source instantiated, running startup...")
     # Db connections, etc.

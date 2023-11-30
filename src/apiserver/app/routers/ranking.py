@@ -34,6 +34,13 @@ ranking_admin_router = APIRouter(prefix="/class", tags=["ranking"])
 ranking_members_router = APIRouter(prefix="/class", tags=["ranking"])
 
 
+@old_router.get("/admin/ranking/update/")
+async def admin_update_ranking_old(
+    new_event: NewEvent, dsrc: SourceDep, app_context: AppContext
+) -> None:
+    return await admin_update_ranking(new_event, dsrc, app_context)
+
+
 @ranking_admin_router.post("/update/")
 async def admin_update_ranking(
     new_event: NewEvent, dsrc: SourceDep, app_context: AppContext

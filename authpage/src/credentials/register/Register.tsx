@@ -70,7 +70,7 @@ let initialState: RegisterState = {
     date_of_birth: "2019-02-25",
     birthday_check: false,
     student: false,
-    eduinstitution: "",
+    eduinstitution: "TU Delft",
     eduinstitution_other: ""
 }
 
@@ -166,7 +166,17 @@ const Register = () => {
         e.preventDefault()
 
         if (formIsValid()) {
-            clientRegister(state).then(
+            var eduinstitution;
+            if (!state.student) {
+                eduinstitution = "";
+            } else {
+                eduinstitution = state.eduinstitution === "Anders, namelijk:" 
+                    ? state.eduinstitution_other 
+                    : state.eduinstitution;
+            }
+            const submitState = { ...state, eduinstitution }
+
+            clientRegister(submitState).then(
                 (result) => {
                     if (result) {
                         window.location.assign(redirectUrl)
@@ -242,6 +252,7 @@ const Register = () => {
                     <input id="student" type="checkbox" name="student"
                             onChange={handleCheckboxChange}/>
                 </div>
+                edu:{state.eduinstitution}
                 <div className={"dropdown" + (state.student ? "": " inputHidden")}>
                     <label >Onderwijsinstelling:</label>
                     <select id="eduinstitution" name="eduinstitution" value={state.eduinstitution}

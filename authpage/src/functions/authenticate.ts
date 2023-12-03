@@ -22,22 +22,14 @@ export async function clientRegister(registerState: RegisterState) {
         const {server_message, auth_id} = OpaqueResponse.parse(res)
 
         const message2 = client_register_finish_wasm(register_state, registerState.password, server_message)
-
-        var eduinstitution;
-        if (!registerState.student) {
-            eduinstitution = "";
-        } else {
-            eduinstitution = registerState.eduinstitution === "Anders, namelijk:" ?
-            registerState.eduinstitution_other : registerState.eduinstitution;
-        }
-        
+ 
         const register_finish = {
             "email": registerState.email,
             "client_request": message2,
             "auth_id": auth_id,
             "register_id": registerState.register_id,
             "callname": registerState.callname,
-            eduinstitution,
+            eduinstitution: registerState.eduinstitution,
             birthdate: registerState.date_of_birth,
             age_privacy: registerState.birthday_check
         }

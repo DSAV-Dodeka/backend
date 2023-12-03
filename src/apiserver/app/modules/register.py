@@ -93,3 +93,5 @@ async def finalize_save_register(
     )
 
     await save_registration(context, dsrc, password_file, new_userdata)
+
+    logger.debug(f"Registration finished for: {new_userdata}")

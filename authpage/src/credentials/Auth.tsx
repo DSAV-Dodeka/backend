@@ -135,7 +135,7 @@ const Auth = () => {
                                 onChange={e => setForgotEmail(e.target.value)}/>
                             <p className={"formStatus " + (forgotOk ? "okForgot" : "badForgot")}>{forgotStatus} </p>
                             <button id="forgot_submit_button" type="submit">Verzenden</button>
-                            <button onClick={handleForgot} className="forgotPassword">Inloggen?</button>
+                            <button type="button" onClick={handleForgot} className="forgotPassword">Inloggen?</button>
                             
                         </form> 
                     :   <form className="form" onSubmit={handleSubmit}>
@@ -145,7 +145,7 @@ const Auth = () => {
                             onChange={e => setPassword(e.target.value)} />
                             <p className="formStatus">{status}{showLink && <a href={login_url}>link</a>}</p>
                             <button id="submit_button" type="submit">Inloggen</button>                     
-                            <button onClick={handleForgot} className="forgotPassword">Wachtwoord vergeten?</button>
+                            <button type="button" onClick={handleForgot} className="forgotPassword">Wachtwoord vergeten?</button>
                         </form>
                 }
             </div>

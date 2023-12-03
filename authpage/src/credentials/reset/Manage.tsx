@@ -5,6 +5,7 @@ import {passUpdate} from "../../functions/authenticate";
 import config from "../../config";
 import {new_err} from "../../functions/error";
 import Back from "../../components/Back";
+import Title from "../../components/Title";
 const PasswordStrength = React.lazy(() => import('../../components/PasswordStrength'));
 
 const redirectUrl = `${config.client_location}/registered`
@@ -92,7 +93,7 @@ const Manage = () => {
     return (
         <div className="backend_page">
             <Back />
-            <h1 className="title">Wachtwoord veranderen</h1>
+            <Title title="Wachtwoord veranderen" />
             {urlOk && (
                 <><p className="largeText">Wijzig hieronder je wachtwoord voor je account met e-mail: {email}.</p>
                 <form className="form" onSubmit={handleSubmit}>

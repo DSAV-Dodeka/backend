@@ -6,6 +6,7 @@ import "./Auth.scss"
 import {back_post, catch_api} from "../functions/api";
 import {new_err} from "../functions/error";
 import Back from "../components/Back";
+import Title from "../components/Title";
 
 const login_url = `${config.client_location}/lg`
 
@@ -122,28 +123,30 @@ const Auth = () => {
     return (
         <div className="backend_page">
             <Back />
+            <Title title="Inloggen" />
             <div className="form_container">
-                <h1 className="title">INLOGGEN</h1>
-                <p className="largeText">{info}</p>
-                {showForgot ?
-                    <form className="form" onSubmit={handleSubmitForgot}>
-                        <label className="forgotLabel" htmlFor="forgotEmail">Vul je e-mail hieronder in om een mail te ontvangen waarmee je je wachtwoord opnieuw in kunt stellen.</label>
-                        <input id="forgotEmail" placeholder="E-mail" type="text" value={forgotEmail}
-                            onChange={e => setForgotEmail(e.target.value)}/>
-                        <p className={"formStatus " + (forgotOk ? "okForgot" : "badForgot")}>{forgotStatus} </p>
-                        <button id="forgot_submit_button" type="submit">Verzenden</button>
-                        <button onClick={handleForgot} className="forgotPassword">Inloggen?</button>
-                        
-                    </form> :
-                    <form className="form" onSubmit={handleSubmit}>
-                        <input disabled={definedUser} id="username" placeholder="E-mail" type="text" value={username}
-                            onChange={e => setUsername(e.target.value)}/>
-                        <input type="password" placeholder="Wachtwoord" value={password}
-                           onChange={e => setPassword(e.target.value)} />
-                        <p className="formStatus">{status}{showLink && <a href={login_url}>link</a>}</p>
-                        <button id="submit_button" type="submit">Inloggen</button><br />                        
-                        <button onClick={handleForgot} className="forgotPassword">Wachtwoord vergeten?</button>
-                    </form>
+                {info &&
+                    <p className="largeText">{info}</p>
+                }   
+                {showForgot
+                    ?   <form className="form" onSubmit={handleSubmitForgot}>
+                            <label className="forgotLabel" htmlFor="forgotEmail">Vul je e-mail hieronder in om een mail te ontvangen waarmee je je wachtwoord opnieuw in kunt stellen.</label>
+                            <input id="forgotEmail" placeholder="E-mail" type="text" value={forgotEmail}
+                                onChange={e => setForgotEmail(e.target.value)}/>
+                            <p className={"formStatus " + (forgotOk ? "okForgot" : "badForgot")}>{forgotStatus} </p>
+                            <button id="forgot_submit_button" type="submit">Verzenden</button>
+                            <button type="button" onClick={handleForgot} className="forgotPassword">Inloggen?</button>
+                            
+                        </form> 
+                    :   <form className="form" onSubmit={handleSubmit}>
+                            <input disabled={definedUser} id="username" placeholder="E-mail" type="text" value={username}
+                                onChange={e => setUsername(e.target.value)}/>
+                            <input type="password" placeholder="Wachtwoord" value={password}
+                            onChange={e => setPassword(e.target.value)} />
+                            <p className="formStatus">{status}{showLink && <a href={login_url}>link</a>}</p>
+                            <button id="submit_button" type="submit">Inloggen</button>                     
+                            <button type="button" onClick={handleForgot} className="forgotPassword">Wachtwoord vergeten?</button>
+                        </form>
                 }
             </div>
             

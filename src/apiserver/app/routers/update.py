@@ -68,6 +68,7 @@ async def request_password_change(
     params = {"reset_id": flow_id, "email": change_pass.email}
     reset_url = f"{DEFINE.credentials_url}reset/?{urlencode(params)}"
 
+    logger.opt(ansi=True).debug(f"Creating password reset email with url <u><red>{reset_url}</red></u>")
     send_reset_email(
         background_tasks,
         change_pass.email,
@@ -88,14 +89,14 @@ async def update_password_start(
 ) -> PasswordResponse:
     stored_email = await data.trs.pop_string(dsrc, update_pass.flow_id)
     if stored_email is None:
-        reason = "No reset has been requested for this user."
+        reason = f"Password reset of account {update_pass.email}: No reset has been requested for this user."
         raise ErrorResponse(
             400, err_type="invalid_reset", err_desc=reason, debug_key="no_user_reset"
         )
 
     if stored_email != update_pass.email:
         reason = "Emails do not match for this reset!"
-        logger.debug(reason)
+        logger.debug(f"{reason}: {stored_email} != {update_pass.email}")
         raise ErrorResponse(
             400,
             err_type="invalid_reset",
@@ -103,9 +104,20 @@ async def update_password_start(
             debug_key="reset_no_email_match",
         )
 
-    async with data.get_conn(dsrc) as conn:
-        u = await ops.user.get_user_by_email(conn, update_pass.email)
+    try:
+        async with data.get_conn(dsrc) as conn:
+            u = await ops.user.get_user_by_email(conn, update_pass.email)
+    except NoDataError:
+        reason = "User no longer exists!"
+        logger.debug(reason)
+        raise ErrorResponse(
+            400,
+            err_type="invalid_reset",
+            err_desc=reason,
+            debug_key="reset_user_not_exists",
+        )
 
+    logger.debug(f"Initiating password reset for user {u.user_id} with email {update_pass.email}")
     return await send_register_start(
         dsrc.store, auth_context.register_ctx, u.user_id, update_pass.client_request
     )
@@ -124,7 +136,7 @@ async def update_password_finish(
     try:
         saved_state = await data.trs.reg.get_register_state(dsrc, update_finish.auth_id)
     except NoDataError as e:
-        logger.debug(e.message)
+        logger.debug(f"Reset {update_finish} does not exist: {e.message}")
         reason = "Reset not initialized or expired."
         raise ErrorResponse(
             400, err_type="invalid_reset", err_desc=reason, debug_key="no_reset_start"
@@ -135,6 +147,8 @@ async def update_password_finish(
     await change_password(
         dsrc.store, data.schema.OPS, password_file, saved_state.user_id
     )
+
+    logger.debug(f"Changed password for {saved_state.user_id}")
 
 
 class UpdateEmail(BaseModel):

@@ -230,6 +230,7 @@ async def confirm_join(
         )
         await data.signedup.confirm_signup(conn, signup_email)
 
+    logger.debug(f"Confirmed onboard for {signup_email} = {signed_up.firstname} {signed_up.lastname}")
     info = {
         "register_id": register_id,
         "firstname": signed_up.firstname,

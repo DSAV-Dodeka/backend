@@ -152,14 +152,16 @@ async def update_email(
     user_id = new_email.user_id
 
     # THROWS ErrorResponse
-    assert verify_user(member, user_id)
+    verify_user(member, user_id)
 
     try:
         async with data.get_conn(dsrc) as conn:
             u = await ops.user.get_user_by_id(conn, user_id)
     except NoDataError:
+        message = f"User {user_id} updating email to {new_email.new_email} no longer exists."
+        logger.debug(message)
         raise ErrorResponse(
-            400, "bad_update", "User no longer exists.", "update_user_empty"
+            400, "bad_update", message, "update_user_empty"
         )
     old_email = u.email
 
@@ -180,7 +182,9 @@ async def update_email(
     )
 
     await data.trs.reg.store_update_email(dsrc, user_id, state)
+    logger.debug(f"Stored user {user_id} email change from {old_email} to {new_email.new_email} with flow_id {flow_id}.")
 
+    logger.opt(ansi=True).debug(f"Creating email change email with url <red><u>{reset_url}</u></red>")
     send_change_email_email(
         background_tasks,
         new_email.new_email,
@@ -211,7 +215,7 @@ async def update_email_check(
             auth_context.login_ctx, dsrc.store, update_check.code
         )
     except NoDataError as e:
-        logger.debug(e.message)
+        logger.debug(f"No flow_user for code {update_check.code} with error {e.message}")
         reason = "Expired or missing auth code"
         raise ErrorResponse(
             status_code=400,
@@ -219,6 +223,8 @@ async def update_email_check(
             err_desc=reason,
             debug_key="empty_flow",
         )
+    
+    logger.debug(f"flow_user found for code {update_check.code}: {flow_user.user_id}")
 
     try:
         stored_email = await data.trs.reg.get_update_email(dsrc, flow_user.user_id)
@@ -233,10 +239,12 @@ async def update_email_check(
         )
 
     user_id = stored_email.user_id
+    logger.debug(f"email change request found for flow_user: {stored_email}")
     # The flow ID is the proof that the person who get the email is requesting the change
     # The code proves the person has the password, the flow ID proves the person has the old email
     if stored_email.flow_id != update_check.flow_id:
         reason = "Update check code and update flow ID do not match!"
+        logger.debug(f"{reason} code flow_id: {update_check.flow_id}")
         raise ErrorResponse(
             400,
             err_type="bad_update",
@@ -245,7 +253,17 @@ async def update_email_check(
         )
 
     async with data.get_conn(dsrc) as conn:
-        u = await ops.user.get_user_by_id(conn, user_id)
+        try:
+            u = await ops.user.get_user_by_id(conn, user_id)
+        except NoDataError:
+            reason = "User for update email no longer exists."
+            logger.debug(reason)
+            raise ErrorResponse(
+                400,
+                err_type="bad_update",
+                err_desc=reason,
+                debug_key="update_email_user_not_exists"
+            )
 
         # If someone changed their email by now, we do not want it possible to happen again
         if stored_email.old_email != u.email:
@@ -265,6 +283,7 @@ async def update_email_check(
         )
         if count_ud != 1:
             raise DataError("Internal data error.", "user_data_error")
+    logger.debug(f"User {user_id} successfully changed email from {stored_email.old_email} to {stored_email.new_email}.")
 
     return ChangedEmailResponse(
         old_email=stored_email.old_email, new_email=stored_email.new_email

@@ -1,3 +1,4 @@
+from loguru import logger
 import opaquepy as opq
 
 from auth.core.model import SavedRegisterState
@@ -19,4 +20,5 @@ async def send_register_start(
 
     auth_id = await store_auth_register_state(context, store, user_id, saved_state)
 
+    logger.debug(f"Stored register start for user_id {user_id} with auth_id {auth_id}.")
     return PasswordResponse(server_message=response, auth_id=auth_id)

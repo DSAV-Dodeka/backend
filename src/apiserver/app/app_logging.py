@@ -9,6 +9,7 @@ from loguru import logger
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 from apiserver.env import Config
+from auth.core.util import random_time_hash_hex
 
 
 # copied from loguru docs
@@ -51,18 +52,22 @@ def enable_libraries() -> None:
     logger.enable("datacontext")
 
 
-logger_format = (
-    "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
-    "<level>{level: <8}</level> | "
-    "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | "
-    "- <level>{message}</level>"
-)
+def logger_format(record: "loguru.Record") -> str:
+    extra = record["extra"]
+    if "request_id" not in extra:
+        extra["request_id"] = ""
+    return (
+        "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
+        "<level>{level: <8}</level> | "
+        "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | "
+        "- {extra[request_id]}<level>{message}</level>\n"
+    )
 
 
 def logger_stderr_sink() -> None:
     # Adapted from default loguru format
 
-    logger.add(sys.stderr, format=logger_format, level="DEBUG")
+    logger.add(sys.stderr, colorize=True, format=logger_format, level="DEBUG")
     # logger = logger.patch(lambda record: record["extra"].update(utc=datetime.utcnow()))
 
 
@@ -114,15 +119,17 @@ class LoggerMiddleware(BaseHTTPMiddleware):
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         # For the static files we do not want debug logs for every request
-        req_path_parts = request.url.path.split("/")
-        if len(req_path_parts) < 1:
-            level = "DEBUG"
-        else:
-            level = "TRACE" if req_path_parts[1] in self.trace_routes else "DEBUG"
+        request_id = random_time_hash_hex(short=True) + ": "
+        with logger.contextualize(request_id=request_id):
+            req_path_parts = request.url.path.split("/")
+            if len(req_path_parts) < 1:
+                level = "DEBUG"
+            else:
+                level = "TRACE" if req_path_parts[1] in self.trace_routes else "DEBUG"
 
-        logger.log(level, request.url.path)
+            logger.log(level, request.url.path)
 
-        response = await call_next(request)
-        logger.log(level, response.status_code)
+            response = await call_next(request)
+            logger.log(level, response.status_code)
 
         return response

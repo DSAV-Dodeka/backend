@@ -2,6 +2,7 @@ from typing import Optional, Any, TypedDict
 
 
 from fastapi import BackgroundTasks
+from loguru import logger
 
 from apiserver.env import Config
 from apiserver.lib.actions.mail import send_email_vars
@@ -25,6 +26,7 @@ class MailServer(TypedDict):
 
 def mail_from_config(config: Config) -> Optional[MailServer]:
     if not config.MAIL_ENABLED:
+        logger.debug("Mail disabled, not sending email.")
         return None
     return {
         "mail_pass": config.MAIL_PASS,

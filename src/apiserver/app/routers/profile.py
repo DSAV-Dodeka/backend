@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 from apiserver.app.dependencies import RequireMember, SourceDep
 
-from apiserver.data.api.ud.userdata import get_userdata_by_id
 from apiserver.lib.model.entities import UserData
 from apiserver.app.routers.members import get_profile as get_profile_members
 

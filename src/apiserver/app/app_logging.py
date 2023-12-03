@@ -50,9 +50,9 @@ def enable_libraries() -> None:
     logger.enable("store")
     logger.enable("auth")
     logger.enable("datacontext")
-    
 
-def logger_format(record):
+
+def logger_format(record: "loguru.Record") -> str:
     extra = record["extra"]
     if "request_id" not in extra:
         extra["request_id"] = ""

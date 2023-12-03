@@ -129,7 +129,7 @@ async def email_confirm(confirm_req: EmailConfirm, dsrc: SourceDep) -> None:
         else:
             logger.debug(e.message)
             raise e
-        
+
     logger.debug(f"{signup.firstname} {signup.lastname} confirmed email {signup.email}")
 
 

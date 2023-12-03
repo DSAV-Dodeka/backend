@@ -237,7 +237,7 @@ async def update_email_check(
             err_desc=reason,
             debug_key="empty_flow",
         )
-    
+
     logger.debug(f"flow_user found for code {update_check.code}: {flow_user.user_id}")
 
     try:

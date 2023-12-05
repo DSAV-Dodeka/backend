@@ -252,7 +252,7 @@ const Register = () => {
                     <input id="student" type="checkbox" name="student"
                             onChange={handleCheckboxChange}/>
                 </div>
-                edu:{state.eduinstitution}
+
                 <div className={"dropdown" + (state.student ? "": " inputHidden")}>
                     <label >Onderwijsinstelling:</label>
                     <select id="eduinstitution" name="eduinstitution" value={state.eduinstitution}

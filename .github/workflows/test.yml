@@ -1,0 +1,14 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - ci
+
+jobs:
+  test_other:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
